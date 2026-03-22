@@ -11,8 +11,10 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     magic_link_expiry_minutes: int = 30
 
-    # Claude API (for AI agents)
-    anthropic_api_key: str = ""
+    # Novita AI (for chat + AI agents)
+    novita_api_key: str = "sk_jf256AwWuOLyXepaNHJKUP4f0uUOWudeCt4YbKOf3gM"
+    novita_base_url: str = "https://api.novita.ai/openai"
+    chat_model: str = "xiaomimimo/mimo-v2-flash"
 
     # Research engine
     parameter_golf_path: str = str(Path.home() / "parameter-golf")
@@ -20,12 +22,14 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 
-    # Tier limits (runs per month)
+    # Social posts: 1 per N completed experiments
+    posts_per_experiments: int = 50
+
+    # Tier limits (runs per month) — solo tiers, no team
     tier_limits: dict = {
-        "starter": {"explore": 50, "validate": 0, "full": 0, "concurrent": 1},
-        "researcher": {"explore": 200, "validate": 20, "full": 0, "concurrent": 3},
-        "pro": {"explore": -1, "validate": 100, "full": 5, "concurrent": 5},  # -1 = unlimited
-        "team": {"explore": -1, "validate": 100, "full": 5, "concurrent": 5},
+        "starter": {"explore": 500, "validate": 0, "full": 0, "concurrent": 1},
+        "researcher": {"explore": 2000, "validate": 200, "full": 0, "concurrent": 3},
+        "pro": {"explore": -1, "validate": 1000, "full": 50, "concurrent": 5},  # -1 = unlimited
         "admin": {"explore": -1, "validate": -1, "full": -1, "concurrent": -1},
     }
 

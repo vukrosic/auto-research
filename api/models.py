@@ -120,6 +120,24 @@ class GPU(Base):
     last_seen = Column(DateTime, nullable=True)
 
 
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String, nullable=False)  # user / assistant
+    content = Column(Text, nullable=False)
+
+    # Token usage (assistant messages only)
+    input_tokens = Column(Integer, default=0)
+    cache_read_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    cost_usd = Column(Float, default=0.0)
+    latency_ms = Column(Integer, default=0)
+
+    created_at = Column(DateTime, default=utcnow)
+
+
 class SupportTicket(Base):
     __tablename__ = "support_tickets"
 

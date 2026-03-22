@@ -6,446 +6,205 @@
     <title>Auto-Research</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root {
-            --bg: #0a0a0f;
-            --bg2: #12121a;
-            --bg3: #1a1a26;
-            --border: #2a2a3a;
-            --text: #e0e0e8;
-            --text2: #8888a0;
-            --accent: #6c5ce7;
-            --accent2: #a29bfe;
-            --green: #00b894;
-            --red: #ff6b6b;
-            --yellow: #ffd93d;
+            --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a26;
+            --border: #2a2a3a; --text: #e0e0e8; --text2: #8888a0;
+            --accent: #6c5ce7; --accent2: #a29bfe;
+            --green: #00b894; --red: #ff6b6b; --yellow: #ffd93d;
             --radius: 12px;
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        /* Layout */
-        .app {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .sidebar {
-            width: 240px;
-            background: var(--bg2);
-            border-right: 1px solid var(--border);
-            padding: 20px 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-logo {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 8px;
-        }
-
-        .sidebar-logo h1 {
-            font-size: 18px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar-logo span {
-            font-size: 11px;
-            color: var(--text2);
-        }
-
-        .nav-item {
-            padding: 10px 20px;
-            cursor: pointer;
-            color: var(--text2);
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.15s;
-        }
-
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .app { display: flex; min-height: 100vh; }
+        .sidebar { width: 240px; background: var(--bg2); border-right: 1px solid var(--border); padding: 20px 0; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+        .sidebar-logo h1 { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar-logo span { font-size: 11px; color: var(--text2); }
+        .nav-item { padding: 10px 20px; cursor: pointer; color: var(--text2); font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.15s; }
         .nav-item:hover { background: var(--bg3); color: var(--text); }
         .nav-item.active { color: var(--accent2); background: var(--bg3); border-right: 2px solid var(--accent); }
-
         .nav-icon { width: 18px; text-align: center; }
-
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .topbar {
-            height: 56px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-        }
-
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .topbar { height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
         .topbar h2 { font-size: 16px; font-weight: 600; }
-
-        .content {
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-        }
-
-        /* Cards */
-        .card {
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            margin-bottom: 16px;
-        }
-
-        .card h3 {
-            font-size: 14px;
-            color: var(--text2);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-        }
-
-        .stat-card .label {
-            font-size: 12px;
-            color: var(--text2);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-card .value {
-            font-size: 28px;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        .stat-card .sub {
-            font-size: 12px;
-            color: var(--text2);
-            margin-top: 2px;
-        }
-
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            text-align: left;
-            padding: 10px 12px;
-            font-size: 11px;
-            color: var(--text2);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        td {
-            padding: 12px;
-            font-size: 14px;
-            border-bottom: 1px solid var(--border);
-        }
-
+        .content { flex: 1; padding: 24px; overflow-y: auto; }
+        .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+        .card h3 { font-size: 14px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+        .stat-card .label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+        .stat-card .sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px 12px; font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+        td { padding: 12px; font-size: 14px; border-bottom: 1px solid var(--border); }
         tr:hover { background: var(--bg3); }
-
-        /* Status badges */
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
         .badge-queued { background: #2d2d3f; color: var(--text2); }
         .badge-running { background: #1a3a2a; color: var(--green); }
         .badge-completed { background: #1a2a3a; color: #74b9ff; }
         .badge-failed { background: #3a1a1a; color: var(--red); }
-
-        /* Buttons */
-        .btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.15s;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
+        .badge-upcoming { background: #2d2d3f; color: var(--text2); }
+        .badge-active { background: #1a3a2a; color: var(--green); }
+        .badge-idle, .badge-online { background: #1a2a3a; color: #74b9ff; }
+        .badge-offline, .badge-unknown { background: #3a1a1a; color: var(--red); }
+        .badge-training { background: #1a3a2a; color: var(--green); }
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+        .btn-primary { background: var(--accent); color: white; }
         .btn-primary:hover { background: var(--accent2); }
-
-        .btn-secondary {
-            background: var(--bg3);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-
+        .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
         .btn-secondary:hover { background: var(--border); }
-
-        /* Form */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            color: var(--text2);
-            margin-bottom: 6px;
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            border-color: var(--accent);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        /* Chat */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 140px);
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 0;
-        }
-
-        .chat-msg {
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            border-radius: 12px;
-            max-width: 80%;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .chat-msg.user {
-            background: var(--accent);
-            color: white;
-            margin-left: auto;
-        }
-
-        .chat-msg.ai {
-            background: var(--bg3);
-            border: 1px solid var(--border);
-        }
-
-        .chat-input {
-            display: flex;
-            gap: 8px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border);
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 12px 16px;
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            color: var(--text);
-            font-size: 14px;
-            outline: none;
-        }
-
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-danger { background: #3a1a1a; color: var(--red); border: 1px solid #4a2a2a; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .chat-container { display: flex; flex-direction: column; height: calc(100vh - 140px); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 16px 0; }
+        .chat-msg { padding: 12px 16px; margin-bottom: 8px; border-radius: 12px; max-width: 80%; font-size: 14px; line-height: 1.5; }
+        .chat-msg.user { background: var(--accent); color: white; margin-left: auto; }
+        .chat-msg.ai { background: var(--bg3); border: 1px solid var(--border); }
+        .chat-input { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+        .chat-input input { flex: 1; padding: 12px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; }
         .chat-input input:focus { border-color: var(--accent); }
-
-        /* Leaderboard */
         .rank-1 { color: #ffd700; font-weight: 700; }
         .rank-2 { color: #c0c0c0; font-weight: 700; }
         .rank-3 { color: #cd7f32; font-weight: 700; }
-
         .metric-good { color: var(--green); }
-        .metric-bad { color: var(--red); }
-
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-        }
-
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
-
-        .modal {
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            width: 500px;
-            max-width: 90vw;
-        }
-
-        .modal h2 {
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        /* Tier badge */
-        .tier { font-size: 11px; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; width: 500px; max-width: 90vw; }
+        .modal h2 { font-size: 18px; margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+        .tier { font-size: 11px; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
         .tier-starter { background: #2d2d3f; color: var(--text2); }
         .tier-researcher { background: #1a2a3a; color: #74b9ff; }
         .tier-pro { background: #2a1a3a; color: var(--accent2); }
+        .tier-team { background: #2a2a1a; color: var(--yellow); }
         .tier-admin { background: #3a2a1a; color: var(--yellow); }
-
-        /* Empty state */
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text2);
-        }
-
+        .empty { text-align: center; padding: 60px 20px; color: var(--text2); }
         .empty h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
         .empty p { margin-bottom: 20px; }
+        .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 40px; width: 400px; text-align: center; }
+        .login-box h1 { font-size: 24px; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .login-box p { color: var(--text2); margin-bottom: 24px; font-size: 14px; }
+        .login-box .error { color: var(--red); font-size: 13px; margin-top: 8px; }
+        .progress-bar { background: var(--bg); border-radius: 4px; height: 8px; overflow: hidden; margin-top: 6px; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+        .pricing-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; text-align: center; transition: all 0.2s; }
+        .pricing-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .pricing-card.featured { border-color: var(--accent); box-shadow: 0 0 20px rgba(108,92,231,0.2); }
+        .pricing-card h3 { font-size: 20px; margin-bottom: 4px; }
+        .pricing-card .price { font-size: 36px; font-weight: 700; margin: 12px 0; }
+        .pricing-card .price span { font-size: 16px; color: var(--text2); font-weight: 400; }
+        .pricing-card ul { list-style: none; text-align: left; margin: 16px 0; }
+        .pricing-card li { padding: 6px 0; font-size: 14px; color: var(--text2); }
+        .pricing-card li strong { color: var(--text); }
+        .nav-bottom { margin-top: auto; border-top: 1px solid var(--border); padding-top: 8px; }
+        .nav-admin-badge { font-size: 9px; background: #3a2a1a; color: var(--yellow); border-radius: 3px; padding: 1px 4px; margin-left: auto; font-weight: 700; letter-spacing: 0.5px; }
+        .chat-meta { font-size: 11px; color: var(--text2); margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .chat-meta span { background: var(--bg2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; }
+        .chat-total-cost { font-size: 12px; color: var(--text2); padding: 6px 12px; background: var(--bg3); border-radius: 6px; border: 1px solid var(--border); }
+        /* Markdown rendering in chat */
+        .chat-msg.ai h1,.chat-msg.ai h2,.chat-msg.ai h3 { margin: 8px 0 4px; font-size: 14px; color: var(--text); }
+        .chat-msg.ai p { margin: 4px 0; }
+        .chat-msg.ai ul,.chat-msg.ai ol { margin: 4px 0 4px 16px; }
+        .chat-msg.ai li { margin: 2px 0; }
+        .chat-msg.ai code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+        .chat-msg.ai pre { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
+        .chat-msg.ai pre code { background: none; padding: 0; }
+        .chat-msg.ai strong { color: var(--text); font-weight: 600; }
+        .chat-msg.ai hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+        .chat-msg.ai table { margin: 6px 0; font-size: 13px; }
+        .chat-msg.ai th { background: rgba(0,0,0,0.2); }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="app">
-        <!-- Sidebar -->
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container" style="display:none;">
+        <div class="login-box">
+            <h1>Auto-Research</h1>
+            <p>Autonomous AI Research Platform</p>
+            <div class="form-group">
+                <input type="email" id="login-email" placeholder="Email">
+            </div>
+            <div class="form-group">
+                <input type="text" id="login-key" placeholder="API Key" style="font-family:monospace;">
+            </div>
+            <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="doLogin()">Sign In</button>
+            <div id="login-error" class="error"></div>
+            <div style="margin-top:20px;font-size:13px;color:var(--text2);">
+                Don't have an account? <a href="#" onclick="showPage('pricing')" style="color:var(--accent2);">View plans</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- App -->
+    <div class="app" id="app-screen" style="display:none;">
         <div class="sidebar">
             <div class="sidebar-logo">
                 <h1>Auto-Research</h1>
                 <span>Autonomous AI Research</span>
             </div>
-            <div class="nav-item active" onclick="showPage('dashboard')">
-                <span class="nav-icon">~</span> Dashboard
+            <div class="nav-item active" data-page="chat">
+                <span class="nav-icon">🤖</span> AI Research Chat
             </div>
-            <div class="nav-item" onclick="showPage('experiments')">
-                <span class="nav-icon">></span> Experiments
+            <div class="nav-item" data-page="dashboard">
+                <span class="nav-icon">📊</span> Dashboard
             </div>
-            <div class="nav-item" onclick="showPage('competitions')">
-                <span class="nav-icon">#</span> Competitions
+            <div class="nav-item" data-page="experiments">
+                <span class="nav-icon">🧪</span> Experiments
             </div>
-            <div class="nav-item" onclick="showPage('results')">
-                <span class="nav-icon">=</span> Results
+            <div class="nav-item" data-page="competitions">
+                <span class="nav-icon">🏆</span> Competitions
             </div>
-            <div class="nav-item" onclick="showPage('chat')">
-                <span class="nav-icon">@</span> AI Chat
+            <div class="nav-item" data-page="results">
+                <span class="nav-icon">📈</span> Results
             </div>
-            <div class="nav-item" onclick="showPage('fleet')">
-                <span class="nav-icon">%</span> GPU Fleet
+            <div class="nav-item" data-page="fleet" id="nav-fleet" style="display:none;">
+                <span class="nav-icon">🖥️</span> GPU Fleet <span class="nav-admin-badge">ADMIN</span>
             </div>
-            <div class="nav-item" onclick="showPage('admin')" style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px;">
-                <span class="nav-icon">*</span> Admin
+            <div class="nav-bottom">
+                <div class="nav-item" data-page="pricing">
+                    <span class="nav-icon">💎</span> Pricing
+                </div>
+                <div class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span> Profile
+                </div>
+                <div class="nav-item" data-page="admin" id="nav-admin" style="display:none;">
+                    <span class="nav-icon">⚙️</span> Admin <span class="nav-admin-badge">ADMIN</span>
+                </div>
             </div>
         </div>
 
-        <!-- Main -->
         <div class="main">
             <div class="topbar">
                 <h2 id="page-title">Dashboard</h2>
                 <div style="display:flex;gap:8px;align-items:center;">
-                    <span class="tier tier-admin">ADMIN</span>
-                    <span style="font-size:14px;">vuk@auto-research</span>
+                    <span class="tier" id="topbar-tier"></span>
+                    <span style="font-size:14px;" id="topbar-email"></span>
+                    <button class="btn btn-secondary btn-sm" onclick="doLogout()">Logout</button>
                 </div>
             </div>
-            <div class="content" id="content">
-                <!-- Pages rendered here by JS -->
-            </div>
+            <div class="content" id="content"></div>
         </div>
     </div>
 
-    <!-- New Experiment Modal -->
+    <!-- Modals -->
     <div class="modal-overlay" id="modal-new-exp">
         <div class="modal">
             <h2>New Experiment</h2>
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" id="exp-name" placeholder="e.g. deeper_model_test">
-            </div>
+            <div class="form-group"><label>Name</label><input type="text" id="exp-name" placeholder="e.g. deeper_model_test"></div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Template</label>
-                    <select id="exp-template">
-                        <option value="parameter_golf">Parameter Golf</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Stage</label>
-                    <select id="exp-stage">
-                        <option value="explore">Explore (500 steps)</option>
-                        <option value="validate">Validate (2000 steps)</option>
-                        <option value="full">Full (13780 steps)</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>Template</label><select id="exp-template"><option value="parameter_golf">Parameter Golf</option></select></div>
+                <div class="form-group"><label>Stage</label><select id="exp-stage" onchange="document.getElementById('exp-steps').value={explore:500,validate:2000,full:13780}[this.value]||500"><option value="explore">Explore (500 steps)</option><option value="validate">Validate (2000 steps)</option><option value="full">Full (13780 steps)</option></select></div>
             </div>
-            <div class="form-group">
-                <label>Steps</label>
-                <input type="number" id="exp-steps" value="500">
-            </div>
-            <div class="form-group">
-                <label>Config Overrides (one per line: KEY=value)</label>
-                <textarea id="exp-overrides" rows="4" placeholder="MATRIX_LR=0.08&#10;NUM_LAYERS=12&#10;MODEL_DIM=768"></textarea>
-            </div>
-            <div class="form-group">
-                <label>Competition (optional)</label>
-                <select id="exp-competition">
-                    <option value="">None</option>
-                </select>
-            </div>
+            <div class="form-group"><label>Steps</label><input type="number" id="exp-steps" value="500"></div>
+            <div class="form-group"><label>Config Overrides (one per line: KEY=value)</label><textarea id="exp-overrides" rows="4" placeholder="MATRIX_LR=0.08&#10;NUM_LAYERS=12"></textarea></div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal('modal-new-exp')">Cancel</button>
                 <button class="btn btn-primary" onclick="submitExperiment()">Submit</button>
@@ -453,32 +212,16 @@
         </div>
     </div>
 
-    <!-- New Competition Modal -->
     <div class="modal-overlay" id="modal-new-comp">
         <div class="modal">
             <h2>New Competition</h2>
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" id="comp-name" placeholder="e.g. 16MB Language Model Challenge">
-            </div>
-            <div class="form-group">
-                <label>Description</label>
-                <textarea id="comp-desc" rows="3" placeholder="Train the best 16MB language model..."></textarea>
-            </div>
+            <div class="form-group"><label>Name</label><input type="text" id="comp-name" placeholder="e.g. 16MB Language Model Challenge"></div>
+            <div class="form-group"><label>Description</label><textarea id="comp-desc" rows="3"></textarea></div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Max Steps</label>
-                    <input type="number" id="comp-steps" value="13780">
-                </div>
-                <div class="form-group">
-                    <label>Sponsor</label>
-                    <input type="text" id="comp-sponsor" placeholder="e.g. Novita AI">
-                </div>
+                <div class="form-group"><label>Max Steps</label><input type="number" id="comp-steps" value="13780"></div>
+                <div class="form-group"><label>Sponsor</label><input type="text" id="comp-sponsor"></div>
             </div>
-            <div class="form-group">
-                <label>Prize</label>
-                <input type="text" id="comp-prize" placeholder="e.g. $500 in GPU credits">
-            </div>
+            <div class="form-group"><label>Prize</label><input type="text" id="comp-prize" placeholder="e.g. $500 in GPU credits"></div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal('modal-new-comp')">Cancel</button>
                 <button class="btn btn-primary" onclick="submitCompetition()">Create</button>
@@ -486,659 +229,546 @@
         </div>
     </div>
 
-    <!-- Add GPU Modal -->
     <div class="modal-overlay" id="modal-add-gpu">
         <div class="modal">
             <h2>Add GPU</h2>
-            <div class="form-group">
-                <label>SSH Command (paste the full command)</label>
-                <input type="text" id="gpu-ssh-cmd" placeholder="ssh -p 62132 root@proxy.us-ca-6.gpu-instance.novita.ai" style="font-family:monospace;">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="gpu-password" placeholder="SSH password">
-            </div>
-            <div class="form-group">
-                <label>Name (optional — auto-generated if empty)</label>
-                <input type="text" id="gpu-name" placeholder="e.g. novita-h100-1">
-            </div>
+            <div class="form-group"><label>SSH Command (paste full command)</label><input type="text" id="gpu-ssh-cmd" placeholder="ssh -p 62132 root@proxy.us-ca-6.gpu-instance.novita.ai" style="font-family:monospace;"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="gpu-password"></div>
+            <div class="form-group"><label>Name (optional)</label><input type="text" id="gpu-name" placeholder="e.g. novita-h100-1"></div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal('modal-add-gpu')">Cancel</button>
-                <button class="btn btn-primary" onclick="addGPU()">Add & Test Connection</button>
+                <button class="btn btn-primary" onclick="addGPU()">Add & Test</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-add-user">
+        <div class="modal">
+            <h2>Add User</h2>
+            <div class="form-group"><label>Email</label><input type="email" id="au-email" placeholder="user@example.com"></div>
+            <div class="form-group"><label>Name</label><input type="text" id="au-name" placeholder="Full name"></div>
+            <div class="form-group"><label>Tier</label>
+                <select id="au-tier"><option value="starter">Starter ($9/mo)</option><option value="researcher" selected>Researcher ($29/mo)</option><option value="pro">Pro ($79/mo)</option><option value="admin">Admin</option></select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('modal-add-user')">Cancel</button>
+                <button class="btn btn-primary" onclick="addUser()">Create User</button>
             </div>
         </div>
     </div>
 
     <script>
-        const API = '';
+    const API = '';
+    let currentUser = null;
 
-        // State
-        let experiments = [];
-        let competitions = [];
+    // ---- API ----
+    async function api(path, opts = {}) {
+        try {
+            const res = await fetch(API + path, { headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', ...opts });
+            if (res.status === 401) { showLogin(); return null; }
+            return await res.json();
+        } catch (e) { console.error('API error:', e); return null; }
+    }
 
-        // API calls
-        async function api(path, opts = {}) {
-            try {
-                const res = await fetch(API + path, {
-                    headers: { 'Content-Type': 'application/json' },
-                    ...opts,
-                });
-                return await res.json();
-            } catch (e) {
-                console.error('API error:', e);
-                return null;
-            }
+    // ---- Auth ----
+    async function checkAuth() {
+        const me = await api('/auth/me');
+        if (me && me.id) {
+            currentUser = me;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            document.getElementById('topbar-email').textContent = me.email;
+            document.getElementById('topbar-tier').textContent = me.tier.toUpperCase();
+            document.getElementById('topbar-tier').className = 'tier tier-' + me.tier;
+            document.getElementById('nav-admin').style.display = me.tier === 'admin' ? 'flex' : 'none';
+            document.getElementById('nav-fleet').style.display = me.tier === 'admin' ? 'flex' : 'none';
+            renderChat();
+        } else {
+            showLogin();
         }
+    }
 
-        // Pages
-        function showPage(page) {
+    function showLogin() {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('app-screen').style.display = 'none';
+    }
+
+    async function doLogin() {
+        const email = document.getElementById('login-email').value.trim();
+        const key = document.getElementById('login-key').value.trim();
+        if (!email || !key) return;
+        const res = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, api_key: key }) });
+        if (res && res.id) {
+            document.getElementById('login-error').textContent = '';
+            checkAuth();
+        } else {
+            document.getElementById('login-error').textContent = res?.detail || 'Login failed';
+        }
+    }
+
+    async function doLogout() {
+        await api('/auth/logout', { method: 'POST' });
+        currentUser = null;
+        showLogin();
+    }
+
+    // ---- Navigation ----
+    document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+        el.addEventListener('click', () => {
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            event.target.closest('.nav-item').classList.add('active');
-            document.getElementById('page-title').textContent =
-                page.charAt(0).toUpperCase() + page.slice(1);
+            el.classList.add('active');
+            const page = el.dataset.page;
+            const titles = { chat: 'AI Research Chat', dashboard: 'Dashboard', experiments: 'Experiments', competitions: 'Competitions', results: 'Results', fleet: 'GPU Fleet', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
+            document.getElementById('page-title').textContent = titles[page] || page;
+            const r = { dashboard: renderDashboard, experiments: renderExperiments, competitions: renderCompetitions, results: renderResults, chat: renderChat, fleet: renderFleet, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
+            (r[page] || renderChat)();
+        });
+    });
 
-            const renderers = {
-                dashboard: renderDashboard,
-                experiments: renderExperiments,
-                competitions: renderCompetitions,
-                results: renderResults,
-                chat: renderChat,
-                fleet: renderFleet,
-                admin: renderAdmin,
-            };
-            (renderers[page] || renderDashboard)();
-        }
+    function showPage(page) {
+        const el = document.querySelector(`.nav-item[data-page="${page}"]`);
+        if (el) el.click();
+    }
 
-        // Dashboard
-        async function renderDashboard() {
-            const admin = await api('/admin/dashboard');
-            const exps = await api('/experiments/');
-            experiments = exps || [];
+    // ---- Dashboard ----
+    async function renderDashboard() {
+        const [admin, exps] = await Promise.all([api('/admin/dashboard'), api('/experiments/')]);
+        const experiments = exps || [];
+        const running = experiments.filter(e => e.status === 'running').length;
+        const queued = experiments.filter(e => e.status === 'queued').length;
+        const completed = experiments.filter(e => e.status === 'completed').length;
+        const best = experiments.filter(e => e.val_bpb).sort((a,b) => a.val_bpb - b.val_bpb)[0];
 
-            const running = experiments.filter(e => e.status === 'running').length;
-            const queued = experiments.filter(e => e.status === 'queued').length;
-            const completed = experiments.filter(e => e.status === 'completed').length;
-            const bestBpb = experiments
-                .filter(e => e.val_bpb)
-                .sort((a, b) => a.val_bpb - b.val_bpb)[0];
-
-            document.getElementById('content').innerHTML = `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="label">Running</div>
-                        <div class="value" style="color:var(--green)">${running}</div>
-                        <div class="sub">experiments active</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Queued</div>
-                        <div class="value">${queued}</div>
-                        <div class="sub">waiting for GPU</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Completed</div>
-                        <div class="value" style="color:var(--accent2)">${completed}</div>
-                        <div class="sub">total experiments</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Best val_bpb</div>
-                        <div class="value metric-good">${bestBpb ? bestBpb.val_bpb.toFixed(4) : '---'}</div>
-                        <div class="sub">${bestBpb ? bestBpb.name : 'no results yet'}</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                        <h3>Recent Experiments</h3>
-                        <button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button>
-                    </div>
-                    ${experiments.length ? `
-                    <table>
-                        <tr>
-                            <th>Name</th>
-                            <th>Stage</th>
-                            <th>Status</th>
-                            <th>Steps</th>
-                            <th>val_bpb</th>
-                            <th>Submitted</th>
-                        </tr>
-                        ${experiments.slice(0, 10).map(e => `
-                        <tr>
-                            <td><strong>${e.name}</strong></td>
-                            <td>${e.stage}</td>
-                            <td><span class="badge badge-${e.status}">${e.status}</span></td>
-                            <td>${e.current_step || 0}/${e.steps}</td>
-                            <td class="${e.val_bpb ? 'metric-good' : ''}">${e.val_bpb ? e.val_bpb.toFixed(4) : '---'}</td>
-                            <td style="color:var(--text2)">${timeAgo(e.queued_at)}</td>
-                        </tr>`).join('')}
-                    </table>` : `
-                    <div class="empty">
-                        <h3>No experiments yet</h3>
-                        <p>Submit your first experiment to get started</p>
-                        <button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button>
-                    </div>`}
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="label">Users</div>
-                        <div class="value">${admin?.total_users || 0}</div>
-                        <div class="sub">${admin?.active_users || 0} active</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Flagged Issues</div>
-                        <div class="value">${admin?.flagged_issues || 0}</div>
-                        <div class="sub">needs attention</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Experiments
-        async function renderExperiments() {
-            const exps = await api('/experiments/');
-            experiments = exps || [];
-
-            document.getElementById('content').innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                    <div>
-                        <span style="color:var(--text2)">${experiments.length} experiments</span>
-                    </div>
+        document.getElementById('content').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card"><div class="label">Running</div><div class="value" style="color:var(--green)">${running}</div><div class="sub">experiments active</div></div>
+                <div class="stat-card"><div class="label">Queued</div><div class="value">${queued}</div><div class="sub">waiting for GPU</div></div>
+                <div class="stat-card"><div class="label">Completed</div><div class="value" style="color:var(--accent2)">${completed}</div><div class="sub">total experiments</div></div>
+                <div class="stat-card"><div class="label">Best val_bpb</div><div class="value metric-good">${best ? best.val_bpb.toFixed(4) : '---'}</div><div class="sub">${best ? best.name : 'no results yet'}</div></div>
+            </div>
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <h3>Recent Experiments</h3>
                     <button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button>
                 </div>
-                <div class="card" style="padding:0;overflow:hidden;">
-                    <table>
-                        <tr>
-                            <th>Name</th>
-                            <th>Template</th>
-                            <th>Stage</th>
-                            <th>Status</th>
-                            <th>Progress</th>
-                            <th>Loss</th>
-                            <th>val_bpb</th>
-                            <th>GPU</th>
-                            <th></th>
-                        </tr>
-                        ${experiments.map(e => `
-                        <tr>
-                            <td><strong>${e.name}</strong></td>
-                            <td style="color:var(--text2)">${e.template}</td>
-                            <td>${e.stage}</td>
-                            <td><span class="badge badge-${e.status}">${e.status}</span></td>
-                            <td>${e.current_step || 0}/${e.steps}</td>
-                            <td>${e.current_loss ? e.current_loss.toFixed(4) : '---'}</td>
-                            <td class="${e.val_bpb ? 'metric-good' : ''}">${e.val_bpb ? e.val_bpb.toFixed(4) : '---'}</td>
-                            <td style="color:var(--text2)">${e.gpu_name || '---'}</td>
-                            <td>
-                                ${e.status === 'queued' || e.status === 'running' ?
-                                    `<button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="cancelExp(${e.id})">Cancel</button>` : ''}
-                            </td>
-                        </tr>`).join('')}
-                    </table>
+                ${experiments.length ? `<table><tr><th>Name</th><th>Stage</th><th>Status</th><th>Steps</th><th>val_bpb</th><th>Submitted</th></tr>
+                ${experiments.slice(0,10).map(e => `<tr><td><strong>${e.name}</strong></td><td>${e.stage}</td><td><span class="badge badge-${e.status}">${e.status}</span></td><td>${e.current_step||0}/${e.steps}</td><td class="${e.val_bpb?'metric-good':''}">${e.val_bpb?e.val_bpb.toFixed(4):'---'}</td><td style="color:var(--text2)">${timeAgo(e.queued_at)}</td></tr>`).join('')}</table>` :
+                `<div class="empty"><h3>No experiments yet</h3><p>Submit your first experiment to get started</p><button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button></div>`}
+            </div>`;
+    }
+
+    // ---- Experiments ----
+    async function renderExperiments() {
+        const exps = await api('/experiments/') || [];
+        document.getElementById('content').innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+                <span style="color:var(--text2)">${exps.length} experiments</span>
+                <button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden;"><table><tr><th>Name</th><th>Template</th><th>Stage</th><th>Status</th><th>Progress</th><th>val_bpb</th><th></th></tr>
+            ${exps.map(e => `<tr><td><strong>${e.name}</strong></td><td style="color:var(--text2)">${e.template}</td><td>${e.stage}</td><td><span class="badge badge-${e.status}">${e.status}</span></td><td>${e.current_step||0}/${e.steps}</td><td class="${e.val_bpb?'metric-good':''}">${e.val_bpb?e.val_bpb.toFixed(4):'---'}</td>
+            <td>${['queued','running'].includes(e.status)?`<button class="btn btn-secondary btn-sm" onclick="cancelExp(${e.id})">Cancel</button>`:''}</td></tr>`).join('')}</table></div>`;
+    }
+
+    // ---- Competitions ----
+    async function renderCompetitions() {
+        const comps = await api('/competitions/') || [];
+        document.getElementById('content').innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+                <span style="color:var(--text2)">${comps.length} competitions</span>
+                ${currentUser?.tier === 'admin' ? `<button class="btn btn-primary" onclick="openModal('modal-new-comp')">+ New Competition</button>` : ''}
+            </div>
+            ${comps.length ? comps.map(c => `
+            <div class="card">
+                <div style="display:flex;justify-content:space-between"><div><h3 style="font-size:18px;text-transform:none;letter-spacing:0;color:var(--text);margin-bottom:4px;">${c.name}</h3><p style="color:var(--text2);font-size:14px;margin-bottom:12px;">${c.description||''}</p></div><span class="badge badge-${c.status}">${c.status}</span></div>
+                <div style="display:flex;gap:24px;font-size:13px;color:var(--text2);">
+                    <span>Metric: <strong style="color:var(--text)">${c.metric}</strong></span>
+                    <span>Max steps: <strong style="color:var(--text)">${c.max_steps?.toLocaleString()}</strong></span>
+                    ${c.sponsor?`<span>Sponsor: <strong style="color:var(--text)">${c.sponsor}</strong></span>`:''}
+                    ${c.prize_description?`<span>Prize: <strong style="color:var(--yellow)">${c.prize_description}</strong></span>`:''}
                 </div>
-            `;
-        }
+                <div style="margin-top:12px;"><button class="btn btn-secondary" onclick="viewLeaderboard(${c.id})">View Leaderboard</button></div>
+            </div>`).join('') :
+            `<div class="empty"><h3>No competitions yet</h3><p>Competitions will appear here when created</p></div>`}`;
+    }
 
-        // Competitions
-        async function renderCompetitions() {
-            const comps = await api('/competitions/');
-            competitions = comps || [];
+    // ---- Results ----
+    async function renderResults() {
+        const exps = await api('/experiments/') || [];
+        const completed = exps.filter(e => e.status === 'completed' && e.val_bpb).sort((a,b) => a.val_bpb - b.val_bpb);
+        document.getElementById('content').innerHTML = `
+            <div class="card" style="padding:0;overflow:hidden;"><div style="padding:20px 20px 0;"><h3>All Results (ranked by val_bpb)</h3></div>
+            ${completed.length ? `<table><tr><th>Rank</th><th>Name</th><th>val_bpb</th><th>Stage</th><th>Steps</th></tr>
+            ${completed.map((e,i) => `<tr><td class="${i<3?'rank-'+(i+1):''}">#${i+1}</td><td><strong>${e.name}</strong></td><td class="metric-good" style="font-weight:600;">${e.val_bpb.toFixed(4)}</td><td>${e.stage}</td><td>${e.steps}</td></tr>`).join('')}</table>` :
+            `<div class="empty"><h3>No results yet</h3><p>Completed experiments will appear here</p></div>`}</div>`;
+    }
 
-            document.getElementById('content').innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                    <div>
-                        <span style="color:var(--text2)">${competitions.length} competitions</span>
-                    </div>
-                    <button class="btn btn-primary" onclick="openModal('modal-new-comp')">+ New Competition</button>
-                </div>
-                ${competitions.length ? competitions.map(c => `
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:start;">
-                        <div>
-                            <h3 style="font-size:18px;text-transform:none;letter-spacing:0;color:var(--text);margin-bottom:4px;">${c.name}</h3>
-                            <p style="color:var(--text2);font-size:14px;margin-bottom:12px;">${c.description || 'No description'}</p>
-                        </div>
-                        <span class="badge badge-${c.status === 'active' ? 'running' : c.status === 'completed' ? 'completed' : 'queued'}">${c.status}</span>
-                    </div>
-                    <div style="display:flex;gap:24px;font-size:13px;color:var(--text2);">
-                        <span>Metric: <strong style="color:var(--text)">${c.metric}</strong></span>
-                        <span>Max steps: <strong style="color:var(--text)">${c.max_steps?.toLocaleString()}</strong></span>
-                        ${c.sponsor ? `<span>Sponsor: <strong style="color:var(--text)">${c.sponsor}</strong></span>` : ''}
-                        ${c.prize_description ? `<span>Prize: <strong style="color:var(--yellow)">${c.prize_description}</strong></span>` : ''}
-                    </div>
-                    <div style="margin-top:12px;">
-                        <button class="btn btn-secondary" onclick="viewLeaderboard(${c.id})">View Leaderboard</button>
-                    </div>
-                </div>`).join('') : `
-                <div class="empty">
-                    <h3>No competitions yet</h3>
-                    <p>Create your first competition to get the community researching</p>
-                    <button class="btn btn-primary" onclick="openModal('modal-new-comp')">+ New Competition</button>
-                </div>`}
-            `;
-        }
+    // ---- Chat ----
+    // Chat state
+    let chatMsgs = [];
+    let chatTotalCost = 0;
+    let chatLoaded = false;
 
-        // Results
-        async function renderResults() {
-            const exps = await api('/experiments/');
-            const completed = (exps || []).filter(e => e.status === 'completed' && e.val_bpb);
-            completed.sort((a, b) => a.val_bpb - b.val_bpb);
+    function mdToHtml(text) {
+        if (typeof marked === 'undefined') return escHtml(text);
+        try { return marked.parse(text, {breaks: true}); } catch(e) { return escHtml(text); }
+    }
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-            document.getElementById('content').innerHTML = `
-                <div class="card" style="padding:0;overflow:hidden;">
-                    <div style="padding:20px 20px 0;">
-                        <h3>All Results (ranked by val_bpb)</h3>
-                    </div>
-                    ${completed.length ? `
-                    <table>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Name</th>
-                            <th>val_bpb</th>
-                            <th>Stage</th>
-                            <th>Steps</th>
-                            <th>Config</th>
-                        </tr>
-                        ${completed.map((e, i) => `
-                        <tr>
-                            <td class="${i < 3 ? 'rank-' + (i+1) : ''}">#${i + 1}</td>
-                            <td><strong>${e.name}</strong></td>
-                            <td class="metric-good" style="font-weight:600;">${e.val_bpb.toFixed(4)}</td>
-                            <td>${e.stage}</td>
-                            <td>${e.steps}</td>
-                            <td style="color:var(--text2);font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;">${e.config_overrides || '{}'}</td>
-                        </tr>`).join('')}
-                    </table>` : `
-                    <div class="empty">
-                        <h3>No results yet</h3>
-                        <p>Completed experiments with val_bpb scores will appear here</p>
-                    </div>`}
-                </div>
-            `;
-        }
+    function fmtCost(usd) {
+        if (!usd || usd === 0) return '$0.000000';
+        if (usd < 0.0001) return `$${usd.toFixed(8)}`;
+        return `$${usd.toFixed(6)}`;
+    }
 
-        // Chat
-        let chatMessages = [
-            { role: 'ai', text: 'Welcome to Auto-Research. I can help you design experiments, interpret results, or troubleshoot issues. What would you like to explore?' }
-        ];
+    function buildChatMeta(m) {
+        if (currentUser?.tier !== 'admin' || m.role !== 'ai' || !m.usage) return '';
+        const u = m.usage;
+        return `<div class="chat-meta">
+            <span>⏱ ${u.latency_ms}ms</span>
+            <span>↑ ${u.input_tokens} in${u.cache_read_tokens ? ` (${u.cache_read_tokens} cached)` : ''}</span>
+            <span>↓ ${u.output_tokens} out</span>
+            <span>💰 ${fmtCost(u.cost_usd)}</span>
+        </div>`;
+    }
 
-        function renderChat() {
-            document.getElementById('content').innerHTML = `
-                <div class="chat-container">
-                    <div class="chat-messages" id="chat-messages">
-                        ${chatMessages.map(m => `
-                            <div class="chat-msg ${m.role}">${m.text}</div>
-                        `).join('')}
-                    </div>
-                    <div class="chat-input">
-                        <input type="text" id="chat-input" placeholder="Ask about experiments, results, or research ideas..."
-                            onkeydown="if(event.key==='Enter')sendChat()">
-                        <button class="btn btn-primary" onclick="sendChat()">Send</button>
-                    </div>
-                </div>
-            `;
-            const msgs = document.getElementById('chat-messages');
-            msgs.scrollTop = msgs.scrollHeight;
-        }
+    function renderChatMessages() {
+        const el = document.getElementById('chat-messages');
+        if (!el) return;
+        el.innerHTML = chatMsgs.map(m => `
+            <div class="chat-msg ${m.role}">
+                ${m.role === 'ai' ? mdToHtml(m.text) : escHtml(m.text)}
+                ${buildChatMeta(m)}
+            </div>`).join('');
+        el.scrollTop = el.scrollHeight;
+    }
 
-        async function sendChat() {
-            const input = document.getElementById('chat-input');
-            const msg = input.value.trim();
-            if (!msg) return;
-
-            chatMessages.push({ role: 'user', text: msg });
-            input.value = '';
-            renderChat();
-
-            const res = await api('/chat/', {
-                method: 'POST',
-                body: JSON.stringify({ message: msg, context: 'research' }),
-            });
-
-            chatMessages.push({ role: 'ai', text: res?.response || 'Sorry, something went wrong.' });
-            renderChat();
-        }
-
-        // Fleet
-        let gpus = [];
-
-        async function renderFleet() {
-            gpus = await api('/fleet/') || [];
-
-            document.getElementById('content').innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                    <div>
-                        <span style="color:var(--text2)">${gpus.length} GPUs registered</span>
-                    </div>
-                    <button class="btn btn-primary" onclick="openModal('modal-add-gpu')">+ Add GPU</button>
-                </div>
-
-                ${gpus.length ? `
-                <div class="stats-grid">
-                    ${gpus.map(g => `
-                    <div class="stat-card" style="position:relative;">
-                        <div style="display:flex;justify-content:space-between;align-items:start;">
-                            <div>
-                                <div class="label">${g.name}</div>
-                                <div style="font-size:12px;color:var(--text2);margin-top:2px;">${g.host}:${g.port}</div>
-                            </div>
-                            <span class="badge badge-${g.status === 'training' ? 'running' : g.status === 'idle' || g.status === 'online' ? 'completed' : 'failed'}">${g.status}</span>
-                        </div>
-                        <div style="margin-top:12px;display:flex;gap:16px;font-size:13px;">
-                            ${g.gpu_utilization != null ? `<span>GPU: <strong>${g.gpu_utilization}%</strong></span>` : ''}
-                            ${g.gpu_temp != null ? `<span>Temp: <strong>${g.gpu_temp}C</strong></span>` : ''}
-                            ${g.current_experiment ? `<span>Exp: <strong>${g.current_experiment}</strong></span>` : ''}
-                            ${g.current_step ? `<span>Step: <strong>${g.current_step}</strong></span>` : ''}
-                        </div>
-                        <div style="margin-top:12px;display:flex;gap:6px;">
-                            <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="testGPU(${g.id})">Test</button>
-                            <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="statusGPU(${g.id})">Status</button>
-                            <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="openTerminal(${g.id}, '${g.name}')">Terminal</button>
-                            <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;color:var(--red);" onclick="removeGPU(${g.id}, '${g.name}')">Remove</button>
-                        </div>
-                        ${g.last_seen ? `<div style="font-size:11px;color:var(--text2);margin-top:8px;">Last seen: ${timeAgo(g.last_seen)}</div>` : ''}
-                    </div>`).join('')}
-                </div>` : `
-                <div class="empty">
-                    <h3>No GPUs registered</h3>
-                    <p>Paste an SSH command to add your first GPU</p>
-                    <button class="btn btn-primary" onclick="openModal('modal-add-gpu')">+ Add GPU</button>
-                </div>`}
-
-                <div id="gpu-output" style="display:none;" class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <h3 id="gpu-output-title">Output</h3>
-                        <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="document.getElementById('gpu-output').style.display='none'">Close</button>
-                    </div>
-                    <pre id="gpu-output-content" style="background:var(--bg);padding:12px;border-radius:8px;font-size:13px;overflow-x:auto;margin-top:8px;white-space:pre-wrap;max-height:400px;overflow-y:auto;"></pre>
-                </div>
-
-                <div id="gpu-terminal" style="display:none;" class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                        <h3 id="terminal-title">Terminal</h3>
-                        <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="document.getElementById('gpu-terminal').style.display='none'">Close</button>
-                    </div>
-                    <pre id="terminal-output" style="background:var(--bg);padding:12px;border-radius:8px;font-size:13px;overflow-x:auto;white-space:pre-wrap;max-height:300px;overflow-y:auto;min-height:100px;"></pre>
-                    <div style="display:flex;gap:8px;margin-top:8px;">
-                        <input type="text" id="terminal-input" placeholder="Enter command..." style="flex:1;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:monospace;"
-                            onkeydown="if(event.key==='Enter')execTerminal()">
-                        <input type="hidden" id="terminal-gpu-id">
-                        <button class="btn btn-primary" onclick="execTerminal()">Run</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        async function testGPU(id) {
-            showGPUOutput('Testing connection...');
-            const res = await api(`/fleet/${id}/test`, { method: 'POST' });
-            if (res?.status === 'online') {
-                showGPUOutput(`Connected successfully!\n${res.output || ''}`);
+    async function renderChat() {
+        // Load history from DB on first render
+        if (!chatLoaded) {
+            chatLoaded = true;
+            chatMsgs = [];
+            chatTotalCost = 0;
+            const history = await api('/chat/history') || [];
+            if (history.length === 0) {
+                chatMsgs = [{ role:'ai', text:'Hi! I\'m your AI research assistant. Ask me anything about ML experiments, model architecture, results, or what to try next.' }];
             } else {
-                showGPUOutput(`Connection failed: ${res?.detail || JSON.stringify(res)}`);
+                for (const m of history) {
+                    const entry = { role: m.role === 'assistant' ? 'ai' : 'user', text: m.content };
+                    if (m.role === 'assistant' && m.cost_usd) {
+                        entry.usage = { input_tokens: m.input_tokens, cache_read_tokens: m.cache_read_tokens, output_tokens: m.output_tokens, cost_usd: m.cost_usd, latency_ms: m.latency_ms };
+                        chatTotalCost += m.cost_usd;
+                    }
+                    chatMsgs.push(entry);
+                }
             }
-            renderFleet();
         }
 
-        async function statusGPU(id) {
-            showGPUOutput('Checking status...');
-            const res = await api(`/fleet/${id}/status`, { method: 'POST' });
-            showGPUOutput(
-                `Status: ${res?.status || 'unknown'}\n` +
-                `GPU: ${res?.gpu_info || 'N/A'}\n` +
-                `Training: ${res?.is_training ? 'YES' : 'no'}\n` +
-                `Experiment: ${res?.current_experiment || 'none'}\n` +
-                `\nRecent log:\n${res?.log_tail || 'no logs'}`
-            );
-            renderFleet();
-        }
-
-        function openTerminal(id, name) {
-            document.getElementById('gpu-terminal').style.display = 'block';
-            document.getElementById('terminal-title').textContent = `Terminal — ${name}`;
-            document.getElementById('terminal-gpu-id').value = id;
-            document.getElementById('terminal-output').textContent = `Connected to ${name}. Type a command below.\n`;
-            document.getElementById('terminal-input').focus();
-        }
-
-        async function execTerminal() {
-            const input = document.getElementById('terminal-input');
-            const cmd = input.value.trim();
-            if (!cmd) return;
-
-            const gpuId = document.getElementById('terminal-gpu-id').value;
-            const output = document.getElementById('terminal-output');
-            output.textContent += `\n$ ${cmd}\n`;
-            input.value = '';
-
-            const res = await api(`/fleet/${gpuId}/exec`, {
-                method: 'POST',
-                body: JSON.stringify({ command: cmd }),
-            });
-
-            output.textContent += (res?.output || 'no output') + '\n';
-            output.scrollTop = output.scrollHeight;
-        }
-
-        async function addGPU() {
-            const sshCmd = document.getElementById('gpu-ssh-cmd').value.trim();
-            if (!sshCmd) return alert('Paste an SSH command');
-
-            const password = document.getElementById('gpu-password').value;
-            const name = document.getElementById('gpu-name').value.trim();
-
-            const res = await api('/fleet/add', {
-                method: 'POST',
-                body: JSON.stringify({ ssh_command: sshCmd, password, name }),
-            });
-
-            closeModal('modal-add-gpu');
-            const resultEl = document.getElementById('gpu-add-result');
-
-            if (res?.status === 'online') {
-                showGPUOutput(`GPU "${res.name}" added and connected!\n${res.output || ''}`);
-            } else if (res?.id) {
-                showGPUOutput(`GPU "${res.name}" added but connection failed:\n${res.error || 'unknown error'}\nCheck password and try Test button.`);
-            } else {
-                showGPUOutput(`Error: ${res?.detail || JSON.stringify(res)}`);
-            }
-            renderFleet();
-        }
-
-        async function removeGPU(id, name) {
-            if (!confirm(`Remove GPU "${name}"?`)) return;
-            await api(`/fleet/${id}`, { method: 'DELETE' });
-            renderFleet();
-        }
-
-        function showGPUOutput(text) {
-            const el = document.getElementById('gpu-output');
-            el.style.display = 'block';
-            document.getElementById('gpu-output-content').textContent = text;
-        }
-
-        // Admin
-        async function renderAdmin() {
-            const admin = await api('/admin/dashboard');
-
-            document.getElementById('content').innerHTML = `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="label">Total Users</div>
-                        <div class="value">${admin?.total_users || 0}</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Active Users</div>
-                        <div class="value">${admin?.active_users || 0}</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Flagged Issues</div>
-                        <div class="value" style="color:${admin?.flagged_issues > 0 ? 'var(--red)' : 'var(--green)'}">${admin?.flagged_issues || 0}</div>
+        const isAdmin = currentUser?.tier === 'admin';
+        document.getElementById('content').innerHTML = `
+            <div class="chat-container">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="font-size:13px;color:var(--text2);">AI Research Assistant</span>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        ${isAdmin ? `<span class="chat-total-cost">Total: ${fmtCost(chatTotalCost)}</span>` : ''}
+                        <button class="btn btn-secondary btn-sm" onclick="clearChat()">Clear</button>
                     </div>
                 </div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chat-input" placeholder="Ask about experiments, architecture ideas, results..." onkeydown="if(event.key==='Enter')sendChat()">
+                    <button class="btn btn-primary" onclick="sendChat()">Send</button>
+                </div>
+            </div>`;
+        renderChatMessages();
+    }
 
-                <div class="card">
-                    <h3>Add User</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="admin-email" placeholder="user@example.com">
-                        </div>
-                        <div class="form-group">
-                            <label>Tier</label>
-                            <select id="admin-tier">
-                                <option value="starter">Starter ($9/mo)</option>
-                                <option value="researcher">Researcher ($29/mo)</option>
-                                <option value="pro">Pro ($79/mo)</option>
-                                <option value="admin">Admin</option>
+    async function sendChat() {
+        const input = document.getElementById('chat-input');
+        const msg = input.value.trim(); if (!msg) return;
+        chatMsgs.push({role:'user', text:msg}); input.value='';
+        renderChatMessages();
+        // Disable input while waiting
+        input.disabled = true;
+        const res = await api('/chat/', {method:'POST', body:JSON.stringify({message:msg, history:[]})});
+        input.disabled = false; input.focus();
+        if (res) {
+            const entry = { role:'ai', text: res.response || 'Error reaching AI' };
+            if (res.usage) {
+                entry.usage = res.usage;
+                chatTotalCost += res.usage.cost_usd || 0;
+                // Update total cost display (admin only)
+                const costEl = document.querySelector('.chat-total-cost');
+                if (costEl) costEl.textContent = `Total: ${fmtCost(chatTotalCost)}`;
+            }
+            chatMsgs.push(entry);
+        } else {
+            chatMsgs.push({role:'ai', text:'Error reaching AI'});
+        }
+        renderChatMessages();
+    }
+
+    async function clearChat() {
+        if (!confirm('Clear chat history?')) return;
+        await api('/chat/history', {method:'DELETE'});
+        chatMsgs = [{ role:'ai', text:'Chat cleared. How can I help with your research?' }];
+        chatTotalCost = 0;
+        chatLoaded = true;
+        renderChat();
+    }
+
+    // ---- Fleet ----
+    async function renderFleet() {
+        const gpus = await api('/fleet/') || [];
+        document.getElementById('content').innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+                <span style="color:var(--text2)">${gpus.length} GPUs</span>
+                <button class="btn btn-primary" onclick="openModal('modal-add-gpu')">+ Add GPU</button>
+            </div>
+            ${gpus.length ? `<div class="stats-grid">${gpus.map(g => `
+                <div class="stat-card">
+                    <div style="display:flex;justify-content:space-between"><div><div class="label">${g.name}</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">${g.host}:${g.port}</div></div><span class="badge badge-${g.status}">${g.status}</span></div>
+                    <div style="margin-top:12px;display:flex;gap:16px;font-size:13px;">
+                        ${g.gpu_utilization!=null?`<span>GPU: <strong>${g.gpu_utilization}%</strong></span>`:''}
+                        ${g.gpu_temp!=null?`<span>Temp: <strong>${g.gpu_temp}C</strong></span>`:''}
+                        ${g.current_experiment?`<span>Exp: <strong>${g.current_experiment}</strong></span>`:''}
+                    </div>
+                    <div style="margin-top:12px;display:flex;gap:6px;">
+                        <button class="btn btn-secondary btn-sm" onclick="testGPU(${g.id})">Test</button>
+                        <button class="btn btn-secondary btn-sm" onclick="statusGPU(${g.id})">Status</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openTerminal(${g.id},'${g.name}')">Terminal</button>
+                        <button class="btn btn-danger btn-sm" onclick="removeGPU(${g.id},'${g.name}')">Remove</button>
+                    </div>
+                    ${g.last_seen?`<div style="font-size:11px;color:var(--text2);margin-top:8px;">Last seen: ${timeAgo(g.last_seen)}</div>`:''}
+                </div>`).join('')}</div>` :
+            `<div class="empty"><h3>No GPUs registered</h3><p>Paste an SSH command to add your first GPU</p><button class="btn btn-primary" onclick="openModal('modal-add-gpu')">+ Add GPU</button></div>`}
+            <div id="gpu-output" style="display:none;" class="card"><div style="display:flex;justify-content:space-between"><h3 id="gpu-output-title">Output</h3><button class="btn btn-secondary btn-sm" onclick="this.closest('.card').style.display='none'">Close</button></div><pre id="gpu-output-content" style="background:var(--bg);padding:12px;border-radius:8px;font-size:13px;overflow-x:auto;margin-top:8px;white-space:pre-wrap;max-height:400px;overflow-y:auto;"></pre></div>
+            <div id="gpu-terminal" style="display:none;" class="card"><div style="display:flex;justify-content:space-between;margin-bottom:12px;"><h3 id="terminal-title">Terminal</h3><button class="btn btn-secondary btn-sm" onclick="this.closest('.card').style.display='none'">Close</button></div><pre id="terminal-output" style="background:var(--bg);padding:12px;border-radius:8px;font-size:13px;white-space:pre-wrap;max-height:300px;overflow-y:auto;min-height:100px;"></pre><div style="display:flex;gap:8px;margin-top:8px;"><input type="text" id="terminal-input" placeholder="Enter command..." style="flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:monospace;" onkeydown="if(event.key==='Enter')execTerminal()"><input type="hidden" id="terminal-gpu-id"><button class="btn btn-primary" onclick="execTerminal()">Run</button></div></div>`;
+    }
+
+    // ---- Pricing ----
+    function renderPricing() {
+        const SKOOL_URL = 'https://www.skool.com/become-ai-researcher-2669';
+        document.getElementById('content').innerHTML = `
+            <div style="text-align:center;margin-bottom:32px;">
+                <h2 style="font-size:28px;margin-bottom:8px;">Simple, transparent pricing</h2>
+                <p style="color:var(--text2);font-size:16px;">Pay for what you use. Every experiment generates research that benefits the open-source community.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <span class="tier tier-starter">STARTER</span>
+                    <div class="price">$9<span>/mo</span></div>
+                    <ul>
+                        <li>🧪 <strong>500</strong> explore experiments/mo</li>
+                        <li>⚡ <strong>1</strong> concurrent experiment</li>
+                        <li>📊 Dashboard & results viewer</li>
+                        <li>🤖 AI research chat</li>
+                        <li>🏆 Competition access</li>
+                        <li>📢 <strong>~10</strong> social media research posts/mo</li>
+                        <li style="color:var(--text2);font-size:12px;">(1 post per 50 completed experiments)</li>
+                    </ul>
+                    <a href="${SKOOL_URL}" target="_blank" class="btn btn-secondary" style="width:100%;display:block;text-align:center;text-decoration:none;">Join on Skool</a>
+                </div>
+                <div class="pricing-card featured">
+                    <span class="tier tier-researcher">RESEARCHER</span>
+                    <div class="price">$29<span>/mo</span></div>
+                    <ul>
+                        <li>🧪 <strong>2000</strong> explore experiments/mo</li>
+                        <li>🔬 <strong>200</strong> validate experiments/mo</li>
+                        <li>⚡ <strong>3</strong> concurrent experiments</li>
+                        <li>📊 Priority queue scheduling</li>
+                        <li>🤖 Full AI research assistant</li>
+                        <li>🏆 Competition access + leaderboard</li>
+                        <li>📢 <strong>~44</strong> social media research posts/mo</li>
+                        <li style="color:var(--text2);font-size:12px;">(1 post per 50 completed experiments)</li>
+                    </ul>
+                    <a href="${SKOOL_URL}" target="_blank" class="btn btn-primary" style="width:100%;display:block;text-align:center;text-decoration:none;">Join on Skool</a>
+                </div>
+                <div class="pricing-card">
+                    <span class="tier tier-pro">PRO</span>
+                    <div class="price">$79<span>/mo</span></div>
+                    <ul>
+                        <li>🧪 <strong>Unlimited</strong> explore experiments</li>
+                        <li>🔬 <strong>1000</strong> validate experiments/mo</li>
+                        <li>🚀 <strong>50</strong> full training runs/mo</li>
+                        <li>⚡ <strong>5</strong> concurrent experiments</li>
+                        <li>🖥️ BYOG (Bring Your Own GPU)</li>
+                        <li>🔑 API access</li>
+                        <li>📢 <strong>~100+</strong> social media research posts/mo</li>
+                    </ul>
+                    <a href="${SKOOL_URL}" target="_blank" class="btn btn-secondary" style="width:100%;display:block;text-align:center;text-decoration:none;">Join on Skool</a>
+                </div>
+            </div>
+            <div class="card" style="margin-top:24px;">
+                <h3>How it works</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:8px;">
+                    <div><strong style="color:var(--accent2)">1. Join on Skool</strong><p style="font-size:13px;color:var(--text2);margin-top:4px;">Pick your tier and pay through our Skool community. You'll get access within 24 hours.</p></div>
+                    <div><strong style="color:var(--accent2)">2. Get your credentials</strong><p style="font-size:13px;color:var(--text2);margin-top:4px;">You'll receive an email + API key pair to log into the platform.</p></div>
+                    <div><strong style="color:var(--accent2)">3. Run experiments</strong><p style="font-size:13px;color:var(--text2);margin-top:4px;">Submit ML experiments, compete in challenges, and contribute to open-source AI research.</p></div>
+                    <div><strong style="color:var(--accent2)">4. Share results</strong><p style="font-size:13px;color:var(--text2);margin-top:4px;">Your experiments generate shareable research posts for social media. More experiments = more content.</p></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Social Media Research Posts</h3>
+                <p style="font-size:14px;color:var(--text2);margin-top:4px;">Every <strong style="color:var(--text)">50 completed experiments</strong> generates a research post — a formatted summary of findings, metrics, and comparisons that you can share on X/Twitter, LinkedIn, or your blog. More experiments = more content = more visibility for your research.</p>
+            </div>`;
+    }
+
+    // ---- Profile ----
+    async function renderProfile() {
+        const me = await api('/auth/me');
+        if (!me) return;
+        const limits = {starter:{e:500,v:0,f:0,c:1},researcher:{e:2000,v:200,f:0,c:3},pro:{e:-1,v:1000,f:50,c:5},admin:{e:-1,v:-1,f:-1,c:-1}};
+        const l = limits[me.tier] || limits.starter;
+
+        function usageBar(used, limit) {
+            if (limit === -1) return `<div style="font-size:13px;color:var(--green)">Unlimited</div>`;
+            if (limit === 0) return `<div style="font-size:13px;color:var(--text2)">Not available on this tier</div>`;
+            const pct = Math.min(100, (used/limit)*100);
+            const color = pct > 80 ? 'var(--red)' : pct > 50 ? 'var(--yellow)' : 'var(--green)';
+            return `<div style="font-size:13px;">${used}/${limit} used</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div>`;
+        }
+
+        document.getElementById('content').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">Your Tier</div>
+                    <div style="margin-top:8px;"><span class="tier tier-${me.tier}" style="font-size:16px;padding:4px 12px;">${me.tier.toUpperCase()}</span></div>
+                    <div class="sub" style="margin-top:8px;"><a href="#" onclick="showPage('pricing')" style="color:var(--accent2);">View all plans</a></div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Member Since</div>
+                    <div class="value" style="font-size:18px;">${new Date(me.created_at).toLocaleDateString()}</div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Usage This Month</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:8px;">
+                    <div><strong>Explore Runs</strong>${usageBar(me.explore_used, l.e)}</div>
+                    <div><strong>Validate Runs</strong>${usageBar(me.validate_used, l.v)}</div>
+                    <div><strong>Full Runs</strong>${usageBar(me.full_used, l.f)}</div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Account Details</h3>
+                <table>
+                    <tr><td style="color:var(--text2);width:150px;">Email</td><td>${me.email}</td></tr>
+                    <tr><td style="color:var(--text2);">Name</td><td>${me.name || '—'}</td></tr>
+                    <tr><td style="color:var(--text2);">API Key</td><td><code style="background:var(--bg);padding:4px 8px;border-radius:4px;font-size:13px;">${me.api_key}</code> <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${me.api_key}')">Copy</button></td></tr>
+                    <tr><td style="color:var(--text2);">Concurrent Limit</td><td>${l.c === -1 ? 'Unlimited' : l.c}</td></tr>
+                </table>
+            </div>`;
+    }
+
+    // ---- Admin ----
+    async function renderAdmin() {
+        const [dashboard, users] = await Promise.all([api('/admin/dashboard'), api('/admin/users')]);
+        const d = dashboard || {};
+        const u = users || [];
+
+        document.getElementById('content').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card"><div class="label">MRR</div><div class="value" style="color:var(--green)">$${d.mrr||0}</div><div class="sub">${d.active_users||0} active users</div></div>
+                <div class="stat-card"><div class="label">Users</div><div class="value">${d.total_users||0}</div><div class="sub">${JSON.stringify(d.tier_breakdown||{})}</div></div>
+                <div class="stat-card"><div class="label">Experiments</div><div class="value">${d.total_experiments||0}</div><div class="sub">${d.running||0} running, ${d.queued||0} queued</div></div>
+                <div class="stat-card"><div class="label">GPUs</div><div class="value">${d.gpus_online||0}/${d.gpus_total||0}</div><div class="sub">online</div></div>
+                <div class="stat-card"><div class="label">Est. Social Posts</div><div class="value" style="color:var(--accent2)">${d.est_social_posts||0}</div><div class="sub">from completed experiments</div></div>
+                <div class="stat-card"><div class="label">Open Tickets</div><div class="value" style="color:${d.tickets_open>0?'var(--red)':'var(--green)'}">${d.tickets_open||0}</div><div class="sub">needs attention</div></div>
+            </div>
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+                    <h3>Users</h3>
+                    <button class="btn btn-primary" onclick="openModal('modal-add-user')">+ Add User</button>
+                </div>
+                <table>
+                    <tr><th>Email</th><th>Name</th><th>Tier</th><th>Experiments</th><th>Best BPB</th><th>Est. Posts</th><th>Usage</th><th>Actions</th></tr>
+                    ${u.map(user => `<tr>
+                        <td>${user.email}</td>
+                        <td>${user.name||'—'}</td>
+                        <td><span class="tier tier-${user.tier}">${user.tier}</span></td>
+                        <td>${user.completed_experiments}/${user.total_experiments}</td>
+                        <td class="${user.best_bpb?'metric-good':''}">${user.best_bpb?user.best_bpb.toFixed(4):'—'}</td>
+                        <td>${user.est_social_posts}</td>
+                        <td style="font-size:12px;">E:${user.explore_used}/${user.explore_limit===-1?'inf':user.explore_limit} V:${user.validate_used}/${user.validate_limit} F:${user.full_used}/${user.full_limit}</td>
+                        <td>
+                            <select onchange="updateUserTier(${user.id},this.value)" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:12px;">
+                                ${['starter','researcher','pro','admin'].map(t => `<option value="${t}" ${user.tier===t?'selected':''}>${t}</option>`).join('')}
                             </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Name</label>
-                        <input type="text" id="admin-name" placeholder="Full name">
-                    </div>
-                    <button class="btn btn-primary" onclick="addUser()">Add User</button>
-                    <div id="admin-result" style="margin-top:12px;font-size:13px;"></div>
+                            <button class="btn btn-secondary btn-sm" onclick="resetUsage(${user.id})" title="Reset monthly usage">Reset</button>
+                            ${user.is_active ?
+                                `<button class="btn btn-danger btn-sm" onclick="toggleUser(${user.id},false)">Disable</button>` :
+                                `<button class="btn btn-secondary btn-sm" style="color:var(--green);" onclick="toggleUser(${user.id},true)">Enable</button>`}
+                        </td>
+                    </tr>`).join('')}
+                </table>
+            </div>
+            <div class="card">
+                <h3>Quick Actions</h3>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <a href="/admin/db" target="_blank" class="btn btn-secondary" style="text-decoration:none;">View Raw DB</a>
+                    <a href="/docs" target="_blank" class="btn btn-secondary" style="text-decoration:none;">API Docs</a>
                 </div>
-            `;
-        }
+            </div>`;
+    }
 
-        // Actions
-        async function submitExperiment() {
-            const name = document.getElementById('exp-name').value.trim();
-            if (!name) return alert('Name is required');
+    // ---- Actions ----
+    async function submitExperiment() {
+        const name = document.getElementById('exp-name').value.trim();
+        if (!name) return alert('Name required');
+        const stage = document.getElementById('exp-stage').value;
+        const steps = parseInt(document.getElementById('exp-steps').value) || {explore:500,validate:2000,full:13780}[stage];
+        const overrides = {};
+        document.getElementById('exp-overrides').value.trim().split('\n').forEach(l => { const [k,...v] = l.split('='); if(k&&v.length) overrides[k.trim()]=v.join('=').trim(); });
+        await api('/experiments/',{method:'POST',body:JSON.stringify({name,template:document.getElementById('exp-template').value,stage,steps,config_overrides:overrides})});
+        closeModal('modal-new-exp'); renderDashboard();
+    }
 
-            const stageSteps = { explore: 500, validate: 2000, full: 13780 };
-            const stage = document.getElementById('exp-stage').value;
-            const stepsInput = document.getElementById('exp-steps').value;
-            const steps = parseInt(stepsInput) || stageSteps[stage];
+    async function cancelExp(id) { if(confirm('Cancel?')){ await api(`/experiments/${id}`,{method:'DELETE'}); renderExperiments(); }}
 
-            const overridesText = document.getElementById('exp-overrides').value.trim();
-            const overrides = {};
-            if (overridesText) {
-                overridesText.split('\n').forEach(line => {
-                    const [k, ...v] = line.split('=');
-                    if (k && v.length) overrides[k.trim()] = v.join('=').trim();
-                });
-            }
+    async function submitCompetition() {
+        const name = document.getElementById('comp-name').value.trim();
+        if (!name) return alert('Name required');
+        await api('/admin/competitions',{method:'POST',body:JSON.stringify({name,description:document.getElementById('comp-desc').value,max_steps:parseInt(document.getElementById('comp-steps').value)||13780,sponsor:document.getElementById('comp-sponsor').value,prize_description:document.getElementById('comp-prize').value})});
+        closeModal('modal-new-comp'); renderCompetitions();
+    }
 
-            const compId = document.getElementById('exp-competition').value;
+    async function viewLeaderboard(id) {
+        const data = await api(`/competitions/${id}/leaderboard`);
+        if(!data?.entries?.length) return alert('No entries yet');
+        document.getElementById('content').innerHTML = `
+            <button class="btn btn-secondary" onclick="renderCompetitions()" style="margin-bottom:16px;">&lt; Back</button>
+            <div class="card"><h3>${data.competition} — Leaderboard</h3><table><tr><th>Rank</th><th>Experiment</th><th>${data.metric}</th></tr>
+            ${data.entries.map(e => `<tr><td class="${e.rank<=3?'rank-'+e.rank:''}">#${e.rank}</td><td><strong>${e.name}</strong></td><td class="metric-good">${e.val_bpb?.toFixed(4)||'---'}</td></tr>`).join('')}</table></div>`;
+    }
 
-            const res = await api('/experiments/', {
-                method: 'POST',
-                body: JSON.stringify({
-                    name,
-                    template: document.getElementById('exp-template').value,
-                    stage,
-                    steps,
-                    config_overrides: overrides,
-                    competition_id: compId ? parseInt(compId) : null,
-                }),
-            });
+    // Fleet actions
+    async function testGPU(id) { showGPUOutput('Testing...'); const r=await api(`/fleet/${id}/test`,{method:'POST'}); showGPUOutput(r?.status==='online'?`Connected!\n${r.output||''}`:`Failed: ${r?.detail||JSON.stringify(r)}`); renderFleet(); }
+    async function statusGPU(id) { showGPUOutput('Checking...'); const r=await api(`/fleet/${id}/status`,{method:'POST'}); showGPUOutput(`Status: ${r?.status}\nGPU: ${r?.gpu_info||'N/A'}\nTraining: ${r?.is_training?'YES':'no'}\nExp: ${r?.current_experiment||'none'}\n\nLog:\n${r?.log_tail||'none'}`); }
+    function openTerminal(id,name) { document.getElementById('gpu-terminal').style.display='block'; document.getElementById('terminal-title').textContent=`Terminal — ${name}`; document.getElementById('terminal-gpu-id').value=id; document.getElementById('terminal-output').textContent=`Connected to ${name}.\n`; document.getElementById('terminal-input').focus(); }
+    async function execTerminal() { const input=document.getElementById('terminal-input'); const cmd=input.value.trim(); if(!cmd)return; const gpuId=document.getElementById('terminal-gpu-id').value; const out=document.getElementById('terminal-output'); out.textContent+=`\n$ ${cmd}\n`; input.value=''; const r=await api(`/fleet/${gpuId}/exec`,{method:'POST',body:JSON.stringify({command:cmd})}); out.textContent+=(r?.output||'no output')+'\n'; out.scrollTop=out.scrollHeight; }
+    async function addGPU() { const ssh=document.getElementById('gpu-ssh-cmd').value.trim(); if(!ssh)return alert('Paste SSH command'); const r=await api('/fleet/add',{method:'POST',body:JSON.stringify({ssh_command:ssh,password:document.getElementById('gpu-password').value,name:document.getElementById('gpu-name').value.trim()})}); closeModal('modal-add-gpu'); showGPUOutput(r?.status==='online'?`GPU "${r.name}" connected!\n${r.output||''}`:`GPU "${r?.name}" added but offline:\n${r?.error||JSON.stringify(r)}`); renderFleet(); }
+    async function removeGPU(id,name) { if(!confirm(`Remove "${name}"?`))return; await api(`/fleet/${id}`,{method:'DELETE'}); renderFleet(); }
+    function showGPUOutput(text) { const el=document.getElementById('gpu-output'); el.style.display='block'; document.getElementById('gpu-output-content').textContent=text; }
 
-            closeModal('modal-new-exp');
-            if (res?.id) {
-                renderDashboard();
-            }
-        }
+    // Admin actions
+    async function addUser() {
+        const email=document.getElementById('au-email').value.trim(); if(!email)return alert('Email required');
+        const r=await api('/admin/users',{method:'POST',body:JSON.stringify({email,name:document.getElementById('au-name').value,tier:document.getElementById('au-tier').value})});
+        closeModal('modal-add-user');
+        if(r?.api_key) alert(`User created!\nAPI Key: ${r.api_key}\n\nSend this to the user.`);
+        renderAdmin();
+    }
+    async function updateUserTier(id,tier) { await api(`/admin/users/${id}`,{method:'PUT',body:JSON.stringify({tier})}); renderAdmin(); }
+    async function resetUsage(id) { if(!confirm('Reset usage?'))return; await api(`/admin/users/${id}`,{method:'PUT',body:JSON.stringify({reset_usage:true})}); renderAdmin(); }
+    async function toggleUser(id,active) { await api(`/admin/users/${id}`,{method:'PUT',body:JSON.stringify({is_active:active})}); renderAdmin(); }
 
-        async function cancelExp(id) {
-            if (!confirm('Cancel this experiment?')) return;
-            await api(`/experiments/${id}`, { method: 'DELETE' });
-            renderExperiments();
-        }
+    // Utils
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function timeAgo(d) { if(!d)return'---'; const s=Math.floor((Date.now()-new Date(d))/1000); if(s<60)return'just now'; if(s<3600)return Math.floor(s/60)+'m ago'; if(s<86400)return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'; }
 
-        async function submitCompetition() {
-            const name = document.getElementById('comp-name').value.trim();
-            if (!name) return alert('Name is required');
-
-            await api('/admin/competitions', {
-                method: 'POST',
-                body: JSON.stringify({
-                    name,
-                    description: document.getElementById('comp-desc').value,
-                    max_steps: parseInt(document.getElementById('comp-steps').value) || 13780,
-                    sponsor: document.getElementById('comp-sponsor').value,
-                    prize_description: document.getElementById('comp-prize').value,
-                }),
-            });
-
-            closeModal('modal-new-comp');
-            renderCompetitions();
-        }
-
-        async function viewLeaderboard(compId) {
-            const data = await api(`/competitions/${compId}/leaderboard`);
-            if (!data?.entries?.length) return alert('No entries yet');
-
-            document.getElementById('content').innerHTML = `
-                <button class="btn btn-secondary" onclick="renderCompetitions()" style="margin-bottom:16px;">&lt; Back</button>
-                <div class="card">
-                    <h3>${data.competition} — Leaderboard</h3>
-                    <table>
-                        <tr><th>Rank</th><th>Experiment</th><th>${data.metric}</th></tr>
-                        ${data.entries.map(e => `
-                        <tr>
-                            <td class="${e.rank <= 3 ? 'rank-' + e.rank : ''}">#${e.rank}</td>
-                            <td><strong>${e.name}</strong></td>
-                            <td class="metric-good">${e.val_bpb?.toFixed(4) || '---'}</td>
-                        </tr>`).join('')}
-                    </table>
-                </div>
-            `;
-        }
-
-        async function addUser() {
-            const email = document.getElementById('admin-email').value.trim();
-            if (!email) return alert('Email required');
-
-            const res = await api('/admin/users', {
-                method: 'POST',
-                body: JSON.stringify({
-                    email,
-                    name: document.getElementById('admin-name').value,
-                    tier: document.getElementById('admin-tier').value,
-                }),
-            });
-
-            const el = document.getElementById('admin-result');
-            if (res?.api_key) {
-                el.innerHTML = `<span style="color:var(--green)">User created. API key: <code>${res.api_key}</code></span>`;
-            } else if (res?.action === 'updated') {
-                el.innerHTML = `<span style="color:var(--accent2)">User updated to ${res.tier}</span>`;
-            } else {
-                el.innerHTML = `<span style="color:var(--red)">Error creating user</span>`;
-            }
-        }
-
-        // Utils
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-        function timeAgo(dateStr) {
-            if (!dateStr) return '---';
-            const d = new Date(dateStr);
-            const now = new Date();
-            const diff = Math.floor((now - d) / 1000);
-            if (diff < 60) return 'just now';
-            if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-            if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-            return Math.floor(diff / 86400) + 'd ago';
-        }
-
-        // Stage → steps auto-update
-        document.addEventListener('DOMContentLoaded', () => {
-            renderDashboard();
-        });
-
-        // Update steps when stage changes
-        document.addEventListener('change', (e) => {
-            if (e.target.id === 'exp-stage') {
-                const map = { explore: 500, validate: 2000, full: 13780 };
-                const stepsEl = document.getElementById('exp-steps');
-                if (stepsEl) stepsEl.value = map[e.target.value] || 500;
-            }
-        });
+    // Init
+    checkAuth();
     </script>
 </body>
 </html>

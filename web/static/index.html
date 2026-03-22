@@ -233,17 +233,8 @@
             <div class="nav-item active" data-page="chat">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> AI Research Chat
             </div>
-            <div class="nav-item" data-page="dashboard">
-                <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Dashboard
-            </div>
             <div class="nav-item" data-page="experiments">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3h6v10l3.5 7H5.5L9 13V3z"/><path d="M6.5 17.5h11"/></svg></span> Experiments
-            </div>
-            <div class="nav-item" data-page="competitions">
-                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 3H7l-2 7h14L17 3z"/><path d="M5 10c0 3.87 3.13 7 7 7s7-3.13 7-7"/></svg></span> Competitions
-            </div>
-            <div class="nav-item" data-page="results">
-                <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> Results
             </div>
             <div class="nav-item" data-page="research">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Research
@@ -294,23 +285,6 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal('modal-new-exp')">Cancel</button>
                 <button class="btn btn-primary" onclick="submitExperiment()">Submit</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-new-comp">
-        <div class="modal">
-            <h2>New Competition</h2>
-            <div class="form-group"><label>Name</label><input type="text" id="comp-name" placeholder="e.g. 16MB Language Model Challenge"></div>
-            <div class="form-group"><label>Description</label><textarea id="comp-desc" rows="3"></textarea></div>
-            <div class="form-row">
-                <div class="form-group"><label>Max Steps</label><input type="number" id="comp-steps" value="13780"></div>
-                <div class="form-group"><label>Sponsor</label><input type="text" id="comp-sponsor"></div>
-            </div>
-            <div class="form-group"><label>Prize</label><input type="text" id="comp-prize" placeholder="e.g. $500 in GPU credits"></div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeModal('modal-new-comp')">Cancel</button>
-                <button class="btn btn-primary" onclick="submitCompetition()">Create</button>
             </div>
         </div>
     </div>
@@ -425,9 +399,9 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             const page = el.dataset.page;
-            const titles = { chat: 'AI Research Chat', dashboard: 'Dashboard', experiments: 'Experiments', competitions: 'Competitions', results: 'Results', research: 'Research', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
+            const titles = { chat: 'AI Research Chat', experiments: 'Experiments', research: 'Research', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
             document.getElementById('page-title').textContent = titles[page] || page;
-            const r = { dashboard: renderDashboard, experiments: renderExperiments, competitions: renderCompetitions, results: renderResults, research: renderResearch, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
+            const r = { experiments: renderExperiments, research: renderResearch, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
             (r[page] || renderChat)();
         });
     });
@@ -437,14 +411,39 @@
         if (el) el.click();
     }
 
-    // ---- Dashboard ----
-    async function renderDashboard() {
-        const [admin, exps] = await Promise.all([api('/admin/dashboard'), api('/experiments/')]);
-        const experiments = exps || [];
-        const running = experiments.filter(e => e.status === 'running').length;
-        const queued = experiments.filter(e => e.status === 'queued').length;
-        const completed = experiments.filter(e => e.status === 'completed').length;
-        const best = experiments.filter(e => e.val_bpb).sort((a,b) => a.val_bpb - b.val_bpb)[0];
+    // ---- Experiments (unified: stats + filters + paginated table) ----
+    let expFilter = { status: 'all', stage: 'all', search: '', sort: 'bpb', page: 0 };
+    const EXP_PER_PAGE = 50;
+
+    async function renderExperiments() {
+        const exps = await api('/experiments/') || [];
+        const running = exps.filter(e => e.status === 'running').length;
+        const queued = exps.filter(e => e.status === 'queued').length;
+        const completed = exps.filter(e => e.status === 'completed').length;
+        const best = exps.filter(e => e.val_bpb).sort((a,b) => a.val_bpb - b.val_bpb)[0];
+
+        // Apply filters
+        let filtered = exps;
+        if (expFilter.status !== 'all') filtered = filtered.filter(e => e.status === expFilter.status);
+        if (expFilter.stage !== 'all') filtered = filtered.filter(e => e.stage === expFilter.stage);
+        if (expFilter.search) {
+            const q = expFilter.search.toLowerCase();
+            filtered = filtered.filter(e => e.name.toLowerCase().includes(q));
+        }
+
+        // Sort
+        if (expFilter.sort === 'bpb') filtered.sort((a,b) => (a.val_bpb||99) - (b.val_bpb||99));
+        else if (expFilter.sort === 'newest') filtered.sort((a,b) => new Date(b.queued_at||0) - new Date(a.queued_at||0));
+        else if (expFilter.sort === 'name') filtered.sort((a,b) => a.name.localeCompare(b.name));
+        else if (expFilter.sort === 'steps') filtered.sort((a,b) => (b.steps||0) - (a.steps||0));
+
+        // Paginate
+        const totalPages = Math.max(1, Math.ceil(filtered.length / EXP_PER_PAGE));
+        if (expFilter.page >= totalPages) expFilter.page = totalPages - 1;
+        const pageExps = filtered.slice(expFilter.page * EXP_PER_PAGE, (expFilter.page + 1) * EXP_PER_PAGE);
+
+        // Compute rank for bpb-sorted view
+        const bpbSorted = expFilter.sort === 'bpb';
 
         document.getElementById('content').innerHTML = `
             <div class="stats-grid">
@@ -454,60 +453,47 @@
                 <div class="stat-card"><div class="label">Best val_bpb</div><div class="value metric-good">${best ? best.val_bpb.toFixed(4) : '---'}</div><div class="sub">${best ? best.name : 'no results yet'}</div></div>
             </div>
             <div class="card">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                    <h3>Recent Experiments</h3>
-                    <button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+                    <input type="text" placeholder="Search by name..." value="${escHtml(expFilter.search)}" oninput="expFilter.search=this.value;expFilter.page=0;renderExperiments()" style="padding:6px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;width:200px;outline:none;">
+                    <select onchange="expFilter.status=this.value;expFilter.page=0;renderExperiments()" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;">
+                        <option value="all" ${expFilter.status==='all'?'selected':''}>All status</option>
+                        <option value="completed" ${expFilter.status==='completed'?'selected':''}>Completed</option>
+                        <option value="running" ${expFilter.status==='running'?'selected':''}>Running</option>
+                        <option value="queued" ${expFilter.status==='queued'?'selected':''}>Queued</option>
+                        <option value="failed" ${expFilter.status==='failed'?'selected':''}>Failed</option>
+                    </select>
+                    <select onchange="expFilter.stage=this.value;expFilter.page=0;renderExperiments()" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;">
+                        <option value="all" ${expFilter.stage==='all'?'selected':''}>All stages</option>
+                        <option value="explore" ${expFilter.stage==='explore'?'selected':''}>Explore</option>
+                        <option value="validate" ${expFilter.stage==='validate'?'selected':''}>Validate</option>
+                        <option value="full" ${expFilter.stage==='full'?'selected':''}>Full</option>
+                    </select>
+                    <select onchange="expFilter.sort=this.value;expFilter.page=0;renderExperiments()" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;">
+                        <option value="bpb" ${expFilter.sort==='bpb'?'selected':''}>Sort: Best BPB</option>
+                        <option value="newest" ${expFilter.sort==='newest'?'selected':''}>Sort: Newest</option>
+                        <option value="name" ${expFilter.sort==='name'?'selected':''}>Sort: Name</option>
+                        <option value="steps" ${expFilter.sort==='steps'?'selected':''}>Sort: Steps</option>
+                    </select>
+                    <span style="color:var(--text2);font-size:12px;margin-left:auto;">${filtered.length} of ${exps.length} experiments</span>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-exp')">+ New</button>
                 </div>
-                ${experiments.length ? `<table><tr><th>Name</th><th>Stage</th><th>Status</th><th>Steps</th><th>val_bpb</th><th>Submitted</th></tr>
-                ${experiments.slice(0,10).map(e => `<tr><td><strong>${e.name}</strong></td><td>${e.stage}</td><td><span class="badge badge-${e.status}">${e.status}</span></td><td>${e.current_step||0}/${e.steps}</td><td class="${e.val_bpb?'metric-good':''}">${e.val_bpb?e.val_bpb.toFixed(4):'---'}</td><td style="color:var(--text2)">${timeAgo(e.queued_at)}</td></tr>`).join('')}</table>` :
-                `<div class="empty"><h3>No experiments yet</h3><p>Submit your first experiment to get started</p><button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button></div>`}
+                ${pageExps.length ? `<div style="overflow-x:auto;"><table><tr>${bpbSorted?'<th>Rank</th>':''}<th>Name</th><th>Stage</th><th>Status</th><th>Steps</th><th>val_bpb</th><th>Submitted</th><th></th></tr>
+                ${pageExps.map((e,i) => {
+                    const rank = expFilter.page * EXP_PER_PAGE + i + 1;
+                    return `<tr>${bpbSorted?`<td class="${rank<=3?'rank-'+rank:''}">#${rank}</td>`:''}` +
+                    `<td><strong>${escHtml(e.name)}</strong></td><td>${e.stage}</td><td><span class="badge badge-${e.status}">${e.status}</span></td>` +
+                    `<td>${e.current_step||e.steps||0}/${e.steps}</td>` +
+                    `<td class="${e.val_bpb?'metric-good':''}" style="${e.val_bpb?'font-weight:600':''}">${e.val_bpb?e.val_bpb.toFixed(4):'---'}</td>` +
+                    `<td style="color:var(--text2);font-size:12px;">${timeAgo(e.queued_at)}</td>` +
+                    `<td>${['queued','running'].includes(e.status)?`<button class="btn btn-secondary btn-sm" onclick="cancelExp(${e.id})">Cancel</button>`:''}</td></tr>`;
+                }).join('')}</table></div>` :
+                `<div class="empty"><h3>No matching experiments</h3><p>Try adjusting your filters</p></div>`}
+                ${totalPages > 1 ? `<div style="display:flex;justify-content:center;align-items:center;gap:12px;padding:16px 0;">
+                    <button class="btn btn-secondary btn-sm" onclick="expFilter.page--;renderExperiments()" ${expFilter.page===0?'disabled':''}>Prev</button>
+                    <span style="color:var(--text2);font-size:13px;">Page ${expFilter.page+1} of ${totalPages}</span>
+                    <button class="btn btn-secondary btn-sm" onclick="expFilter.page++;renderExperiments()" ${expFilter.page>=totalPages-1?'disabled':''}>Next</button>
+                </div>` : ''}
             </div>`;
-    }
-
-    // ---- Experiments ----
-    async function renderExperiments() {
-        const exps = await api('/experiments/') || [];
-        document.getElementById('content').innerHTML = `
-            <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
-                <span style="color:var(--text2)">${exps.length} experiments</span>
-                <button class="btn btn-primary" onclick="openModal('modal-new-exp')">+ New Experiment</button>
-            </div>
-            <div class="card" style="padding:0;overflow:hidden;"><table><tr><th>Name</th><th>Template</th><th>Stage</th><th>Status</th><th>Progress</th><th>val_bpb</th><th></th></tr>
-            ${exps.map(e => `<tr><td><strong>${e.name}</strong></td><td style="color:var(--text2)">${e.template}</td><td>${e.stage}</td><td><span class="badge badge-${e.status}">${e.status}</span></td><td>${e.current_step||0}/${e.steps}</td><td class="${e.val_bpb?'metric-good':''}">${e.val_bpb?e.val_bpb.toFixed(4):'---'}</td>
-            <td>${['queued','running'].includes(e.status)?`<button class="btn btn-secondary btn-sm" onclick="cancelExp(${e.id})">Cancel</button>`:''}</td></tr>`).join('')}</table></div>`;
-    }
-
-    // ---- Competitions ----
-    async function renderCompetitions() {
-        const comps = await api('/competitions/') || [];
-        document.getElementById('content').innerHTML = `
-            <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
-                <span style="color:var(--text2)">${comps.length} competitions</span>
-                ${currentUser?.tier === 'admin' ? `<button class="btn btn-primary" onclick="openModal('modal-new-comp')">+ New Competition</button>` : ''}
-            </div>
-            ${comps.length ? comps.map(c => `
-            <div class="card">
-                <div style="display:flex;justify-content:space-between"><div><h3 style="font-size:18px;text-transform:none;letter-spacing:0;color:var(--text);margin-bottom:4px;">${c.name}</h3><p style="color:var(--text2);font-size:14px;margin-bottom:12px;">${c.description||''}</p></div><span class="badge badge-${c.status}">${c.status}</span></div>
-                <div style="display:flex;gap:24px;font-size:13px;color:var(--text2);">
-                    <span>Metric: <strong style="color:var(--text)">${c.metric}</strong></span>
-                    <span>Max steps: <strong style="color:var(--text)">${c.max_steps?.toLocaleString()}</strong></span>
-                    ${c.sponsor?`<span>Sponsor: <strong style="color:var(--text)">${c.sponsor}</strong></span>`:''}
-                    ${c.prize_description?`<span>Prize: <strong style="color:var(--yellow)">${c.prize_description}</strong></span>`:''}
-                </div>
-                <div style="margin-top:12px;"><button class="btn btn-secondary" onclick="viewLeaderboard(${c.id})">View Leaderboard</button></div>
-            </div>`).join('') :
-            `<div class="empty"><h3>No competitions yet</h3><p>Competitions will appear here when created</p></div>`}`;
-    }
-
-    // ---- Results ----
-    async function renderResults() {
-        const exps = await api('/experiments/') || [];
-        const completed = exps.filter(e => e.status === 'completed' && e.val_bpb).sort((a,b) => a.val_bpb - b.val_bpb);
-        document.getElementById('content').innerHTML = `
-            <div class="card" style="padding:0;overflow:hidden;"><div style="padding:20px 20px 0;"><h3>All Results (ranked by val_bpb)</h3></div>
-            ${completed.length ? `<table><tr><th>Rank</th><th>Name</th><th>val_bpb</th><th>Stage</th><th>Steps</th></tr>
-            ${completed.map((e,i) => `<tr><td class="${i<3?'rank-'+(i+1):''}">#${i+1}</td><td><strong>${e.name}</strong></td><td class="metric-good" style="font-weight:600;">${e.val_bpb.toFixed(4)}</td><td>${e.stage}</td><td>${e.steps}</td></tr>`).join('')}</table>` :
-            `<div class="empty"><h3>No results yet</h3><p>Completed experiments will appear here</p></div>`}</div>`;
     }
 
     // ---- Chat ----
@@ -840,22 +826,6 @@
     }
 
     async function cancelExp(id) { if(confirm('Cancel?')){ await api(`/experiments/${id}`,{method:'DELETE'}); renderExperiments(); }}
-
-    async function submitCompetition() {
-        const name = document.getElementById('comp-name').value.trim();
-        if (!name) return alert('Name required');
-        await api('/admin/competitions',{method:'POST',body:JSON.stringify({name,description:document.getElementById('comp-desc').value,max_steps:parseInt(document.getElementById('comp-steps').value)||13780,sponsor:document.getElementById('comp-sponsor').value,prize_description:document.getElementById('comp-prize').value})});
-        closeModal('modal-new-comp'); renderCompetitions();
-    }
-
-    async function viewLeaderboard(id) {
-        const data = await api(`/competitions/${id}/leaderboard`);
-        if(!data?.entries?.length) return alert('No entries yet');
-        document.getElementById('content').innerHTML = `
-            <button class="btn btn-secondary" onclick="renderCompetitions()" style="margin-bottom:16px;">&lt; Back</button>
-            <div class="card"><h3>${data.competition} — Leaderboard</h3><table><tr><th>Rank</th><th>Experiment</th><th>${data.metric}</th></tr>
-            ${data.entries.map(e => `<tr><td class="${e.rank<=3?'rank-'+e.rank:''}">#${e.rank}</td><td><strong>${e.name}</strong></td><td class="metric-good">${e.val_bpb?.toFixed(4)||'---'}</td></tr>`).join('')}</table></div>`;
-    }
 
     // Fleet actions
     async function testGPU(id) { showGPUOutput('Testing...'); const r=await api(`/fleet/${id}/test`,{method:'POST'}); showGPUOutput(r?.status==='online'?`Connected!\n${r.output||''}`:`Failed: ${r?.detail||JSON.stringify(r)}`); renderFleet(); }

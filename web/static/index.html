@@ -1302,7 +1302,7 @@
         if (!filename) { alert('Filename is required'); return; }
 
         // Fetch template
-        const tmpl = await api(`/research/templates/${docType}`);
+        const tmpl = await api(`/research/template/${docType}`);
         const content = tmpl ? tmpl.content : `---\ntitle: ""\nstatus: "DRAFT"\n---\n\n# ${filename}\n`;
 
         const result = await api(`/research/${docType}`, {

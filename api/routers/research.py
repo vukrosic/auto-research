@@ -181,14 +181,3 @@ def delete_doc(doc_type: str, slug: str):
         raise HTTPException(404, f"Document not found: {doc_type}/{slug}")
     path.unlink()
     return {"ok": True}
-
-
-@router.get("/templates/{doc_type}")
-def get_template(doc_type: str):
-    """Get the template for a document type."""
-    if doc_type not in VALID_TYPES:
-        raise HTTPException(400, f"Invalid type: {doc_type}")
-    path = RESEARCH_ROOT / doc_type / "TEMPLATE.md"
-    if not path.exists():
-        raise HTTPException(404, "Template not found")
-    return {"content": path.read_text(encoding="utf-8")}

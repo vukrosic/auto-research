@@ -1,10 +1,10 @@
-"""Admin routes — Vuk's one-click management."""
+"""Admin routes — management dashboard and sync operations."""
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from api.database import get_db
-from api.models import User, Competition, GPU, Experiment, SupportTicket
+from api.models import User, GPU, Experiment, SupportTicket
 from api.config import settings
 
 router = APIRouter()
@@ -21,16 +21,6 @@ class UserUpdate(BaseModel):
     name: str | None = None
     is_active: bool | None = None
     reset_usage: bool = False
-
-
-class CompetitionCreate(BaseModel):
-    name: str
-    description: str = ""
-    template: str = "parameter_golf"
-    metric: str = "val_bpb"
-    max_steps: int = 13780
-    prize_description: str = ""
-    sponsor: str = ""
 
 
 @router.post("/users")
@@ -77,8 +67,6 @@ def list_users(db: Session = Depends(get_db)):
             "completed_experiments": completed,
             "best_bpb": best.val_bpb if best else None,
             "created": str(u.created_at),
-            # Estimated social media posts: 1 per 50 completed experiments
-            "est_social_posts": completed // 50,
         })
     return result
 
@@ -105,24 +93,6 @@ def update_user(user_id: int, update: UserUpdate, db: Session = Depends(get_db))
     return {"id": user.id, "email": user.email, "tier": user.tier, "is_active": user.is_active}
 
 
-@router.post("/competitions")
-def create_competition(comp: CompetitionCreate, db: Session = Depends(get_db)):
-    """Create a new competition."""
-    competition = Competition(
-        name=comp.name,
-        description=comp.description,
-        template=comp.template,
-        metric=comp.metric,
-        max_steps=comp.max_steps,
-        prize_description=comp.prize_description,
-        sponsor=comp.sponsor,
-    )
-    db.add(competition)
-    db.commit()
-    db.refresh(competition)
-    return {"id": competition.id, "name": competition.name}
-
-
 @router.get("/dashboard")
 def admin_dashboard(db: Session = Depends(get_db)):
     """Full admin overview."""
@@ -143,9 +113,6 @@ def admin_dashboard(db: Session = Depends(get_db)):
         tier_counts[u.tier] = tier_counts.get(u.tier, 0) + 1
     mrr = sum(tier_prices.get(t, 0) * c for t, c in tier_counts.items())
 
-    # Social media posts estimate (1 per 50 completed experiments)
-    est_posts = completed // 50
-
     return {
         "total_users": total_users,
         "active_users": active_users,
@@ -158,15 +125,35 @@ def admin_dashboard(db: Session = Depends(get_db)):
         "gpus_online": gpus_online,
         "gpus_total": gpus_total,
         "tickets_open": tickets_open,
-        "est_social_posts": est_posts,
     }
 
 
-@router.post("/import-results")
-def import_historical_results(dry_run: bool = False):
-    """Import all existing parameter-golf results into the DB."""
-    from engine.result_importer import import_results
-    return import_results(dry_run=dry_run)
+@router.post("/sync-results")
+def sync_results(db: Session = Depends(get_db)):
+    """Sync parameter-golf result files into the DB index.
+
+    Indexes new results from CLI runs and updates existing result_paths.
+    """
+    from engine.sync import sync_results_to_db
+    return sync_results_to_db(db)
+
+
+@router.post("/import-creds")
+def import_creds(db: Session = Depends(get_db)):
+    """Import GPUs from existing gpu_creds.sh into the DB.
+
+    One-time bootstrap when connecting to an existing parameter-golf setup.
+    """
+    from engine.sync import import_creds_from_file
+    return import_creds_from_file(db)
+
+
+@router.post("/sync-creds")
+def sync_creds(db: Session = Depends(get_db)):
+    """Write gpu_creds.sh from DB so parameter-golf CLI works standalone."""
+    from engine.sync import sync_creds_to_file
+    path = sync_creds_to_file(db)
+    return {"written_to": path}
 
 
 @router.get("/db")
@@ -174,7 +161,6 @@ def view_database(db: Session = Depends(get_db)):
     """View all database contents. For debugging."""
     users = db.query(User).all()
     experiments = db.query(Experiment).all()
-    competitions = db.query(Competition).all()
     gpus = db.query(GPU).all()
     tickets = db.query(SupportTicket).all()
 
@@ -189,7 +175,7 @@ def view_database(db: Session = Depends(get_db)):
         "gpus": [
             {"id": g.id, "name": g.name, "host": g.host, "port": g.port,
              "user": g.user, "status": g.status, "current_experiment": g.current_experiment,
-             "gpu_util": g.gpu_utilization, "gpu_temp": g.gpu_temp,
+             "gpu_util": g.gpu_utilization, "gpu_temp": g.gpu_temp, "hourly_rate": g.hourly_rate,
              "repo_path": g.repo_path, "last_seen": str(g.last_seen), "added": str(g.added_at)}
             for g in gpus
         ],
@@ -197,13 +183,8 @@ def view_database(db: Session = Depends(get_db)):
             {"id": e.id, "user_id": e.user_id, "name": e.name, "template": e.template,
              "stage": e.stage, "status": e.status, "steps": e.steps,
              "current_step": e.current_step, "val_bpb": e.val_bpb,
-             "gpu": e.gpu_name, "config": e.config_overrides}
+             "gpu": e.gpu_name, "result_path": e.result_path, "config": e.config_overrides}
             for e in experiments
-        ],
-        "competitions": [
-            {"id": c.id, "name": c.name, "status": c.status, "metric": c.metric,
-             "sponsor": c.sponsor, "prize": c.prize_description}
-            for c in competitions
         ],
         "support_tickets": [
             {"id": t.id, "user_id": t.user_id, "message": t.message,

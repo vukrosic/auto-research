@@ -57,8 +57,8 @@ class Experiment(Base):
     current_loss = Column(Float, nullable=True)
     val_bpb = Column(Float, nullable=True)
 
-    # Competition link
-    competition_id = Column(Integer, ForeignKey("competitions.id"), nullable=True)
+    # Path to result JSON on disk (source of truth for result data)
+    result_path = Column(String, nullable=True)
 
     # Timestamps
     queued_at = Column(DateTime, default=utcnow)
@@ -66,34 +66,6 @@ class Experiment(Base):
     completed_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="experiments")
-    competition = relationship("Competition", back_populates="experiments")
-
-
-class Competition(Base):
-    __tablename__ = "competitions"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(Text, default="")
-    template = Column(String, default="parameter_golf")
-    rules = Column(Text, default="")
-
-    # Scoring
-    metric = Column(String, default="val_bpb")  # lower = better
-    max_steps = Column(Integer, default=13780)
-    max_params = Column(Integer, default=16_000_000)  # 16MB
-
-    # Prizes
-    prize_description = Column(Text, default="")
-    sponsor = Column(String, nullable=True)
-
-    # Lifecycle
-    status = Column(String, default="upcoming")  # upcoming, active, scoring, completed
-    starts_at = Column(DateTime, nullable=True)
-    ends_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=utcnow)
-
-    experiments = relationship("Experiment", back_populates="competition")
 
 
 class GPU(Base):
@@ -113,6 +85,9 @@ class GPU(Base):
     current_step = Column(Integer, nullable=True)
     gpu_utilization = Column(Float, nullable=True)
     gpu_temp = Column(Float, nullable=True)
+
+    # Cost tracking
+    hourly_rate = Column(Float, default=0.0)  # USD/hour
 
     # Config
     repo_path = Column(String, default="/root/parameter-golf")

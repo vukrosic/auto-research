@@ -10,16 +10,34 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from api.config import settings
-from api.database import engine, Base
-from api.routers import auth, experiments, competitions, results, chat, webhooks, admin, fleet, terminal
+from api.database import engine, SessionLocal, Base, run_migrations
+from api.routers import auth, experiments, results, chat, webhooks, admin, fleet, terminal
 from engine.scheduler import scheduler_loop
 from engine.collector import collector_loop
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create tables
+# Create tables + add any new columns to existing tables
 Base.metadata.create_all(bind=engine)
+run_migrations()
+
+
+async def result_sync_loop():
+    """Periodically sync parameter-golf result files into DB index."""
+    from engine.sync import sync_results_to_db
+    while True:
+        await asyncio.sleep(300)  # every 5 minutes
+        try:
+            db = SessionLocal()
+            try:
+                stats = sync_results_to_db(db)
+                if stats.get("indexed", 0) > 0 or stats.get("updated", 0) > 0:
+                    logger.info(f"Result sync: {stats}")
+            finally:
+                db.close()
+        except Exception:
+            logger.exception("Result sync error")
 
 
 @asynccontextmanager
@@ -27,10 +45,12 @@ async def lifespan(app: FastAPI):
     """Start background tasks on startup, cancel on shutdown."""
     scheduler_task = asyncio.create_task(scheduler_loop())
     collector_task = asyncio.create_task(collector_loop())
-    logger.info("Background tasks started: scheduler, collector")
+    sync_task = asyncio.create_task(result_sync_loop())
+    logger.info("Background tasks started: scheduler, collector, result_sync")
     yield
     scheduler_task.cancel()
     collector_task.cancel()
+    sync_task.cancel()
     logger.info("Background tasks stopped")
 
 
@@ -46,7 +66,6 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
-app.include_router(competitions.router, prefix="/competitions", tags=["competitions"])
 app.include_router(results.router, prefix="/results", tags=["results"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])

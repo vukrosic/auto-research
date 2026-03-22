@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from api.database import get_db
 from api.models import GPU, User
 from api.routers.auth import get_current_user
+from engine.sync import sync_creds_to_file
 
 router = APIRouter()
 
@@ -25,6 +26,7 @@ class GPUAdd(BaseModel):
     ssh_command: str
     name: str = ""
     password: str = ""
+    hourly_rate: float = 0.0
 
 
 class GPURunCommand(BaseModel):
@@ -106,6 +108,7 @@ def add_gpu(gpu_data: GPUAdd, db: Session = Depends(get_db), _admin: User = Depe
         port=parsed["port"],
         user=parsed["user"],
         password=gpu_data.password,
+        hourly_rate=gpu_data.hourly_rate,
         repo_path="/root/parameter-golf",
     )
     db.add(gpu)
@@ -168,6 +171,9 @@ def add_gpu(gpu_data: GPUAdd, db: Session = Depends(get_db), _admin: User = Depe
     if warnings:
         result["warnings"] = warnings
 
+    # Sync gpu_creds.sh so parameter-golf CLI works standalone
+    sync_creds_to_file(db)
+
     return result
 
 
@@ -180,7 +186,8 @@ def list_gpus(db: Session = Depends(get_db), _admin: User = Depends(require_admi
             "id": g.id, "name": g.name, "host": g.host, "port": g.port,
             "status": g.status, "current_experiment": g.current_experiment,
             "current_step": g.current_step, "gpu_utilization": g.gpu_utilization,
-            "gpu_temp": g.gpu_temp, "last_seen": g.last_seen,
+            "gpu_temp": g.gpu_temp, "hourly_rate": g.hourly_rate,
+            "last_seen": g.last_seen,
         }
         for g in gpus
     ]
@@ -307,6 +314,9 @@ def remove_gpu(gpu_id: int, db: Session = Depends(get_db), _admin: User = Depend
     gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
     if not gpu:
         raise HTTPException(status_code=404, detail="GPU not found")
+    name = gpu.name
     db.delete(gpu)
     db.commit()
-    return {"deleted": gpu.name}
+    # Re-sync gpu_creds.sh after removal
+    sync_creds_to_file(db)
+    return {"deleted": name}

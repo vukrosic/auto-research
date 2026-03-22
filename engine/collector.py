@@ -62,6 +62,11 @@ def check_experiment(db: Session, exp: Experiment) -> None:
         f"{gpu.repo_path}/results/{exp.name}/summary.json",
     ]
 
+    # Find which path exists and cat it
+    find_cmd = " || ".join(f"(test -f {p} && echo {p})" for p in result_paths)
+    _, path_output = ssh_exec(gpu, find_cmd, timeout=10)
+    found_path = path_output.strip().split("\n")[0].strip() if path_output.strip() else ""
+
     cat_cmd = " || ".join(f"cat {p} 2>/dev/null" for p in result_paths)
     returncode, output = ssh_exec(gpu, cat_cmd, timeout=15)
 
@@ -75,6 +80,8 @@ def check_experiment(db: Session, exp: Experiment) -> None:
             exp.current_step = last_eval.get("step", exp.steps)
             exp.status = "completed"
             exp.completed_at = datetime.now(timezone.utc)
+            if found_path:
+                exp.result_path = found_path
 
             gpu.status = "idle"
             gpu.current_experiment = None

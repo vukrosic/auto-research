@@ -10,6 +10,7 @@ from api.config import settings
 from api.database import get_db
 from api.models import Experiment, User
 from api.routers.auth import get_current_user
+from engine.sync import export_queue_file
 
 router = APIRouter()
 
@@ -114,7 +115,6 @@ class ExperimentCreate(BaseModel):
     stage: str = "explore"  # ignored — auto-set from steps
     config_overrides: dict = {}
     steps: int = 500
-    competition_id: int | None = None
 
 
 @router.post("/")
@@ -140,7 +140,6 @@ def submit_experiment(exp: ExperimentCreate, db: Session = Depends(get_db), curr
         stage=stage,
         config_overrides=json.dumps(exp.config_overrides),
         steps=exp.steps,
-        competition_id=exp.competition_id,
     )
     db.add(experiment)
 
@@ -149,6 +148,10 @@ def submit_experiment(exp: ExperimentCreate, db: Session = Depends(get_db), curr
 
     db.commit()
     db.refresh(experiment)
+
+    # Sync queue file so parameter-golf CLI can also run queued experiments
+    export_queue_file(db)
+
     return {"id": experiment.id, "status": "queued", "stage": stage}
 
 

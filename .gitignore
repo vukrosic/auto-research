@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+*.db
+auto_research.db
+node_modules/
+.next/
+dist/
+.venv/
+venv/

@@ -52,29 +52,28 @@ def check_and_increment_usage(discord_username: str) -> tuple[bool, str]:
             return False, "❌ You're not registered. Ask Vuk to add you!"
 
         limits = settings.tier_limits.get(user.tier, {})
-        max_explores = limits.get("explore", 0)
+        max_exp = limits.get("experiments", 0)
 
-        if max_explores == -1:  # unlimited
+        if max_exp == -1:  # unlimited
             user.explore_runs_used += 1
             db.commit()
             return True, ""
 
-        if user.explore_runs_used >= max_explores:
+        if user.explore_runs_used >= max_exp:
             return False, (
-                f"⛔ You've used all {max_explores} explores this month (tier: `{user.tier}`).\n"
+                f"⛔ You've used all {max_exp} experiments this month.\n"
                 f"Upgrade at auto-research.ai or wait for monthly reset."
             )
 
         user.explore_runs_used += 1
         db.commit()
-        remaining = max_explores - user.explore_runs_used
-        return True, f"_({remaining} explores left this month)_"
+        return True, ""
     finally:
         db.close()
 
 
 def get_usage_footer(discord_username: str) -> str:
-    """Return a stats footer showing remaining counts."""
+    """Return remaining experiment count as a plain number."""
     from api.config import settings
 
     user, db = _get_user(discord_username)
@@ -82,19 +81,11 @@ def get_usage_footer(discord_username: str) -> str:
         if not user:
             return ""
         limits = settings.tier_limits.get(user.tier, {})
-
-        def left(used, mx):
-            if mx == -1:
-                return "∞"
-            return str(max(0, mx - used))
-
-        parts = [f"🔬 {left(user.explore_runs_used, limits.get('explore', 0))} explores"]
-        if limits.get("validate", 0) != 0:
-            parts.append(f"✅ {left(user.validate_runs_used, limits.get('validate', 0))} validates")
-        if limits.get("full", 0) != 0:
-            parts.append(f"🏁 {left(user.full_runs_used, limits.get('full', 0))} full")
-
-        return "```\n📊 " + "  |  ".join(parts) + f"  |  tier: {user.tier}\n```"
+        max_exp = limits.get("experiments", 0)
+        if max_exp == -1:
+            return ""
+        remaining = max(0, max_exp - user.explore_runs_used)
+        return str(remaining)
     finally:
         db.close()
 

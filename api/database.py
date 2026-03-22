@@ -29,6 +29,7 @@ def run_migrations():
 
     migrations = [
         ("experiments", "result_path", "VARCHAR"),
+        ("experiments", "spec_id", "INTEGER"),
         ("gpus", "hourly_rate", "FLOAT DEFAULT 0.0"),
     ]
 

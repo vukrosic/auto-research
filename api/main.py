@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 
 from api.config import settings
 from api.database import engine, SessionLocal, Base, run_migrations
-from api.routers import auth, experiments, results, chat, admin, fleet, terminal, research, queues
+from api.routers import auth, experiments, results, chat, admin, fleet, terminal, research, queues, specs
 from engine.scheduler import scheduler_loop
 from engine.collector import collector_loop
 
@@ -25,19 +25,22 @@ run_migrations()
 
 async def result_sync_loop():
     """Periodically sync parameter-golf result files into DB index."""
-    from engine.sync import sync_results_to_db
+    from engine.sync import sync_results_to_db, sync_specs_to_db
     while True:
-        await asyncio.sleep(300)  # every 5 minutes
         try:
             db = SessionLocal()
             try:
+                spec_stats = sync_specs_to_db(db)
                 stats = sync_results_to_db(db)
+                if any(spec_stats.get(k, 0) > 0 for k in ("indexed", "updated")):
+                    logger.info(f"Spec sync: {spec_stats}")
                 if stats.get("indexed", 0) > 0 or stats.get("updated", 0) > 0:
                     logger.info(f"Result sync: {stats}")
             finally:
                 db.close()
         except Exception:
             logger.exception("Result sync error")
+        await asyncio.sleep(300)  # every 5 minutes
 
 
 @asynccontextmanager
@@ -72,6 +75,7 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(fleet.router, prefix="/fleet", tags=["fleet"])
 app.include_router(terminal.router, prefix="/terminal", tags=["terminal"])
 app.include_router(research.router, prefix="/research", tags=["research"])
+app.include_router(specs.router, prefix="/specs", tags=["specs"])
 app.include_router(queues.router, prefix="/queues", tags=["queues"])
 
 

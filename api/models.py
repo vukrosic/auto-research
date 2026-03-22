@@ -35,6 +35,37 @@ class User(Base):
     last_login = Column(DateTime, nullable=True)
 
     experiments = relationship("Experiment", back_populates="user")
+    experiment_specs = relationship("ExperimentSpec", back_populates="user")
+
+
+class ExperimentSpec(Base):
+    __tablename__ = "experiment_specs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    slug = Column(String, unique=True, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    spec_type = Column(String, default="exploration")  # exploration, hypothesis, finding, benchmark
+    template = Column(String, default="parameter_golf")
+    stage = Column(String, default="explore")
+    steps = Column(Integer, default=500)
+
+    # Repo-backed manifest fields
+    config_overrides = Column(Text, default="{}")
+    linked_docs = Column(Text, default="[]")
+    tags = Column(Text, default="[]")
+    notes = Column(Text, default="")
+    desired_state = Column(String, default="draft")  # draft, queued, paused, archived
+    source_path = Column(String, unique=True, nullable=False)
+    content_hash = Column(String, default="")
+    origin = Column(String, default="web")  # web, repo, sync
+
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    last_synced_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="experiment_specs")
+    experiments = relationship("Experiment", back_populates="spec")
 
 
 class Experiment(Base):
@@ -42,6 +73,7 @@ class Experiment(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    spec_id = Column(Integer, ForeignKey("experiment_specs.id"), nullable=True)
     name = Column(String, nullable=False)
     template = Column(String, default="parameter_golf")
     stage = Column(String, default="explore")  # explore, validate, full
@@ -66,6 +98,7 @@ class Experiment(Base):
     completed_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="experiments")
+    spec = relationship("ExperimentSpec", back_populates="experiments")
 
 
 class GPU(Base):

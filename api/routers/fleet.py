@@ -1,7 +1,8 @@
-"""Fleet routes — GPU management with real SSH connectivity. Admin only."""
+"""Fleet routes — GPU management with real SSH connectivity or local execution. Admin only."""
 import re
 import shlex
 import subprocess
+from pathlib import Path
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from api.routers.auth import get_current_user
 from engine.sync import sync_creds_to_file
 
 router = APIRouter()
+LOCAL_GPU_HOSTS = {"localhost", "127.0.0.1", "local"}
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
@@ -66,8 +68,25 @@ def parse_ssh_command(cmd: str) -> dict:
     return {"host": host.strip(), "port": port, "user": user.strip()}
 
 
+def is_local_gpu(gpu: GPU) -> bool:
+    return gpu.host in LOCAL_GPU_HOSTS
+
+
 def ssh_exec(gpu: GPU, command: str, timeout: int = 15) -> tuple[int, str]:
-    """Execute a command on a GPU via SSH. Returns (returncode, output)."""
+    """Execute a command on a GPU via SSH or locally. Returns (returncode, output)."""
+    if is_local_gpu(gpu):
+        try:
+            result = subprocess.run(
+                ["bash", "-lc", command],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=gpu.repo_path if Path(gpu.repo_path).exists() else None,
+            )
+            return result.returncode, result.stdout + result.stderr
+        except subprocess.TimeoutExpired:
+            return -1, "Local command timed out"
+
     ssh_cmd = [
         "sshpass", "-p", gpu.password,
         "ssh", "-o", "StrictHostKeyChecking=no",
@@ -83,6 +102,27 @@ def ssh_exec(gpu: GPU, command: str, timeout: int = 15) -> tuple[int, str]:
         return -1, "Connection timed out"
     except FileNotFoundError:
         return -1, "sshpass not installed. Run: apt-get install -y sshpass"
+
+
+def ensure_local_gpu(db: Session) -> GPU:
+    """Ensure the local machine's main GPU exists as a fleet target."""
+    existing = db.query(GPU).filter(GPU.host == "localhost", GPU.repo_path == "/root/parameter-golf").first()
+    if existing:
+        return existing
+
+    gpu = GPU(
+        name="local-3090",
+        host="localhost",
+        port=22,
+        user="root",
+        password="",
+        repo_path="/root/parameter-golf",
+        status="online",
+    )
+    db.add(gpu)
+    db.commit()
+    db.refresh(gpu)
+    return gpu
 
 
 @router.post("/add")
@@ -180,6 +220,7 @@ def add_gpu(gpu_data: GPUAdd, db: Session = Depends(get_db), _admin: User = Depe
 @router.get("/")
 def list_gpus(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     """List all GPUs in the fleet."""
+    ensure_local_gpu(db)
     gpus = db.query(GPU).order_by(GPU.added_at.desc()).all()
     return [
         {
@@ -314,6 +355,8 @@ def remove_gpu(gpu_id: int, db: Session = Depends(get_db), _admin: User = Depend
     gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
     if not gpu:
         raise HTTPException(status_code=404, detail="GPU not found")
+    if is_local_gpu(gpu):
+        raise HTTPException(status_code=400, detail="Local GPU cannot be removed")
     name = gpu.name
     db.delete(gpu)
     db.commit()

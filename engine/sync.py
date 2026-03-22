@@ -5,15 +5,18 @@ parameter-golf files own: experiment results, queue format, research docs
 
 This module bridges the two so either system works standalone.
 """
+import hashlib
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from api.config import settings
-from api.database import SessionLocal
-from api.models import GPU, Experiment, User
+from api.database import Base, SessionLocal, engine
+from api.models import GPU, Experiment, ExperimentSpec, User
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +24,7 @@ PG_PATH = Path(settings.parameter_golf_path)
 CREDS_FILE = PG_PATH / "infra" / "gpu_creds.sh"
 RESULTS_DIR = PG_PATH / "results"
 QUEUE_FILE = PG_PATH / "queues" / "active.txt"
+SPECS_DIR = PG_PATH / "experiments" / "specs"
 
 STAGE_BY_STEPS = [
     (800, "explore"),
@@ -102,6 +106,127 @@ def read_result_json(path: Path) -> dict | None:
         return None
 
 
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+def _ensure_spec_tables() -> None:
+    inspector = inspect(engine)
+    if "experiment_specs" not in inspector.get_table_names():
+        Base.metadata.create_all(bind=engine)
+
+
+def _json_loads(text: str, default):
+    try:
+        return json.loads(text) if text else default
+    except (json.JSONDecodeError, TypeError):
+        return default
+
+
+def _spec_payload_from_file(path: Path) -> dict | None:
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    required = {"spec_id", "name", "spec_type", "template", "stage", "steps", "config_overrides", "linked_docs"}
+    if not required.issubset(payload):
+        return None
+    return payload
+
+
+def _spec_to_manifest(spec: ExperimentSpec) -> dict:
+    return {
+        "spec_id": spec.slug,
+        "name": spec.name,
+        "spec_type": spec.spec_type,
+        "template": spec.template,
+        "stage": spec.stage,
+        "steps": spec.steps,
+        "config_overrides": _json_loads(spec.config_overrides, {}),
+        "linked_docs": _json_loads(spec.linked_docs, []),
+        "tags": _json_loads(spec.tags, []),
+        "notes": spec.notes or "",
+        "desired_state": spec.desired_state,
+    }
+
+
+def _spec_hash(payload: dict) -> str:
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def export_spec_to_repo(spec: ExperimentSpec) -> str:
+    """Write an experiment spec row to parameter-golf/experiments/specs."""
+    SPECS_DIR.mkdir(parents=True, exist_ok=True)
+    payload = _spec_to_manifest(spec)
+    path = SPECS_DIR / f"{spec.slug}.json"
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    spec.source_path = str(path)
+    spec.content_hash = _spec_hash(payload)
+    spec.last_synced_at = _utcnow()
+    return str(path)
+
+
+def sync_specs_to_db(db: Session) -> dict:
+    """Index repo-backed experiment specs into the DB and keep file paths current."""
+    _ensure_spec_tables()
+    if not SPECS_DIR.exists():
+        return {"indexed": 0, "updated": 0, "skipped": 0}
+
+    admin = db.query(User).filter(User.tier == "admin").first()
+    if not admin:
+        admin = User(email="admin@auto-research.local", name="Admin", tier="admin")
+        db.add(admin)
+        db.flush()
+
+    by_slug = {s.slug: s for s in db.query(ExperimentSpec).all()}
+    stats = {"indexed": 0, "updated": 0, "skipped": 0}
+
+    for path in sorted(SPECS_DIR.glob("*.json")):
+        payload = _spec_payload_from_file(path)
+        if not payload:
+            stats["skipped"] += 1
+            continue
+
+        slug = payload["spec_id"]
+        digest = _spec_hash(payload)
+        spec = by_slug.get(slug)
+        if spec and spec.content_hash == digest and spec.source_path == str(path):
+            spec.last_synced_at = _utcnow()
+            stats["skipped"] += 1
+            continue
+
+        if not spec:
+            spec = ExperimentSpec(
+                user_id=admin.id,
+                slug=slug,
+                source_path=str(path),
+                origin="repo",
+            )
+            db.add(spec)
+            by_slug[slug] = spec
+            stats["indexed"] += 1
+        else:
+            stats["updated"] += 1
+
+        spec.name = payload["name"]
+        spec.spec_type = payload["spec_type"]
+        spec.template = payload["template"]
+        spec.stage = payload["stage"]
+        spec.steps = int(payload["steps"])
+        spec.config_overrides = json.dumps(payload.get("config_overrides", {}), sort_keys=True)
+        spec.linked_docs = json.dumps(payload.get("linked_docs", []))
+        spec.tags = json.dumps(payload.get("tags", []))
+        spec.notes = payload.get("notes", "")
+        spec.desired_state = payload.get("desired_state", "draft")
+        spec.content_hash = digest
+        spec.source_path = str(path)
+        spec.last_synced_at = _utcnow()
+
+    db.commit()
+    return stats
+
+
 def sync_results_to_db(db: Session) -> dict:
     """Scan parameter-golf/results/ and index new results into the DB.
 
@@ -120,6 +245,7 @@ def sync_results_to_db(db: Session) -> dict:
 
     # Index of existing experiment names → Experiment objects
     existing = {e.name: e for e in db.query(Experiment).all()}
+    spec_by_slug = {s.slug: s for s in db.query(ExperimentSpec).all()}
 
     stats = {"updated": 0, "indexed": 0, "skipped": 0}
 
@@ -143,6 +269,9 @@ def sync_results_to_db(db: Session) -> dict:
             exp = existing[name]
             # Update result_path and val_bpb if missing or changed
             changed = False
+            if exp.spec_id is None and name in spec_by_slug:
+                exp.spec_id = spec_by_slug[name].id
+                changed = True
             if exp.result_path != result_path_str:
                 exp.result_path = result_path_str
                 changed = True
@@ -173,6 +302,7 @@ def sync_results_to_db(db: Session) -> dict:
 
             exp = Experiment(
                 user_id=admin.id,
+                spec_id=spec_by_slug.get(name).id if name in spec_by_slug else None,
                 name=name,
                 template="parameter_golf",
                 stage=classify_stage(steps),

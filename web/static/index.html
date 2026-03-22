@@ -329,9 +329,10 @@
                     <option value="explorations">Exploration</option>
                     <option value="hypotheses">Hypothesis</option>
                     <option value="findings">Finding</option>
+                    <option value="experiment_specs">Experiment Spec</option>
                 </select>
             </div>
-            <div class="form-group"><label>Filename (without .md)</label><input type="text" id="research-filename" placeholder="e.g. 2026-03-22_rope_variants"></div>
+            <div class="form-group"><label>Filename (without extension)</label><input type="text" id="research-filename" placeholder="e.g. 2026-03-22_rope_variants"></div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal('modal-new-research')">Cancel</button>
                 <button class="btn btn-primary" onclick="createResearchDoc()">Create</button>
@@ -357,6 +358,7 @@
     <script>
     const API = '';
     let currentUser = null;
+    let currentPage = 'chat';
 
     // ---- API ----
     async function api(path, opts = {}) {
@@ -415,9 +417,11 @@
     // ---- Navigation ----
     document.querySelectorAll('.nav-item[data-page]').forEach(el => {
         el.addEventListener('click', () => {
+            if (experimentsPoll) { clearTimeout(experimentsPoll); experimentsPoll = null; }
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             const page = el.dataset.page;
+            currentPage = page;
             const titles = { chat: 'AI Research Chat', experiments: 'Experiments', research: 'Research', deploy: 'Deploy', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
             document.getElementById('page-title').textContent = titles[page] || page;
             const r = { experiments: renderExperiments, research: renderResearch, deploy: renderDeploy, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
@@ -431,10 +435,12 @@
     }
 
     // ---- Experiments (unified: stats + filters + paginated table) ----
-    let expFilter = { status: 'all', stage: 'all', search: '', sort: 'bpb', page: 0 };
-    const EXP_PER_PAGE = 50;
+    let expFilter = { status: 'all', stage: 'all', search: '', sort: 'newest', page: 0 };
+    const EXP_PER_PAGE = 25;
+    let experimentsPoll = null;
 
     async function renderExperiments() {
+        if (experimentsPoll) clearInterval(experimentsPoll);
         const exps = await api('/experiments/') || [];
         const running = exps.filter(e => e.status === 'running').length;
         const queued = exps.filter(e => e.status === 'queued').length;
@@ -452,7 +458,7 @@
 
         // Sort
         if (expFilter.sort === 'bpb') filtered.sort((a,b) => (a.val_bpb||99) - (b.val_bpb||99));
-        else if (expFilter.sort === 'newest') filtered.sort((a,b) => new Date(b.queued_at||0) - new Date(a.queued_at||0));
+        else if (expFilter.sort === 'newest') filtered.sort((a,b) => new Date(b.completed_at || b.started_at || b.queued_at || 0) - new Date(a.completed_at || a.started_at || a.queued_at || 0));
         else if (expFilter.sort === 'name') filtered.sort((a,b) => a.name.localeCompare(b.name));
         else if (expFilter.sort === 'steps') filtered.sort((a,b) => (b.steps||0) - (a.steps||0));
 
@@ -488,23 +494,30 @@
                         <option value="full" ${expFilter.stage==='full'?'selected':''}>Full</option>
                     </select>
                     <select onchange="expFilter.sort=this.value;expFilter.page=0;renderExperiments()" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;">
-                        <option value="bpb" ${expFilter.sort==='bpb'?'selected':''}>Sort: Best BPB</option>
                         <option value="newest" ${expFilter.sort==='newest'?'selected':''}>Sort: Newest</option>
+                        <option value="bpb" ${expFilter.sort==='bpb'?'selected':''}>Sort: Best BPB</option>
                         <option value="name" ${expFilter.sort==='name'?'selected':''}>Sort: Name</option>
                         <option value="steps" ${expFilter.sort==='steps'?'selected':''}>Sort: Steps</option>
                     </select>
-                    <span style="color:var(--text2);font-size:12px;margin-left:auto;">${filtered.length} of ${exps.length} experiments</span>
+                    <span style="color:var(--text2);font-size:12px;margin-left:auto;">${filtered.length} experiments</span>
                     <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-exp')">+ New</button>
                 </div>
                 ${pageExps.length ? `<div style="overflow-x:auto;"><table><tr>${bpbSorted?'<th>Rank</th>':''}<th>Name</th><th>Stage</th><th>Status</th><th>Steps</th><th>val_bpb</th><th>Submitted</th><th></th></tr>
                 ${pageExps.map((e,i) => {
                     const rank = expFilter.page * EXP_PER_PAGE + i + 1;
+                    const currentStep = e.current_step || 0;
+                    const totalSteps = e.steps || 0;
+                    const pct = totalSteps > 0 ? Math.max(0, Math.min(100, Math.round((currentStep / totalSteps) * 100))) : 0;
                     return `<tr>${bpbSorted?`<td class="${rank<=3?'rank-'+rank:''}">#${rank}</td>`:''}` +
                     `<td><strong>${escHtml(e.name)}</strong></td><td>${e.stage}</td><td><span class="badge badge-${e.status}">${e.status}</span></td>` +
-                    `<td>${e.current_step||e.steps||0}/${e.steps}</td>` +
+                    `<td><div>${currentStep}/${totalSteps}</div><div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:${pct}%;"></div></div></td>` +
                     `<td class="${e.val_bpb?'metric-good':''}" style="${e.val_bpb?'font-weight:600':''}">${e.val_bpb?e.val_bpb.toFixed(4):'---'}</td>` +
                     `<td style="color:var(--text2);font-size:12px;">${timeAgo(e.queued_at)}</td>` +
-                    `<td>${['queued','running'].includes(e.status)?`<button class="btn btn-secondary btn-sm" onclick="cancelExp(${e.id})">Cancel</button>`:''}</td></tr>`;
+                    `<td style="display:flex;gap:6px;flex-wrap:wrap;">` +
+                    `${e.status==='queued'?`<button class="btn btn-primary btn-sm" onclick="startExp(${e.id})">Run now</button>`:''}` +
+                    `${['queued','running'].includes(e.status)?`<button class="btn btn-secondary btn-sm" onclick="refreshExp(${e.id})">Refresh</button>`:''}` +
+                    `${['queued','running'].includes(e.status)?`<button class="btn btn-secondary btn-sm" onclick="cancelExp(${e.id})">Cancel</button>`:''}` +
+                    `</td></tr>`;
                 }).join('')}</table></div>` :
                 `<div class="empty"><h3>No matching experiments</h3><p>Try adjusting your filters</p></div>`}
                 ${totalPages > 1 ? `<div style="display:flex;justify-content:center;align-items:center;gap:12px;padding:16px 0;">
@@ -513,6 +526,12 @@
                     <button class="btn btn-secondary btn-sm" onclick="expFilter.page++;renderExperiments()" ${expFilter.page>=totalPages-1?'disabled':''}>Next</button>
                 </div>` : ''}
             </div>`;
+
+        if (currentPage === 'experiments') {
+            experimentsPoll = setTimeout(() => {
+                if (currentPage === 'experiments') renderExperiments();
+            }, running > 0 ? 3000 : 10000);
+        }
     }
 
     // ---- Chat ----
@@ -844,6 +863,8 @@
         }
     }
 
+    async function startExp(id) { const r = await api(`/experiments/${id}/start`, {method:'POST'}); if (r?.status) renderExperiments(); else if (r?.detail) alert(r.detail); }
+    async function refreshExp(id) { await api(`/experiments/${id}/refresh`, {method:'POST'}); renderExperiments(); }
     async function cancelExp(id) { if(confirm('Cancel?')){ await api(`/experiments/${id}`,{method:'DELETE'}); renderExperiments(); }}
 
     // Fleet actions
@@ -1264,13 +1285,30 @@
     let docDirty = false;
 
     async function renderResearch() {
-        researchData = await api('/research/') || {};
+        const [docs, specs, exps] = await Promise.all([api('/research/'), api('/specs/'), api('/experiments/')]);
+        researchData = docs || {};
+        researchData.experiment_specs = specs || [];
+        researchData.experiments = exps || [];
         const findings = researchData.findings || [];
         const hypotheses = researchData.hypotheses || [];
         const explorations = researchData.explorations || [];
+        const experimentSpecs = researchData.experiment_specs || [];
+        const experiments = researchData.experiments || [];
+        const activeSpecs = experimentSpecs.filter(s => ['queued','running'].includes(s.latest_run?.status || '') || s.desired_state === 'queued').length;
+        const running = experiments.filter(e => e.status === 'running').length;
+        const best = experiments.filter(e => e.val_bpb).sort((a,b) => a.val_bpb - b.val_bpb)[0];
 
         document.getElementById('content').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card"><div class="label">Experiment Specs</div><div class="value">${experimentSpecs.length}</div><div class="sub">${activeSpecs} active or queued</div></div>
+                <div class="stat-card"><div class="label">Hypotheses</div><div class="value">${hypotheses.length}</div><div class="sub">${findings.length} findings published</div></div>
+                <div class="stat-card"><div class="label">Explorations</div><div class="value">${explorations.length}</div><div class="sub">recent probes and notes</div></div>
+                <div class="stat-card"><div class="label">Live Runs</div><div class="value" style="color:var(--green)">${running}</div><div class="sub">${best ? `best ${best.val_bpb.toFixed(4)} by ${best.name}` : 'no completed metrics yet'}</div></div>
+            </div>
             <div class="research-tabs">
+                <div class="research-tab ${researchTab==='experiment_specs'?'active':''}" onclick="researchTab='experiment_specs';renderResearchList()">
+                    Experiment Specs <span class="tab-count">${experimentSpecs.length}</span>
+                </div>
                 <div class="research-tab ${researchTab==='findings'?'active':''}" onclick="researchTab='findings';renderResearchList()">
                     Findings <span class="tab-count">${findings.length}</span>
                 </div>
@@ -1290,7 +1328,7 @@
     function renderResearchList() {
         // Update active tab styling
         document.querySelectorAll('.research-tab').forEach((el, i) => {
-            const tabs = ['findings', 'hypotheses', 'explorations'];
+            const tabs = ['experiment_specs', 'findings', 'hypotheses', 'explorations'];
             el.classList.toggle('active', tabs[i] === researchTab);
         });
 
@@ -1298,8 +1336,31 @@
         const container = document.getElementById('research-content');
 
         if (!docs.length) {
-            container.innerHTML = `<div class="empty"><h3>No ${researchTab} yet</h3><p>Create your first ${researchTab.slice(0,-1)} to get started</p>
-                <button class="btn btn-primary" onclick="openNewResearch()">+ New ${researchTab.slice(0,-1)}</button></div>`;
+            const emptyLabel = researchTab === 'experiment_specs' ? 'experiment specs' : researchTab;
+            const singular = researchTab === 'experiment_specs' ? 'experiment spec' : researchTab.slice(0,-1);
+            container.innerHTML = `<div class="empty"><h3>No ${emptyLabel} yet</h3><p>Create your first ${singular} to get started</p>
+                <button class="btn btn-primary" onclick="openNewResearch()">+ New ${singular}</button></div>`;
+            return;
+        }
+
+        if (researchTab === 'experiment_specs') {
+            const sortedSpecs = [...docs].sort((a, b) => {
+                const aTime = new Date(a.latest_run?.queued_at || a.updated_at || 0);
+                const bTime = new Date(b.latest_run?.queued_at || b.updated_at || 0);
+                return bTime - aTime;
+            });
+            container.innerHTML = `<div class="doc-list">${sortedSpecs.map(d => `
+                <div class="doc-card" onclick="openResearchDoc('experiment_specs', ${d.id})">
+                    <div class="doc-id">${escHtml((d.spec_type || '').toUpperCase())}</div>
+                    <div class="doc-info">
+                        <div class="doc-title">${escHtml(d.name)}</div>
+                        <div class="doc-date">${escHtml(d.stage)} · ${escHtml(d.slug)} · ${d.steps} steps · ${d.linked_docs?.length || 0} links</div>
+                    </div>
+                    <div class="doc-status" style="text-align:right;">
+                        ${d.latest_run ? `<span class="badge badge-${d.latest_run.status}">${d.latest_run.status}</span>` : `<span class="badge">${escHtml(d.desired_state || 'draft')}</span>`}
+                        <div style="font-size:11px;color:var(--text2);margin-top:6px;">${d.latest_run?.val_bpb ? `best ${d.latest_run.val_bpb.toFixed(4)}` : 'no run metrics yet'}</div>
+                    </div>
+                </div>`).join('')}</div>`;
             return;
         }
 
@@ -1311,11 +1372,13 @@
 
         container.innerHTML = `<div class="doc-list">${sorted.map(d => {
             const id = d.slug.match(/^[HF]\d+/) ? d.slug.match(/^[HF]\d+/)[0] : '';
+            const experimentsCount = Array.isArray(d.meta?.experiments) ? d.meta.experiments.length : 0;
+            const origin = d.meta?.origin || d.meta?.finding || d.meta?.leads_to || '';
             return `<div class="doc-card" onclick="openResearchDoc('${d.type}','${d.slug}')">
                 <div class="doc-id">${id}</div>
                 <div class="doc-info">
                     <div class="doc-title">${escHtml(d.title)}</div>
-                    <div class="doc-date">${d.date || ''} &middot; ${d.filename}</div>
+                    <div class="doc-date">${d.date || ''} &middot; ${d.filename}${experimentsCount ? ` · ${experimentsCount} experiments` : ''}${origin ? ` · ${escHtml(origin)}` : ''}</div>
                 </div>
                 <div class="doc-status"><span class="badge badge-${d.status}">${d.status}</span></div>
             </div>`;
@@ -1323,25 +1386,27 @@
     }
 
     async function openResearchDoc(type, slug) {
-        const doc = await api(`/research/${type}/${slug}`);
+        const doc = type === 'experiment_specs' ? await api(`/specs/${slug}`) : await api(`/research/${type}/${slug}`);
         if (!doc) return;
-        currentDoc = doc;
+        currentDoc = {...doc, type, kind: type === 'experiment_specs' ? 'spec' : 'doc'};
         docDirty = false;
+        if (currentDoc.kind === 'spec') docViewMode = 'edit';
 
         const container = document.getElementById('content');
         container.innerHTML = `
             <div class="doc-viewer">
                 <div class="doc-toolbar">
                     <button class="btn btn-secondary btn-sm" onclick="backToResearchList()">&larr; Back</button>
-                    <span class="doc-path">${type}/${doc.filename}</span>
-                    <span class="badge badge-${doc.status}" style="font-size:12px;">${doc.status}</span>
+                    <span class="doc-path">${type}/${doc.filename || doc.slug}</span>
+                    <span class="badge ${doc.status ? `badge-${doc.status}` : ''}" style="font-size:12px;">${doc.status || doc.desired_state || ''}</span>
                     <div class="view-toggle">
                         <button class="${docViewMode==='edit'?'active':''}" onclick="setDocView('edit')">Edit</button>
                         <button class="${docViewMode==='split'?'active':''}" onclick="setDocView('split')">Split</button>
                         <button class="${docViewMode==='preview'?'active':''}" onclick="setDocView('preview')">Preview</button>
                     </div>
+                    ${currentDoc.kind === 'spec' ? `<button class="btn btn-secondary btn-sm" onclick="queueCurrentSpec()">Queue Run</button>` : ''}
                     <button class="btn btn-primary btn-sm" id="doc-save-btn" onclick="saveDoc()" style="opacity:0.4;" disabled>Save</button>
-                    <button class="btn btn-danger btn-sm" onclick="confirmDeleteDoc()">Delete</button>
+                    ${currentDoc.kind === 'doc' ? `<button class="btn btn-danger btn-sm" onclick="confirmDeleteDoc()">Delete</button>` : ''}
                 </div>
                 <div class="doc-editor-wrap" id="doc-editor-wrap">
                     <textarea class="doc-editor" id="doc-editor" oninput="onDocEdit()" spellcheck="false">${escHtml(doc.content)}</textarea>
@@ -1353,6 +1418,7 @@
     }
 
     function setDocView(mode) {
+        if (currentDoc?.kind === 'spec' && mode === 'split') mode = 'preview';
         docViewMode = mode;
         document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
         const labels = {'edit': 0, 'split': 1, 'preview': 2};
@@ -1364,6 +1430,7 @@
         const editor = document.getElementById('doc-editor');
         const preview = document.getElementById('doc-preview');
         if (!editor || !preview) return;
+        if (currentDoc?.kind === 'spec' && docViewMode === 'split') docViewMode = 'preview';
         if (docViewMode === 'edit') { editor.style.display='block'; preview.style.display='none'; editor.style.flex='1'; }
         else if (docViewMode === 'preview') { editor.style.display='none'; preview.style.display='block'; preview.style.flex='1'; preview.style.borderLeft='none'; }
         else { editor.style.display='block'; preview.style.display='block'; editor.style.flex='1'; preview.style.flex='1'; preview.style.borderLeft='1px solid var(--border)'; }
@@ -1381,6 +1448,10 @@
         const preview = document.getElementById('doc-preview');
         if (!editor || !preview) return;
         let text = editor.value;
+        if (currentDoc?.kind === 'spec') {
+            preview.innerHTML = `<pre style="white-space:pre-wrap;font-size:13px;margin:0;">${escHtml(text)}</pre>`;
+            return;
+        }
         // Strip frontmatter for preview
         text = text.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, '');
         preview.innerHTML = typeof marked !== 'undefined' ? marked.parse(text, {breaks: true}) : escHtml(text);
@@ -1389,10 +1460,8 @@
     async function saveDoc() {
         if (!currentDoc || !docDirty) return;
         const editor = document.getElementById('doc-editor');
-        const result = await api(`/research/${currentDoc.type}/${currentDoc.slug}`, {
-            method: 'PUT',
-            body: JSON.stringify({ content: editor.value }),
-        });
+        const route = currentDoc.kind === 'spec' ? `/specs/${currentDoc.id}` : `/research/${currentDoc.type}/${currentDoc.slug}`;
+        const result = await api(route, { method: 'PUT', body: JSON.stringify({ content: editor.value }) });
         if (result && result.ok) {
             docDirty = false;
             const btn = document.getElementById('doc-save-btn');
@@ -1407,7 +1476,7 @@
     }
 
     function confirmDeleteDoc() {
-        if (!currentDoc) return;
+        if (!currentDoc || currentDoc.kind !== 'doc') return;
         if (!confirm(`Delete ${currentDoc.type}/${currentDoc.filename}? This cannot be undone.`)) return;
         api(`/research/${currentDoc.type}/${currentDoc.slug}`, { method: 'DELETE' }).then(r => {
             if (r && r.ok) { currentDoc = null; renderResearch(); }
@@ -1422,12 +1491,13 @@
 
     function onResearchTypeChange() {
         const t = document.getElementById('research-type').value;
-        const titles = { explorations: 'New Exploration', hypotheses: 'New Hypothesis', findings: 'New Finding' };
+        const titles = { explorations: 'New Exploration', hypotheses: 'New Hypothesis', findings: 'New Finding', experiment_specs: 'New Experiment Spec' };
         document.getElementById('new-research-title').textContent = titles[t] || 'New Document';
         const fn = document.getElementById('research-filename');
         if (t === 'explorations') fn.placeholder = 'e.g. 2026-03-22_rope_variants';
         else if (t === 'hypotheses') fn.placeholder = 'e.g. H005_moe_expert_count';
-        else fn.placeholder = 'e.g. F003_embedding_factorization';
+        else if (t === 'findings') fn.placeholder = 'e.g. F003_embedding_factorization';
+        else fn.placeholder = 'e.g. rope_base_sweep_v1';
     }
 
     async function createResearchDoc() {
@@ -1435,22 +1505,48 @@
         let filename = document.getElementById('research-filename').value.trim();
         if (!filename) { alert('Filename is required'); return; }
 
-        // Fetch template
-        const tmpl = await api(`/research/template/${docType}`);
-        const content = tmpl ? tmpl.content : `---\ntitle: ""\nstatus: "DRAFT"\n---\n\n# ${filename}\n`;
-
-        const result = await api(`/research/${docType}`, {
-            method: 'POST',
-            body: JSON.stringify({ filename, content }),
-        });
+        let result = null;
+        if (docType === 'experiment_specs') {
+            const content = JSON.stringify({
+                spec_id: filename,
+                name: filename.replace(/_/g, ' '),
+                spec_type: 'exploration',
+                template: 'parameter_golf',
+                stage: 'explore',
+                steps: 500,
+                config_overrides: {},
+                linked_docs: [],
+                tags: [],
+                notes: '',
+                desired_state: 'draft',
+            }, null, 2);
+            result = await api('/specs/', { method: 'POST', body: JSON.stringify({ filename, content }) });
+        } else {
+            const tmpl = await api(`/research/template/${docType}`);
+            const content = tmpl ? tmpl.content : `---\ntitle: ""\nstatus: "DRAFT"\n---\n\n# ${filename}\n`;
+            result = await api(`/research/${docType}`, {
+                method: 'POST',
+                body: JSON.stringify({ filename, content }),
+            });
+        }
         if (result && result.ok) {
             closeModal('modal-new-research');
             researchTab = docType;
-            // Refresh data then open the new doc
-            researchData = await api('/research/') || {};
-            openResearchDoc(docType, result.slug);
+            await renderResearch();
+            openResearchDoc(docType, docType === 'experiment_specs' ? result.id : result.slug);
         } else if (result && result._error) {
             alert(result.detail || 'Failed to create document');
+        }
+    }
+
+    async function queueCurrentSpec() {
+        if (!currentDoc || currentDoc.kind !== 'spec') return;
+        const res = await api(`/specs/${currentDoc.id}/queue`, { method: 'POST' });
+        if (res?.ok) {
+            alert(`Queued run ${res.experiment_id} from ${currentDoc.slug}`);
+            renderResearch();
+        } else if (res?.detail) {
+            alert(res.detail);
         }
     }
 

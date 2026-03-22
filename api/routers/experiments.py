@@ -1,6 +1,9 @@
 """Experiment routes — submit, list, cancel, monitor."""
 import json
+import os
+import signal
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -8,9 +11,12 @@ from pydantic import BaseModel
 
 from api.config import settings
 from api.database import get_db
-from api.models import Experiment, User
+from api.models import Experiment, GPU, User
 from api.routers.auth import get_current_user
+from api.routers.fleet import ensure_local_gpu, is_local_gpu, ssh_exec
 from engine.sync import export_queue_file
+from engine.scheduler import dispatch_experiment
+from engine.collector import check_experiment
 
 router = APIRouter()
 
@@ -161,8 +167,73 @@ def list_experiments(db: Session = Depends(get_db), current_user: User = Depends
     query = db.query(Experiment)
     if current_user.tier != "admin":
         query = query.filter(Experiment.user_id == current_user.id)
-    experiments = query.order_by(Experiment.queued_at.desc()).limit(50).all()
+    experiments = query.order_by(Experiment.queued_at.desc()).all()
+    for exp in experiments:
+        if exp.status == "running":
+            check_experiment(db, exp)
+    for exp in experiments:
+        db.refresh(exp)
     return experiments
+
+
+def _authorize(exp: Experiment, current_user: User) -> None:
+    if exp.user_id != current_user.id and current_user.tier != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to control this experiment")
+
+
+def _kill_running_experiment(db: Session, exp: Experiment) -> None:
+    gpu = db.query(GPU).filter(GPU.name == exp.gpu_name).first() if exp.gpu_name else None
+    if not gpu:
+        return
+
+    if is_local_gpu(gpu):
+        pid_path = Path(f"/tmp/{exp.name}.pid")
+        if pid_path.exists():
+            try:
+                pid = int(pid_path.read_text().strip())
+                os.killpg(pid, signal.SIGTERM)
+            except (ValueError, ProcessLookupError, PermissionError):
+                pass
+            pid_path.unlink(missing_ok=True)
+    else:
+        ssh_exec(gpu, f"test -f /tmp/{exp.name}.pid && kill $(cat /tmp/{exp.name}.pid) || pkill -f {exp.name} || true", timeout=10)
+
+    gpu.status = "idle"
+    gpu.current_experiment = None
+    gpu.current_step = None
+
+
+@router.post("/{experiment_id}/start")
+def start_experiment(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Run a queued experiment immediately on an idle GPU, preferring the local 3090."""
+    exp = db.query(Experiment).filter(Experiment.id == experiment_id).first()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    _authorize(exp, current_user)
+    if exp.status != "queued":
+        raise HTTPException(status_code=400, detail="Only queued experiments can be started")
+
+    ensure_local_gpu(db)
+    gpu = db.query(GPU).filter(GPU.host == "localhost").first()
+    if not gpu or gpu.status not in ("idle", "online"):
+        raise HTTPException(status_code=409, detail="Local GPU is busy")
+
+    if not dispatch_experiment(db, exp, gpu):
+        raise HTTPException(status_code=500, detail="Failed to start experiment")
+    return {"status": "running", "gpu": gpu.name}
+
+
+@router.post("/{experiment_id}/refresh")
+def refresh_experiment(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Refresh progress/result state for one experiment immediately."""
+    exp = db.query(Experiment).filter(Experiment.id == experiment_id).first()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    _authorize(exp, current_user)
+    if exp.status == "running":
+        check_experiment(db, exp)
+        db.refresh(exp)
+    return exp
 
 
 @router.delete("/{experiment_id}")
@@ -171,11 +242,11 @@ def cancel_experiment(experiment_id: int, db: Session = Depends(get_db), current
     exp = db.query(Experiment).filter(Experiment.id == experiment_id).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Experiment not found")
-    if exp.user_id != current_user.id and current_user.tier != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized to cancel this experiment")
+    _authorize(exp, current_user)
     if exp.status in ("completed", "cancelled"):
         raise HTTPException(status_code=400, detail="Cannot cancel finished experiment")
+    if exp.status == "running":
+        _kill_running_experiment(db, exp)
     exp.status = "cancelled"
-    # TODO: if running, SSH kill the process
     db.commit()
     return {"status": "cancelled"}

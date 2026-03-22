@@ -25,13 +25,17 @@ class Settings(BaseSettings):
     # Social posts: 1 per N completed experiments
     posts_per_experiments: int = 50
 
-    # Tier limits (runs per month) — solo tiers, no team
+    # Tier limits (experiments per month)
     tier_limits: dict = {
-        "starter": {"explore": 500, "validate": 0, "full": 0, "concurrent": 1},
-        "researcher": {"explore": 2000, "validate": 200, "full": 0, "concurrent": 3},
-        "pro": {"explore": 5000, "validate": 1000, "full": 50, "concurrent": 5},
-        "admin": {"explore": -1, "validate": -1, "full": -1, "concurrent": -1},
+        "test":    {"experiments": 5},
+        "starter": {"experiments": 40},
+        "lab":     {"experiments": -1},
+        "admin":   {"experiments": -1},
     }
+
+    # Discord bot
+    discord_bot_token: str = ""
+    discord_api_url: str = "http://localhost:8000/chat/"
 
     class Config:
         env_file = ".env"

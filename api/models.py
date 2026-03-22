@@ -20,6 +20,7 @@ class User(Base):
     tier = Column(String, default="starter")  # starter, researcher, pro, team, admin
     api_key = Column(String, unique=True, default=lambda: f"ar_{secrets.token_hex(24)}")
     skool_id = Column(String, nullable=True)  # Link to Skool membership
+    discord_id = Column(String, nullable=True, index=True)  # Discord username e.g. jensen404
 
     # Usage tracking (reset monthly)
     explore_runs_used = Column(Integer, default=0)

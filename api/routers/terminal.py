@@ -14,38 +14,47 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def get_user_by_cookie(cookie_header: str | None) -> User | None:
-    """Extract user from session cookie (matches auth.py pattern)."""
-    if not cookie_header:
-        return None
-    cookies = {}
-    for item in cookie_header.split(";"):
-        item = item.strip()
-        if "=" in item:
-            k, v = item.split("=", 1)
-            cookies[k.strip()] = v.strip()
-    api_key = cookies.get("session")
-    if not api_key:
+def get_user_by_session(token: str | None) -> User | None:
+    """Look up user by api_key (used as session token)."""
+    if not token:
         return None
     db = SessionLocal()
     try:
-        return db.query(User).filter(User.api_key == api_key, User.is_active == True).first()
+        return db.query(User).filter(User.api_key == token, User.is_active == True).first()
     finally:
         db.close()
 
 
+def get_user_from_request(websocket: WebSocket, token: str | None) -> User | None:
+    """Try token query param first, then session cookie."""
+    # Query param: ?token=ar_xxxx
+    if token:
+        return get_user_by_session(token)
+    # Cookie fallback
+    cookie_header = websocket.headers.get("cookie", "")
+    for item in cookie_header.split(";"):
+        item = item.strip()
+        if "=" in item:
+            k, v = item.split("=", 1)
+            if k.strip() == "session":
+                return get_user_by_session(v.strip())
+    return None
+
+
 @router.websocket("/ws/{gpu_id}")
-async def terminal_ws(websocket: WebSocket, gpu_id: int):
+async def terminal_ws(websocket: WebSocket, gpu_id: int, token: str | None = Query(default=None)):
     """WebSocket SSH terminal session.
 
-    Client sends text (keystrokes). Server sends back terminal output.
-    Provides a real interactive PTY over SSH.
+    Auth: pass ?token=<api_key> or use the session cookie.
+    Client sends JSON: {type: 'input', data: '...'} or {type: 'resize', cols, rows}
+    Server sends JSON: {type: 'output', data: '...'} or {type: 'error', data: '...'}
     """
-    # Auth check — admin only
-    cookie_header = websocket.headers.get("cookie")
-    user = get_user_by_cookie(cookie_header)
+    user = get_user_from_request(websocket, token)
+
     if not user or user.tier != "admin":
-        await websocket.close(code=4003, reason="Admin only")
+        await websocket.accept()
+        await websocket.send_json({"type": "error", "data": "Admin access required"})
+        await websocket.close(code=4003)
         return
 
     # Get GPU
@@ -53,16 +62,20 @@ async def terminal_ws(websocket: WebSocket, gpu_id: int):
     try:
         gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
         if not gpu:
-            await websocket.close(code=4004, reason="GPU not found")
+            await websocket.accept()
+            await websocket.send_json({"type": "error", "data": f"GPU {gpu_id} not found"})
+            await websocket.close(code=4004)
             return
         host = gpu.host
         port = gpu.port
         ssh_user = gpu.user
         password = gpu.password
+        gpu_name = gpu.name
     finally:
         db.close()
 
     await websocket.accept()
+    await websocket.send_json({"type": "output", "data": f"Connecting to {gpu_name} ({host}:{port})...\r\n"})
 
     # Connect SSH
     ssh = paramiko.SSHClient()
@@ -73,7 +86,7 @@ async def terminal_ws(websocket: WebSocket, gpu_id: int):
             port=port,
             username=ssh_user,
             password=password,
-            timeout=10,
+            timeout=15,
             look_for_keys=False,
             allow_agent=False,
         )
@@ -83,11 +96,11 @@ async def terminal_ws(websocket: WebSocket, gpu_id: int):
         return
 
     # Open PTY channel
-    chan = ssh.invoke_shell(term="xterm-256color", width=120, height=40)
+    chan = ssh.invoke_shell(term="xterm-256color", width=220, height=50)
     chan.setblocking(False)
 
     async def read_ssh():
-        """Read from SSH channel and send to WebSocket."""
+        """Read from SSH channel and forward to WebSocket."""
         try:
             while True:
                 await asyncio.sleep(0.02)
@@ -98,7 +111,7 @@ async def terminal_ws(websocket: WebSocket, gpu_id: int):
                     await websocket.send_json({"type": "output", "data": data.decode("utf-8", errors="replace")})
                 if chan.closed:
                     break
-        except (WebSocketDisconnect, Exception):
+        except Exception:
             pass
 
     reader_task = asyncio.create_task(read_ssh())
@@ -109,14 +122,15 @@ async def terminal_ws(websocket: WebSocket, gpu_id: int):
             if msg.get("type") == "input":
                 chan.send(msg["data"])
             elif msg.get("type") == "resize":
-                w = msg.get("cols", 120)
-                h = msg.get("rows", 40)
+                w = msg.get("cols", 220)
+                h = msg.get("rows", 50)
                 chan.resize_pty(width=w, height=h)
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        logger.error(f"Terminal error: {e}")
+        logger.error(f"Terminal error on {gpu_name}: {e}")
     finally:
         reader_task.cancel()
         chan.close()
         ssh.close()
+        logger.info(f"Terminal session to {gpu_name} closed")

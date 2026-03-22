@@ -121,7 +121,57 @@
         .chat-msg.ai hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
         .chat-msg.ai table { margin: 6px 0; font-size: 13px; }
         .chat-msg.ai th { background: rgba(0,0,0,0.2); }
+
+        /* Research page */
+        .research-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .research-tab { padding: 10px 20px; cursor: pointer; color: var(--text2); font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.15s; }
+        .research-tab:hover { color: var(--text); }
+        .research-tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+        .research-tab .tab-count { font-size: 11px; background: var(--bg3); border: 1px solid var(--border); padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
+        .doc-list { display: flex; flex-direction: column; gap: 8px; }
+        .doc-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 16px; }
+        .doc-card:hover { border-color: var(--accent); background: var(--bg3); }
+        .doc-card .doc-id { font-size: 13px; font-weight: 700; color: var(--accent2); font-family: monospace; min-width: 50px; }
+        .doc-card .doc-info { flex: 1; min-width: 0; }
+        .doc-card .doc-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .doc-card .doc-date { font-size: 12px; color: var(--text2); }
+        .doc-card .doc-status { flex-shrink: 0; }
+        .badge-CONFIRMED { background: #1a3a2a; color: var(--green); }
+        .badge-FALSIFIED { background: #3a1a1a; color: var(--red); }
+        .badge-PROPOSED { background: #2d2d3f; color: var(--text2); }
+        .badge-TESTING { background: #1a2a3a; color: #74b9ff; }
+        .badge-INCONCLUSIVE { background: #2a2a1a; color: var(--yellow); }
+        .badge-DRAFT { background: #2d2d3f; color: var(--text2); }
+        .badge-REVIEW { background: #1a2a3a; color: #74b9ff; }
+        .badge-PUBLISHED { background: #1a3a2a; color: var(--green); }
+        .badge-ACTIVE { background: #1a3a2a; color: var(--green); }
+        .badge-COMPLETE { background: #1a2a3a; color: #74b9ff; }
+        .doc-viewer { display: flex; flex-direction: column; height: calc(100vh - 200px); }
+        .doc-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+        .doc-toolbar .doc-path { font-size: 12px; color: var(--text2); font-family: monospace; flex: 1; }
+        .doc-editor-wrap { flex: 1; display: flex; gap: 0; min-height: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+        .doc-editor { flex: 1; min-width: 0; resize: none; background: var(--bg); color: var(--text); border: none; padding: 16px; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 13px; line-height: 1.6; outline: none; overflow-y: auto; tab-size: 4; }
+        .doc-preview { flex: 1; min-width: 0; padding: 16px 24px; overflow-y: auto; background: var(--bg2); border-left: 1px solid var(--border); font-size: 14px; line-height: 1.7; }
+        .doc-preview h1 { font-size: 22px; margin: 16px 0 8px; color: var(--text); }
+        .doc-preview h2 { font-size: 17px; margin: 14px 0 6px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+        .doc-preview h3 { font-size: 14px; margin: 10px 0 4px; color: var(--accent2); }
+        .doc-preview p { margin: 6px 0; color: var(--text); }
+        .doc-preview ul, .doc-preview ol { margin: 4px 0 4px 20px; }
+        .doc-preview li { margin: 3px 0; }
+        .doc-preview code { background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+        .doc-preview pre { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+        .doc-preview pre code { background: none; padding: 0; }
+        .doc-preview table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+        .doc-preview table th { text-align: left; padding: 6px 10px; font-size: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); }
+        .doc-preview table td { padding: 6px 10px; font-size: 13px; border: 1px solid var(--border); }
+        .doc-preview blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text2); margin: 8px 0; }
+        .doc-preview strong { color: var(--text); }
+        .doc-preview hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+        .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .view-toggle button { padding: 4px 12px; font-size: 12px; background: var(--bg); color: var(--text2); border: none; cursor: pointer; }
+        .view-toggle button.active { background: var(--accent); color: white; }
     </style>
+    <style>
         /* Terminal styles */
         .terminal-page { display: flex; flex-direction: column; height: calc(100vh - 140px); }
         .terminal-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; flex-shrink: 0; align-items: flex-end; }
@@ -146,6 +196,7 @@
         .gpu-pick-item:hover { border-color: var(--accent); background: var(--bg); }
         .gpu-pick-item .gpu-pick-name { font-weight: 600; }
         .gpu-pick-item .gpu-pick-host { font-size: 12px; color: var(--text2); font-family: monospace; }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
@@ -193,6 +244,9 @@
             </div>
             <div class="nav-item" data-page="results">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> Results
+            </div>
+            <div class="nav-item" data-page="research">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Research
             </div>
             <div class="nav-item" data-page="fleet" id="nav-fleet" style="display:none;">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1" fill="currentColor" stroke="none"/></svg></span> GPU Fleet <span class="nav-admin-badge">ADMIN</span>
@@ -270,6 +324,24 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal('modal-add-gpu')">Cancel</button>
                 <button class="btn btn-primary" onclick="addGPU()">Add & Test</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-new-research">
+        <div class="modal">
+            <h2 id="new-research-title">New Exploration</h2>
+            <div class="form-group"><label>Type</label>
+                <select id="research-type" onchange="onResearchTypeChange()">
+                    <option value="explorations">Exploration</option>
+                    <option value="hypotheses">Hypothesis</option>
+                    <option value="findings">Finding</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Filename (without .md)</label><input type="text" id="research-filename" placeholder="e.g. 2026-03-22_rope_variants"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('modal-new-research')">Cancel</button>
+                <button class="btn btn-primary" onclick="createResearchDoc()">Create</button>
             </div>
         </div>
     </div>
@@ -353,9 +425,9 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             const page = el.dataset.page;
-            const titles = { chat: 'AI Research Chat', dashboard: 'Dashboard', experiments: 'Experiments', competitions: 'Competitions', results: 'Results', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
+            const titles = { chat: 'AI Research Chat', dashboard: 'Dashboard', experiments: 'Experiments', competitions: 'Competitions', results: 'Results', research: 'Research', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
             document.getElementById('page-title').textContent = titles[page] || page;
-            const r = { dashboard: renderDashboard, experiments: renderExperiments, competitions: renderCompetitions, results: renderResults, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
+            const r = { dashboard: renderDashboard, experiments: renderExperiments, competitions: renderCompetitions, results: renderResults, research: renderResearch, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
             (r[page] || renderChat)();
         });
     });
@@ -845,9 +917,11 @@
                     </div>
                 </div>
             </div>`;
-        // Re-attach existing terminals
+        // Re-attach existing terminals (their DOM elements were destroyed by innerHTML reassignment)
         if (termSessions.length > 0) {
             document.getElementById('term-empty').style.display = 'none';
+            const body = document.getElementById('term-body');
+            termSessions.forEach(s => { if (s.termEl) body.appendChild(s.termEl); });
             renderTermTabs();
             if (activeTermIdx >= 0) showTermSession(activeTermIdx);
         }
@@ -901,6 +975,7 @@
         const termEl = document.createElement('div');
         termEl.id = `term-container-${id}`;
         termEl.style.cssText = 'height:100%;width:100%;';
+        session.termEl = termEl;
         document.getElementById('term-body').appendChild(termEl);
 
         const term = new Terminal({
@@ -937,9 +1012,10 @@
         session.term = term;
         session.fitAddon = fitAddon;
 
-        // Connect WebSocket
+        // Connect WebSocket — pass api_key as token since WS doesn't reliably send cookies
         const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${wsProto}//${location.host}/terminal/ws/${gpuId}`);
+        const apiKey = currentUser?.api_key || '';
+        const ws = new WebSocket(`${wsProto}//${location.host}/terminal/ws/${gpuId}?token=${apiKey}`);
         session.ws = ws;
 
         ws.onopen = () => {
@@ -1012,12 +1088,11 @@
     function showTermSession(idx) {
         activeTermIdx = idx;
         // Hide all term containers
-        document.querySelectorAll('[id^="term-container-"]').forEach(el => el.style.display = 'none');
+        termSessions.forEach(s => { if (s.termEl) s.termEl.style.display = 'none'; });
         const session = termSessions[idx];
         if (!session) return;
-        const el = document.getElementById(`term-container-${session.id}`);
-        if (el) {
-            el.style.display = 'block';
+        if (session.termEl) {
+            session.termEl.style.display = 'block';
             if (session.fitAddon) {
                 setTimeout(() => { session.fitAddon.fit(); session.term.focus(); }, 10);
             }
@@ -1032,8 +1107,7 @@
         if (session.ws && session.ws.readyState === WebSocket.OPEN) session.ws.close();
         if (session.term) session.term.dispose();
         if (session._resizeHandler) window.removeEventListener('resize', session._resizeHandler);
-        const el = document.getElementById(`term-container-${session.id}`);
-        if (el) el.remove();
+        if (session.termEl) session.termEl.remove();
 
         termSessions.splice(idx, 1);
 
@@ -1047,6 +1121,212 @@
         }
         renderTermTabs();
     }
+
+    // ---- Research ----
+    let researchTab = 'findings';
+    let researchData = {};
+    let currentDoc = null;
+    let docViewMode = 'split'; // 'edit', 'preview', 'split'
+    let docDirty = false;
+
+    async function renderResearch() {
+        researchData = await api('/research/') || {};
+        const findings = researchData.findings || [];
+        const hypotheses = researchData.hypotheses || [];
+        const explorations = researchData.explorations || [];
+
+        document.getElementById('content').innerHTML = `
+            <div class="research-tabs">
+                <div class="research-tab ${researchTab==='findings'?'active':''}" onclick="researchTab='findings';renderResearchList()">
+                    Findings <span class="tab-count">${findings.length}</span>
+                </div>
+                <div class="research-tab ${researchTab==='hypotheses'?'active':''}" onclick="researchTab='hypotheses';renderResearchList()">
+                    Hypotheses <span class="tab-count">${hypotheses.length}</span>
+                </div>
+                <div class="research-tab ${researchTab==='explorations'?'active':''}" onclick="researchTab='explorations';renderResearchList()">
+                    Explorations <span class="tab-count">${explorations.length}</span>
+                </div>
+                <div style="flex:1"></div>
+                <button class="btn btn-primary btn-sm" style="align-self:center;" onclick="openNewResearch()">+ New</button>
+            </div>
+            <div id="research-content"></div>`;
+        renderResearchList();
+    }
+
+    function renderResearchList() {
+        // Update active tab styling
+        document.querySelectorAll('.research-tab').forEach((el, i) => {
+            const tabs = ['findings', 'hypotheses', 'explorations'];
+            el.classList.toggle('active', tabs[i] === researchTab);
+        });
+
+        const docs = researchData[researchTab] || [];
+        const container = document.getElementById('research-content');
+
+        if (!docs.length) {
+            container.innerHTML = `<div class="empty"><h3>No ${researchTab} yet</h3><p>Create your first ${researchTab.slice(0,-1)} to get started</p>
+                <button class="btn btn-primary" onclick="openNewResearch()">+ New ${researchTab.slice(0,-1)}</button></div>`;
+            return;
+        }
+
+        // Sort: findings/hypotheses by ID (filename), explorations by date desc
+        const sorted = [...docs].sort((a, b) => {
+            if (researchTab === 'explorations') return (b.date || '').localeCompare(a.date || '');
+            return a.filename.localeCompare(b.filename);
+        });
+
+        container.innerHTML = `<div class="doc-list">${sorted.map(d => {
+            const id = d.slug.match(/^[HF]\d+/) ? d.slug.match(/^[HF]\d+/)[0] : '';
+            return `<div class="doc-card" onclick="openResearchDoc('${d.type}','${d.slug}')">
+                <div class="doc-id">${id}</div>
+                <div class="doc-info">
+                    <div class="doc-title">${escHtml(d.title)}</div>
+                    <div class="doc-date">${d.date || ''} &middot; ${d.filename}</div>
+                </div>
+                <div class="doc-status"><span class="badge badge-${d.status}">${d.status}</span></div>
+            </div>`;
+        }).join('')}</div>`;
+    }
+
+    async function openResearchDoc(type, slug) {
+        const doc = await api(`/research/${type}/${slug}`);
+        if (!doc) return;
+        currentDoc = doc;
+        docDirty = false;
+
+        const container = document.getElementById('content');
+        container.innerHTML = `
+            <div class="doc-viewer">
+                <div class="doc-toolbar">
+                    <button class="btn btn-secondary btn-sm" onclick="backToResearchList()">&larr; Back</button>
+                    <span class="doc-path">${type}/${doc.filename}</span>
+                    <span class="badge badge-${doc.status}" style="font-size:12px;">${doc.status}</span>
+                    <div class="view-toggle">
+                        <button class="${docViewMode==='edit'?'active':''}" onclick="setDocView('edit')">Edit</button>
+                        <button class="${docViewMode==='split'?'active':''}" onclick="setDocView('split')">Split</button>
+                        <button class="${docViewMode==='preview'?'active':''}" onclick="setDocView('preview')">Preview</button>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="doc-save-btn" onclick="saveDoc()" style="opacity:0.4;" disabled>Save</button>
+                    <button class="btn btn-danger btn-sm" onclick="confirmDeleteDoc()">Delete</button>
+                </div>
+                <div class="doc-editor-wrap" id="doc-editor-wrap">
+                    <textarea class="doc-editor" id="doc-editor" oninput="onDocEdit()" spellcheck="false">${escHtml(doc.content)}</textarea>
+                    <div class="doc-preview" id="doc-preview"></div>
+                </div>
+            </div>`;
+        applyDocViewMode();
+        updateDocPreview();
+    }
+
+    function setDocView(mode) {
+        docViewMode = mode;
+        document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+        const labels = {'edit': 0, 'split': 1, 'preview': 2};
+        document.querySelectorAll('.view-toggle button')[labels[mode]]?.classList.add('active');
+        applyDocViewMode();
+    }
+
+    function applyDocViewMode() {
+        const editor = document.getElementById('doc-editor');
+        const preview = document.getElementById('doc-preview');
+        if (!editor || !preview) return;
+        if (docViewMode === 'edit') { editor.style.display='block'; preview.style.display='none'; editor.style.flex='1'; }
+        else if (docViewMode === 'preview') { editor.style.display='none'; preview.style.display='block'; preview.style.flex='1'; preview.style.borderLeft='none'; }
+        else { editor.style.display='block'; preview.style.display='block'; editor.style.flex='1'; preview.style.flex='1'; preview.style.borderLeft='1px solid var(--border)'; }
+    }
+
+    function onDocEdit() {
+        docDirty = true;
+        const btn = document.getElementById('doc-save-btn');
+        if (btn) { btn.style.opacity = '1'; btn.disabled = false; }
+        updateDocPreview();
+    }
+
+    function updateDocPreview() {
+        const editor = document.getElementById('doc-editor');
+        const preview = document.getElementById('doc-preview');
+        if (!editor || !preview) return;
+        let text = editor.value;
+        // Strip frontmatter for preview
+        text = text.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, '');
+        preview.innerHTML = typeof marked !== 'undefined' ? marked.parse(text, {breaks: true}) : escHtml(text);
+    }
+
+    async function saveDoc() {
+        if (!currentDoc || !docDirty) return;
+        const editor = document.getElementById('doc-editor');
+        const result = await api(`/research/${currentDoc.type}/${currentDoc.slug}`, {
+            method: 'PUT',
+            body: JSON.stringify({ content: editor.value }),
+        });
+        if (result && result.ok) {
+            docDirty = false;
+            const btn = document.getElementById('doc-save-btn');
+            if (btn) { btn.style.opacity = '0.4'; btn.disabled = true; btn.textContent = 'Saved'; setTimeout(() => btn.textContent = 'Save', 1500); }
+        }
+    }
+
+    function backToResearchList() {
+        if (docDirty && !confirm('You have unsaved changes. Discard?')) return;
+        currentDoc = null;
+        renderResearch();
+    }
+
+    function confirmDeleteDoc() {
+        if (!currentDoc) return;
+        if (!confirm(`Delete ${currentDoc.type}/${currentDoc.filename}? This cannot be undone.`)) return;
+        api(`/research/${currentDoc.type}/${currentDoc.slug}`, { method: 'DELETE' }).then(r => {
+            if (r && r.ok) { currentDoc = null; renderResearch(); }
+        });
+    }
+
+    function openNewResearch() {
+        document.getElementById('research-type').value = researchTab;
+        onResearchTypeChange();
+        openModal('modal-new-research');
+    }
+
+    function onResearchTypeChange() {
+        const t = document.getElementById('research-type').value;
+        const titles = { explorations: 'New Exploration', hypotheses: 'New Hypothesis', findings: 'New Finding' };
+        document.getElementById('new-research-title').textContent = titles[t] || 'New Document';
+        const fn = document.getElementById('research-filename');
+        if (t === 'explorations') fn.placeholder = 'e.g. 2026-03-22_rope_variants';
+        else if (t === 'hypotheses') fn.placeholder = 'e.g. H005_moe_expert_count';
+        else fn.placeholder = 'e.g. F003_embedding_factorization';
+    }
+
+    async function createResearchDoc() {
+        const docType = document.getElementById('research-type').value;
+        let filename = document.getElementById('research-filename').value.trim();
+        if (!filename) { alert('Filename is required'); return; }
+
+        // Fetch template
+        const tmpl = await api(`/research/templates/${docType}`);
+        const content = tmpl ? tmpl.content : `---\ntitle: ""\nstatus: "DRAFT"\n---\n\n# ${filename}\n`;
+
+        const result = await api(`/research/${docType}`, {
+            method: 'POST',
+            body: JSON.stringify({ filename, content }),
+        });
+        if (result && result.ok) {
+            closeModal('modal-new-research');
+            researchTab = docType;
+            // Refresh data then open the new doc
+            researchData = await api('/research/') || {};
+            openResearchDoc(docType, result.slug);
+        } else if (result && result._error) {
+            alert(result.detail || 'Failed to create document');
+        }
+    }
+
+    // Keyboard shortcut: Ctrl+S to save when in doc editor
+    document.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's' && currentDoc && docDirty) {
+            e.preventDefault();
+            saveDoc();
+        }
+    });
 
     // Utils
     function openModal(id) { document.getElementById(id).classList.add('active'); }

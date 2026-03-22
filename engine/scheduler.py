@@ -92,15 +92,10 @@ async def scheduler_loop():
             db = SessionLocal()
             try:
                 idle_gpus = get_idle_gpus(db)
-                if not idle_gpus:
-                    continue
-
-                queued = get_queued_experiments(db)
-                if not queued:
-                    continue
-
-                for exp, gpu in zip(queued, idle_gpus):
-                    dispatch_experiment(db, exp, gpu)
+                if idle_gpus:
+                    queued = get_queued_experiments(db)
+                    for exp, gpu in zip(queued, idle_gpus):
+                        dispatch_experiment(db, exp, gpu)
             finally:
                 db.close()
         except Exception:

@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 
 from api.config import settings
 from api.database import engine, SessionLocal, Base, run_migrations
-from api.routers import auth, experiments, results, chat, webhooks, admin, fleet, terminal
+from api.routers import auth, experiments, results, chat, webhooks, admin, fleet, terminal, research
 from engine.scheduler import scheduler_loop
 from engine.collector import collector_loop
 
@@ -72,6 +72,7 @@ app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(fleet.router, prefix="/fleet", tags=["fleet"])
 app.include_router(terminal.router, prefix="/terminal", tags=["terminal"])
+app.include_router(research.router, prefix="/research", tags=["research"])
 
 
 @app.get("/health")

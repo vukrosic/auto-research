@@ -69,59 +69,27 @@ def maybe_reset_usage(user: User, db: Session):
 
 
 def check_tier_limits(user: User, stage: str, db: Session):
-    """Enforce run count and concurrent limits. Raises HTTPException on violation."""
-    tier = user.tier
-    limits = settings.tier_limits.get(tier)
-    if not limits:
-        raise HTTPException(status_code=403, detail=f"Unknown tier: {tier}")
+    """Enforce monthly experiment limit. All stages allowed on all tiers — only total count differs."""
+    limits = settings.tier_limits.get(user.tier, {})
+    max_exp = limits.get("experiments", 0)
 
-    # Admin bypasses all limits
-    if limits.get(stage, 0) == -1:
+    # Unlimited tiers
+    if max_exp == -1:
         return
 
-    # Check stage is allowed for this tier
-    stage_limit = limits.get(stage, 0)
-    if stage_limit == 0:
-        tier_needed = {"validate": "Researcher", "full": "Pro"}.get(stage, "a higher tier")
-        raise HTTPException(
-            status_code=403,
-            detail=f"{stage.capitalize()} runs are not available on the {tier.capitalize()} tier. Upgrade to {tier_needed}.",
-        )
+    if max_exp == 0:
+        raise HTTPException(status_code=403, detail="No experiment quota on this tier.")
 
-    # Check monthly run count
-    usage_field = {"explore": "explore_runs_used", "validate": "validate_runs_used", "full": "full_runs_used"}
-    used = getattr(user, usage_field.get(stage, "explore_runs_used"), 0)
-    if used >= stage_limit:
+    if user.explore_runs_used >= max_exp:
         raise HTTPException(
             status_code=429,
-            detail=f"Monthly {stage} limit reached ({used}/{stage_limit}). Resets in {days_until_reset(user)} days.",
-        )
-
-    # Check concurrent limit
-    concurrent_limit = limits.get("concurrent", 1)
-    active_count = (
-        db.query(Experiment)
-        .filter(
-            Experiment.user_id == user.id,
-            Experiment.status.in_(["queued", "running"]),
-        )
-        .count()
-    )
-    if active_count >= concurrent_limit:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Concurrent limit reached ({active_count}/{concurrent_limit} experiments active). Wait for one to finish or cancel one.",
+            detail=f"Monthly limit reached ({user.explore_runs_used}/{max_exp}). Resets in {days_until_reset(user)} days.",
         )
 
 
 def increment_usage(user: User, stage: str):
-    """Increment the usage counter for the given stage."""
-    if stage == "explore":
-        user.explore_runs_used += 1
-    elif stage == "validate":
-        user.validate_runs_used += 1
-    elif stage == "full":
-        user.full_runs_used += 1
+    """Increment the unified experiment counter."""
+    user.explore_runs_used += 1
 
 
 def days_until_reset(user: User) -> int:

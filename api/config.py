@@ -8,11 +8,11 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./auto_research.db"
 
     # Auth
-    secret_key: str = "change-me-in-production"
+    secret_key: str = ""
     magic_link_expiry_minutes: int = 30
 
     # Novita AI (for chat + AI agents)
-    novita_api_key: str = "sk_jf256AwWuOLyXepaNHJKUP4f0uUOWudeCt4YbKOf3gM"
+    novita_api_key: str = ""
     novita_base_url: str = "https://api.novita.ai/openai"
     chat_model: str = "xiaomimimo/mimo-v2-flash"
 

@@ -1,5 +1,6 @@
-"""Fleet routes — GPU management with real SSH connectivity."""
+"""Fleet routes — GPU management with real SSH connectivity. Admin only."""
 import re
+import shlex
 import subprocess
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,9 +8,16 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from api.database import get_db
-from api.models import GPU
+from api.models import GPU, User
+from api.routers.auth import get_current_user
 
 router = APIRouter()
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.tier != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
 
 
 class GPUAdd(BaseModel):
@@ -76,10 +84,11 @@ def ssh_exec(gpu: GPU, command: str, timeout: int = 15) -> tuple[int, str]:
 
 
 @router.post("/add")
-def add_gpu(gpu_data: GPUAdd, db: Session = Depends(get_db)):
-    """Add a GPU by pasting an SSH command.
+def add_gpu(gpu_data: GPUAdd, db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
+    """Add a GPU by pasting an SSH command + password.
 
-    Example input: ssh -p 62132 root@proxy.us-ca-6.gpu-instance.novita.ai
+    Tests connectivity, detects GPU type, checks if parameter-golf repo is set up.
+    Example SSH command: ssh -p 62132 root@proxy.us-ca-6.gpu-instance.novita.ai
     """
     parsed = parse_ssh_command(gpu_data.ssh_command)
 
@@ -103,21 +112,67 @@ def add_gpu(gpu_data: GPUAdd, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(gpu)
 
-    # Test connection
-    returncode, output = ssh_exec(gpu, "echo 'connected' && hostname")
-    if returncode == 0:
-        gpu.status = "online"
-        gpu.last_seen = datetime.now(timezone.utc)
-        db.commit()
-        return {"id": gpu.id, "name": gpu.name, "status": "online", "output": output.strip()}
-    else:
+    # Test connection + detect GPU + check repo
+    detect_cmd = (
+        "echo '---HOSTNAME---' && hostname && "
+        "echo '---GPU---' && nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader 2>/dev/null || echo 'no-gpu' && "
+        "echo '---REPO---' && (test -f /root/parameter-golf/train_gpt.py && echo 'ready' || echo 'not-setup') && "
+        "echo '---DATA---' && (test -d /root/parameter-golf/data/datasets && echo 'ready' || echo 'not-downloaded')"
+    )
+    returncode, output = ssh_exec(gpu, detect_cmd, timeout=20)
+
+    result = {"id": gpu.id, "name": gpu.name}
+
+    if returncode != 0:
         gpu.status = "offline"
         db.commit()
-        return {"id": gpu.id, "name": gpu.name, "status": "offline", "error": output.strip()}
+        result["status"] = "offline"
+        result["error"] = output.strip()
+        return result
+
+    gpu.status = "online"
+    gpu.last_seen = datetime.now(timezone.utc)
+
+    # Parse detection output
+    sections = output.split("---")
+    gpu_type = None
+    repo_ready = False
+    data_ready = False
+    hostname = ""
+
+    for i, section in enumerate(sections):
+        header = section.strip().rstrip("---").strip()
+        value = sections[i + 1].strip() if i + 1 < len(sections) else ""
+        if header == "HOSTNAME":
+            hostname = value.split("\n")[0].strip()
+        elif header == "GPU":
+            gpu_type = value.split("\n")[0].strip() if value.strip() != "no-gpu" else None
+        elif header == "REPO":
+            repo_ready = "ready" in value
+        elif header == "DATA":
+            data_ready = "ready" in value
+
+    db.commit()
+
+    result["status"] = "online"
+    result["hostname"] = hostname
+    result["gpu_type"] = gpu_type
+    result["repo_ready"] = repo_ready
+    result["data_ready"] = data_ready
+
+    warnings = []
+    if not repo_ready:
+        warnings.append("parameter-golf not found at /root/parameter-golf — run /setup on this GPU")
+    if not data_ready:
+        warnings.append("Training data not downloaded — run: python3 data/cached_challenge_fineweb.py --variant sp1024")
+    if warnings:
+        result["warnings"] = warnings
+
+    return result
 
 
 @router.get("/")
-def list_gpus(db: Session = Depends(get_db)):
+def list_gpus(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     """List all GPUs in the fleet."""
     gpus = db.query(GPU).order_by(GPU.added_at.desc()).all()
     return [
@@ -132,7 +187,7 @@ def list_gpus(db: Session = Depends(get_db)):
 
 
 @router.post("/{gpu_id}/test")
-def test_gpu(gpu_id: int, db: Session = Depends(get_db)):
+def test_gpu(gpu_id: int, db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     """Test SSH connectivity to a GPU."""
     gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
     if not gpu:
@@ -159,7 +214,7 @@ def test_gpu(gpu_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{gpu_id}/exec")
-def exec_on_gpu(gpu_id: int, cmd: GPURunCommand, db: Session = Depends(get_db)):
+def exec_on_gpu(gpu_id: int, cmd: GPURunCommand, db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     """Execute an arbitrary command on a GPU (admin only)."""
     gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
     if not gpu:
@@ -170,17 +225,23 @@ def exec_on_gpu(gpu_id: int, cmd: GPURunCommand, db: Session = Depends(get_db)):
 
 
 @router.post("/{gpu_id}/run-experiment")
-def run_experiment_on_gpu(gpu_id: int, experiment_name: str, steps: int, overrides: str = "", db: Session = Depends(get_db)):
+def run_experiment_on_gpu(gpu_id: int, experiment_name: str, steps: int, overrides: str = "", db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     """Run an experiment on a specific GPU."""
     gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
     if not gpu:
         raise HTTPException(status_code=404, detail="GPU not found")
 
-    # Build command
-    cmd = f"cd {gpu.repo_path} && {overrides} bash infra/run_experiment.sh {experiment_name} {steps}".strip()
+    # Validate overrides: only allow KEY=VALUE pairs with safe characters
+    if overrides:
+        if not all(re.match(r'^[A-Z_][A-Z0-9_]*=[A-Za-z0-9._-]+$', part) for part in overrides.split()):
+            raise HTTPException(status_code=400, detail="Invalid overrides format. Use KEY=VALUE pairs only.")
+
+    # Build command with shell-safe quoting
+    safe_name = shlex.quote(experiment_name)
+    cmd = f"cd {gpu.repo_path} && {overrides} bash infra/run_experiment.sh {safe_name} {steps}".strip()
 
     # Run in background on GPU via nohup
-    bg_cmd = f"nohup bash -c '{cmd}' > /tmp/{experiment_name}.log 2>&1 &"
+    bg_cmd = f"nohup bash -c '{cmd}' > /tmp/{safe_name}.log 2>&1 &"
     returncode, output = ssh_exec(gpu, bg_cmd, timeout=15)
 
     if returncode == 0:
@@ -194,7 +255,7 @@ def run_experiment_on_gpu(gpu_id: int, experiment_name: str, steps: int, overrid
 
 
 @router.post("/{gpu_id}/status")
-def check_gpu_status(gpu_id: int, db: Session = Depends(get_db)):
+def check_gpu_status(gpu_id: int, db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     """Check detailed training status on a GPU."""
     gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
     if not gpu:
@@ -241,7 +302,7 @@ def check_gpu_status(gpu_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{gpu_id}")
-def remove_gpu(gpu_id: int, db: Session = Depends(get_db)):
+def remove_gpu(gpu_id: int, db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     """Remove a GPU from the fleet."""
     gpu = db.query(GPU).filter(GPU.id == gpu_id).first()
     if not gpu:

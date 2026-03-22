@@ -8,6 +8,7 @@ Runs as a background task in FastAPI. Polls every 30s for:
 import asyncio
 import json
 import logging
+import shlex
 from datetime import datetime, timezone
 
 from sqlalchemy import case
@@ -61,8 +62,9 @@ def dispatch_experiment(db: Session, exp: Experiment, gpu: GPU) -> bool:
     except (json.JSONDecodeError, TypeError):
         pass
 
-    cmd = f"cd {gpu.repo_path} && {overrides} bash infra/run_experiment.sh {exp.name} {exp.steps}".strip()
-    bg_cmd = f"nohup bash -c '{cmd}' > /tmp/{exp.name}.log 2>&1 &"
+    safe_name = shlex.quote(exp.name)
+    cmd = f"cd {gpu.repo_path} && {overrides} bash infra/run_experiment.sh {safe_name} {exp.steps}".strip()
+    bg_cmd = f"nohup bash -c '{cmd}' > /tmp/{safe_name}.log 2>&1 &"
 
     logger.info(f"Dispatching {exp.name} ({exp.steps} steps) -> {gpu.name}")
     returncode, output = ssh_exec(gpu, bg_cmd, timeout=15)

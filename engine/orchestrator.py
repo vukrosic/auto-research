@@ -4,6 +4,7 @@ Wraps parameter-golf's infra/ scripts to support multiple users
 with tier-based priority scheduling.
 """
 import json
+import shlex
 from pathlib import Path
 
 from api.models import GPU
@@ -25,7 +26,8 @@ def build_experiment_command(
     # Filter to only allowed overrides
     valid = set(template.allowed_overrides)
     env_parts = " ".join(f"{k}={v}" for k, v in overrides.items() if k in valid)
-    cmd = f"cd {repo_path} && {env_parts} bash {runner} {experiment_name} {steps}".strip()
+    safe_name = shlex.quote(experiment_name)
+    cmd = f"cd {repo_path} && {env_parts} bash {runner} {safe_name} {steps}".strip()
     return cmd
 
 

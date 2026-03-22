@@ -314,6 +314,7 @@
             document.getElementById('topbar-tier').className = 'tier tier-' + me.tier;
             document.getElementById('nav-admin').style.display = me.tier === 'admin' ? 'flex' : 'none';
             document.getElementById('nav-fleet').style.display = me.tier === 'admin' ? 'flex' : 'none';
+            document.getElementById('nav-terminals').style.display = me.tier === 'admin' ? 'flex' : 'none';
             renderChat();
         } else {
             showLogin();
@@ -350,9 +351,9 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             const page = el.dataset.page;
-            const titles = { chat: 'AI Research Chat', dashboard: 'Dashboard', experiments: 'Experiments', competitions: 'Competitions', results: 'Results', fleet: 'GPU Fleet', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
+            const titles = { chat: 'AI Research Chat', dashboard: 'Dashboard', experiments: 'Experiments', competitions: 'Competitions', results: 'Results', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
             document.getElementById('page-title').textContent = titles[page] || page;
-            const r = { dashboard: renderDashboard, experiments: renderExperiments, competitions: renderCompetitions, results: renderResults, chat: renderChat, fleet: renderFleet, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
+            const r = { dashboard: renderDashboard, experiments: renderExperiments, competitions: renderCompetitions, results: renderResults, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
             (r[page] || renderChat)();
         });
     });
@@ -568,7 +569,7 @@
                     <div style="margin-top:12px;display:flex;gap:6px;">
                         <button class="btn btn-secondary btn-sm" onclick="testGPU(${g.id})">Test</button>
                         <button class="btn btn-secondary btn-sm" onclick="statusGPU(${g.id})">Status</button>
-                        <button class="btn btn-secondary btn-sm" onclick="openTerminal(${g.id},'${g.name}')">Terminal</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openTerminalPage(${g.id},'${g.name}')">Terminal</button>
                         <button class="btn btn-danger btn-sm" onclick="removeGPU(${g.id},'${g.name}')">Remove</button>
                     </div>
                     ${g.last_seen?`<div style="font-size:11px;color:var(--text2);margin-top:8px;">Last seen: ${timeAgo(g.last_seen)}</div>`:''}
@@ -778,9 +779,29 @@
     async function statusGPU(id) { showGPUOutput('Checking...'); const r=await api(`/fleet/${id}/status`,{method:'POST'}); showGPUOutput(`Status: ${r?.status}\nGPU: ${r?.gpu_info||'N/A'}\nTraining: ${r?.is_training?'YES':'no'}\nExp: ${r?.current_experiment||'none'}\n\nLog:\n${r?.log_tail||'none'}`); }
     function openTerminal(id,name) { document.getElementById('gpu-terminal').style.display='block'; document.getElementById('terminal-title').textContent=`Terminal — ${name}`; document.getElementById('terminal-gpu-id').value=id; document.getElementById('terminal-output').textContent=`Connected to ${name}.\n`; document.getElementById('terminal-input').focus(); }
     async function execTerminal() { const input=document.getElementById('terminal-input'); const cmd=input.value.trim(); if(!cmd)return; const gpuId=document.getElementById('terminal-gpu-id').value; const out=document.getElementById('terminal-output'); out.textContent+=`\n$ ${cmd}\n`; input.value=''; const r=await api(`/fleet/${gpuId}/exec`,{method:'POST',body:JSON.stringify({command:cmd})}); out.textContent+=(r?.output||'no output')+'\n'; out.scrollTop=out.scrollHeight; }
-    async function addGPU() { const ssh=document.getElementById('gpu-ssh-cmd').value.trim(); if(!ssh)return alert('Paste SSH command'); const r=await api('/fleet/add',{method:'POST',body:JSON.stringify({ssh_command:ssh,password:document.getElementById('gpu-password').value,name:document.getElementById('gpu-name').value.trim()})}); closeModal('modal-add-gpu'); showGPUOutput(r?.status==='online'?`GPU "${r.name}" connected!\n${r.output||''}`:`GPU "${r?.name}" added but offline:\n${r?.error||JSON.stringify(r)}`); renderFleet(); }
+    async function addGPU() {
+        const ssh = document.getElementById('gpu-ssh-cmd').value.trim();
+        if (!ssh) return alert('Paste SSH command');
+        const btn = event.target; btn.disabled = true; btn.textContent = 'Testing...';
+        const r = await api('/fleet/add', {method:'POST', body:JSON.stringify({ssh_command:ssh, password:document.getElementById('gpu-password').value, name:document.getElementById('gpu-name').value.trim()})});
+        btn.disabled = false; btn.textContent = 'Add & Test';
+        closeModal('modal-add-gpu');
+        if (r?.status === 'online') {
+            let msg = `GPU "${r.name}" connected!\n\nHostname: ${r.hostname || 'unknown'}\nGPU: ${r.gpu_type || 'unknown'}\nRepo: ${r.repo_ready ? 'Ready' : 'NOT SET UP'}\nData: ${r.data_ready ? 'Ready' : 'NOT DOWNLOADED'}`;
+            if (r.warnings?.length) msg += '\n\nWarnings:\n' + r.warnings.map(w => '  - ' + w).join('\n');
+            showGPUOutput(msg);
+        } else {
+            showGPUOutput(`GPU "${r?.name}" added but offline:\n${r?.error || JSON.stringify(r)}`);
+        }
+        renderFleet();
+    }
     async function removeGPU(id,name) { if(!confirm(`Remove "${name}"?`))return; await api(`/fleet/${id}`,{method:'DELETE'}); renderFleet(); }
     function showGPUOutput(text) { const el=document.getElementById('gpu-output'); el.style.display='block'; document.getElementById('gpu-output-content').textContent=text; }
+
+    function openTerminalPage(gpuId, gpuName) {
+        showPage('terminals');
+        setTimeout(() => openTermSession(gpuId, gpuName), 100);
+    }
 
     // Admin actions
     async function addUser() {
@@ -793,6 +814,228 @@
     async function updateUserTier(id,tier) { await api(`/admin/users/${id}`,{method:'PUT',body:JSON.stringify({tier})}); renderAdmin(); }
     async function resetUsage(id) { if(!confirm('Reset usage?'))return; await api(`/admin/users/${id}`,{method:'PUT',body:JSON.stringify({reset_usage:true})}); renderAdmin(); }
     async function toggleUser(id,active) { await api(`/admin/users/${id}`,{method:'PUT',body:JSON.stringify({is_active:active})}); renderAdmin(); }
+
+    // ---- Terminals (xterm.js + WebSocket SSH) ----
+    const termSessions = []; // {id, gpuId, gpuName, term, ws, fitAddon, status}
+    let activeTermIdx = -1;
+    let termCounter = 0;
+
+    async function renderTerminals() {
+        document.getElementById('content').innerHTML = `
+            <div class="terminal-page">
+                <div class="terminal-tabs" id="term-tabs">
+                    <div class="terminal-add-tab" onclick="showGPUPicker()" title="New terminal">+</div>
+                </div>
+                <div class="terminal-body" id="term-body">
+                    <div class="terminal-picker" id="term-empty">
+                        <h3>No terminals open</h3>
+                        <p style="color:var(--text2);margin-bottom:16px;">Click + to open an SSH terminal to a GPU</p>
+                        <button class="btn btn-primary" onclick="showGPUPicker()">Open Terminal</button>
+                    </div>
+                </div>
+            </div>`;
+        // Re-attach existing terminals
+        if (termSessions.length > 0) {
+            document.getElementById('term-empty').style.display = 'none';
+            renderTermTabs();
+            if (activeTermIdx >= 0) showTermSession(activeTermIdx);
+        }
+    }
+
+    async function showGPUPicker() {
+        const gpus = await api('/fleet/') || [];
+        if (gpus.length === 0) {
+            alert('No GPUs registered. Add a GPU from the Fleet page first.');
+            return;
+        }
+        const body = document.getElementById('term-body');
+        // Show picker overlay
+        let picker = document.getElementById('term-gpu-picker');
+        if (!picker) {
+            picker = document.createElement('div');
+            picker.id = 'term-gpu-picker';
+            picker.className = 'terminal-picker';
+            body.appendChild(picker);
+        }
+        picker.style.display = 'flex';
+        picker.innerHTML = `
+            <h3>Select GPU</h3>
+            <div class="gpu-pick-list">
+                ${gpus.map(g => `
+                    <div class="gpu-pick-item" onclick="openTermSession(${g.id}, '${g.name}')">
+                        <div>
+                            <div class="gpu-pick-name">${g.name}</div>
+                            <div class="gpu-pick-host">${g.host}:${g.port}</div>
+                        </div>
+                        <span class="badge badge-${g.status}">${g.status}</span>
+                    </div>`).join('')}
+            </div>
+            <button class="btn btn-secondary" style="margin-top:16px;" onclick="document.getElementById('term-gpu-picker').style.display='none'">Cancel</button>`;
+    }
+
+    function openTermSession(gpuId, gpuName) {
+        // Hide picker
+        const picker = document.getElementById('term-gpu-picker');
+        if (picker) picker.style.display = 'none';
+        document.getElementById('term-empty').style.display = 'none';
+
+        const id = termCounter++;
+        const session = { id, gpuId, gpuName, term: null, ws: null, fitAddon: null, status: 'connecting' };
+        termSessions.push(session);
+        activeTermIdx = termSessions.length - 1;
+
+        renderTermTabs();
+
+        // Create terminal
+        const termEl = document.createElement('div');
+        termEl.id = `term-container-${id}`;
+        termEl.style.cssText = 'height:100%;width:100%;';
+        document.getElementById('term-body').appendChild(termEl);
+
+        const term = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
+            theme: {
+                background: '#0a0a0f',
+                foreground: '#e0e0e8',
+                cursor: '#a29bfe',
+                selectionBackground: 'rgba(108,92,231,0.3)',
+                black: '#1a1a26',
+                red: '#ff6b6b',
+                green: '#00b894',
+                yellow: '#ffd93d',
+                blue: '#74b9ff',
+                magenta: '#a29bfe',
+                cyan: '#81ecec',
+                white: '#e0e0e8',
+            },
+            allowProposedApi: true,
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+
+        try {
+            const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+            term.loadAddon(webLinksAddon);
+        } catch(e) {}
+
+        term.open(termEl);
+        fitAddon.fit();
+        session.term = term;
+        session.fitAddon = fitAddon;
+
+        // Connect WebSocket
+        const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${wsProto}//${location.host}/terminal/ws/${gpuId}`);
+        session.ws = ws;
+
+        ws.onopen = () => {
+            session.status = 'connected';
+            renderTermTabs();
+            // Send initial resize
+            ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+        };
+
+        ws.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'output') {
+                term.write(msg.data);
+            } else if (msg.type === 'error') {
+                term.write(`\r\n\x1b[31m${msg.data}\x1b[0m\r\n`);
+                session.status = 'disconnected';
+                renderTermTabs();
+            }
+        };
+
+        ws.onclose = () => {
+            session.status = 'disconnected';
+            term.write('\r\n\x1b[33m[Connection closed]\x1b[0m\r\n');
+            renderTermTabs();
+        };
+
+        ws.onerror = () => {
+            session.status = 'disconnected';
+            renderTermTabs();
+        };
+
+        // Send keystrokes to SSH
+        term.onData((data) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'input', data }));
+            }
+        });
+
+        // Handle resize
+        term.onResize(({ cols, rows }) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+            }
+        });
+
+        showTermSession(activeTermIdx);
+
+        // Fit on window resize
+        const resizeHandler = () => {
+            if (termSessions[activeTermIdx]?.id === id) {
+                fitAddon.fit();
+            }
+        };
+        window.addEventListener('resize', resizeHandler);
+        session._resizeHandler = resizeHandler;
+    }
+
+    function renderTermTabs() {
+        const tabsEl = document.getElementById('term-tabs');
+        if (!tabsEl) return;
+        tabsEl.innerHTML = termSessions.map((s, i) => `
+            <div class="terminal-tab ${i === activeTermIdx ? 'active' : ''}" onclick="showTermSession(${i})">
+                <span class="tab-status ${s.status}"></span>
+                ${s.gpuName}
+                <span class="close-tab" onclick="event.stopPropagation();closeTermSession(${i})">&times;</span>
+            </div>`).join('') +
+            `<div class="terminal-add-tab" onclick="showGPUPicker()" title="New terminal">+</div>`;
+    }
+
+    function showTermSession(idx) {
+        activeTermIdx = idx;
+        // Hide all term containers
+        document.querySelectorAll('[id^="term-container-"]').forEach(el => el.style.display = 'none');
+        const session = termSessions[idx];
+        if (!session) return;
+        const el = document.getElementById(`term-container-${session.id}`);
+        if (el) {
+            el.style.display = 'block';
+            if (session.fitAddon) {
+                setTimeout(() => { session.fitAddon.fit(); session.term.focus(); }, 10);
+            }
+        }
+        renderTermTabs();
+    }
+
+    function closeTermSession(idx) {
+        const session = termSessions[idx];
+        if (!session) return;
+        // Clean up
+        if (session.ws && session.ws.readyState === WebSocket.OPEN) session.ws.close();
+        if (session.term) session.term.dispose();
+        if (session._resizeHandler) window.removeEventListener('resize', session._resizeHandler);
+        const el = document.getElementById(`term-container-${session.id}`);
+        if (el) el.remove();
+
+        termSessions.splice(idx, 1);
+
+        if (termSessions.length === 0) {
+            activeTermIdx = -1;
+            const empty = document.getElementById('term-empty');
+            if (empty) empty.style.display = 'flex';
+        } else {
+            activeTermIdx = Math.min(idx, termSessions.length - 1);
+            showTermSession(activeTermIdx);
+        }
+        renderTermTabs();
+    }
 
     // Utils
     function openModal(id) { document.getElementById(id).classList.add('active'); }

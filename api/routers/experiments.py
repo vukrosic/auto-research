@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from api.config import settings
+from api.adapters.repo_adapter import call_repo_adapter
 from api.database import get_db
 from api.models import Experiment, GPU, User
 from api.routers.auth import get_current_user
@@ -182,17 +183,20 @@ def submit_experiment(exp: ExperimentCreate, db: Session = Depends(get_db), curr
 
 @router.get("/")
 def list_experiments(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """List user's experiments. Admins see all; others see only their own."""
-    query = db.query(Experiment)
-    if current_user.tier != "admin":
-        query = query.filter(Experiment.user_id == current_user.id)
-    experiments = query.order_by(Experiment.queued_at.desc()).all()
-    for exp in experiments:
-        if exp.status == "running":
-            check_experiment(db, exp)
-    for exp in experiments:
-        db.refresh(exp)
-    return experiments
+    """List experiments from the repo adapter, falling back to local DB state."""
+    try:
+        return call_repo_adapter("runs", "list")
+    except HTTPException:
+        query = db.query(Experiment)
+        if current_user.tier != "admin":
+            query = query.filter(Experiment.user_id == current_user.id)
+        experiments = query.order_by(Experiment.queued_at.desc()).all()
+        for exp in experiments:
+            if exp.status == "running":
+                check_experiment(db, exp)
+        for exp in experiments:
+            db.refresh(exp)
+        return experiments
 
 
 def _authorize(exp: Experiment, current_user: User) -> None:

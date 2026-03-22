@@ -290,7 +290,8 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: Optional[U
         latency_ms += analysis_latency
         cost = calc_cost(input_tokens, cache_read_tokens, output_tokens)
 
-        final_reply = analysis
+        # Combine analysis + raw results (collapsed)
+        final_reply = analysis + "\n\n<details><summary>📊 Raw results</summary>\n\n" + raw_results + "\n</details>"
     else:
         final_reply = reply
 

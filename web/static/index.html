@@ -63,7 +63,7 @@
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .chat-container { display: flex; flex-direction: column; height: calc(100vh - 140px); }
         .chat-messages { flex: 1; overflow-y: auto; padding: 16px 0; }
-        .chat-msg { padding: 12px 16px; margin-bottom: 8px; border-radius: 12px; max-width: 80%; font-size: 14px; line-height: 1.5; }
+        .chat-msg { padding: 16px 20px; margin-bottom: 12px; border-radius: 12px; max-width: 85%; font-size: 14px; line-height: 1.7; }
         .chat-msg.user { background: var(--accent); color: white; margin-left: auto; }
         .chat-msg.ai { background: var(--bg3); border: 1px solid var(--border); }
         .chat-input { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
@@ -110,17 +110,24 @@
         .chat-meta span { background: var(--bg2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; }
         .chat-total-cost { font-size: 12px; color: var(--text2); padding: 6px 12px; background: var(--bg3); border-radius: 6px; border: 1px solid var(--border); }
         /* Markdown rendering in chat */
-        .chat-msg.ai h1,.chat-msg.ai h2,.chat-msg.ai h3 { margin: 8px 0 4px; font-size: 14px; color: var(--text); }
-        .chat-msg.ai p { margin: 4px 0; }
-        .chat-msg.ai ul,.chat-msg.ai ol { margin: 4px 0 4px 16px; }
-        .chat-msg.ai li { margin: 2px 0; }
-        .chat-msg.ai code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 12px; }
-        .chat-msg.ai pre { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
+        .chat-msg.ai h1,.chat-msg.ai h2,.chat-msg.ai h3 { margin: 14px 0 8px; font-size: 15px; color: var(--text); font-weight: 700; }
+        .chat-msg.ai h1:first-child,.chat-msg.ai h2:first-child,.chat-msg.ai h3:first-child { margin-top: 0; }
+        .chat-msg.ai p { margin: 8px 0; }
+        .chat-msg.ai ul,.chat-msg.ai ol { margin: 10px 0 10px 20px; }
+        .chat-msg.ai li { margin: 6px 0; line-height: 1.6; }
+        .chat-msg.ai li strong { color: var(--accent2); }
+        .chat-msg.ai code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+        .chat-msg.ai pre { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
         .chat-msg.ai pre code { background: none; padding: 0; }
         .chat-msg.ai strong { color: var(--text); font-weight: 600; }
-        .chat-msg.ai hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-        .chat-msg.ai table { margin: 6px 0; font-size: 13px; }
-        .chat-msg.ai th { background: rgba(0,0,0,0.2); }
+        .chat-msg.ai hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+        .chat-msg.ai table { margin: 10px 0; font-size: 13px; border-collapse: collapse; }
+        .chat-msg.ai table th { background: rgba(0,0,0,0.2); padding: 8px 10px; }
+        .chat-msg.ai table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .chat-msg.ai details { margin: 12px 0; }
+        .chat-msg.ai details summary { cursor: pointer; color: var(--text2); font-size: 13px; padding: 6px 0; }
+        .chat-msg.ai details summary:hover { color: var(--accent2); }
+        .chat-msg.ai blockquote { border-left: 3px solid var(--accent); margin: 10px 0; padding: 4px 12px; color: var(--text2); }
 
         /* Research page */
         .research-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
@@ -249,6 +256,7 @@
             <div class="nav-item active" data-page="chat">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> AI Research Chat
             </div>
+            <!-- Hidden for now: experiments, research, deploy, fleet, terminals
             <div class="nav-item" data-page="experiments">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3h6v10l3.5 7H5.5L9 13V3z"/><path d="M6.5 17.5h11"/></svg></span> Experiments
             </div>
@@ -264,6 +272,7 @@
             <div class="nav-item" data-page="terminals" id="nav-terminals" style="display:none;">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span> Terminals <span class="nav-admin-badge">ADMIN</span>
             </div>
+            -->
             <div class="nav-bottom">
                 <div class="nav-item" data-page="pricing">
                     <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg></span> Pricing
@@ -648,6 +657,7 @@
         if (!confirm('Clear chat history?')) return;
         await api('/chat/history', {method:'DELETE'});
         chatMsgs = [];
+        chatTotalCost = 0;
         // Trigger fresh AI welcome with new recommendations
         renderChatMessages();
         const welcomeRes = await api('/chat/', {method:'POST', body:JSON.stringify({message:'hi', history:[]})});
@@ -655,7 +665,6 @@
             chatMsgs.push({role:'ai', text:welcomeRes.response, usage:welcomeRes.usage});
             if (welcomeRes.usage?.cost_usd) chatTotalCost += welcomeRes.usage.cost_usd;
         }
-        chatTotalCost = 0;
         chatLoaded = true;
         renderChat();
     }

@@ -1,17 +1,12 @@
-"""Chat routes — interactive experiment builder + AI research assistant.
+"""Chat routes — generic action router for interactive experiment builder.
 
-Three experiment trigger types:
-1. [BUILD_EXPERIMENT] — menu-based, model picks from pre-built options (most common)
-2. [RUN_EXPERIMENT]   — raw config overrides (advanced users)
-3. [DEEP_EXPERIMENT]  — code changes via Novita code generation (rare, expensive)
+The model outputs [ACTION]{...}[/ACTION] JSON blocks. The backend dispatches
+to the right handler and injects results into the response. Adding a new
+feature = adding a handler in actions.py + one line in the system prompt.
 """
 import json
-import os
 import re
-import subprocess
 import time
-import uuid
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Cookie
@@ -24,18 +19,14 @@ from api.config import settings
 from api.models import ChatMessage, User
 from api.experiment_menu import (
     CATEGORIES, PRESETS, build_menu_summary,
-    selections_to_overrides, selections_to_description, build_screen_from_selections,
 )
+from api.actions import ACTION_HANDLERS, dispatch_action
 
 router = APIRouter()
 
 PRICE_INPUT = 0.10
 PRICE_CACHE_READ = 0.02
 PRICE_OUTPUT = 0.30
-
-PG_ROOT = Path(settings.parameter_golf_path)
-SCREENS_DIR = PG_ROOT / "screens"
-RESULTS_DIR = PG_ROOT / "results"
 
 _client: Optional[OpenAI] = None
 
@@ -57,7 +48,8 @@ def calc_cost(input_tokens: int, cache_read_tokens: int, output_tokens: int) -> 
 
 
 def _load_knowledge_summary() -> str:
-    path = PG_ROOT / "KNOWLEDGE.md"
+    from pathlib import Path
+    path = Path(settings.parameter_golf_path) / "KNOWLEDGE.md"
     if not path.exists():
         return ""
     text = path.read_text()
@@ -69,14 +61,70 @@ def _load_knowledge_summary() -> str:
 KNOWLEDGE = _load_knowledge_summary()
 MENU = build_menu_summary()
 
-VALID_OVERRIDES = [
-    "num_layers", "model_dim", "num_heads", "num_kv_heads", "mlp_mult",
-    "tie_embeddings", "tied_embed_init_std", "logit_softcap", "rope_base",
-    "qk_gain_init", "attnres_mode", "mlp_act", "act_power", "act_gate_floor",
-    "embed_bottleneck", "num_unique_blocks", "num_cycles", "conv_kernel",
-    "num_experts", "resid_scale_init", "stoch_depth_rate", "highway_net",
-    "skip_weight_init",
-]
+# Action types list for the system prompt
+ACTION_TYPES_DOC = """
+Available action types (use inside [ACTION]...[/ACTION] blocks):
+
+1. **screen** — Run tiered screen from menu selections
+   ```json
+   {"type": "screen", "topic": "my_test", "configs": [{"name": "variant_name", "selections": {"activation": "leaky05", "moe": "moe4_d384"}}], "ladder": "quick"}
+   ```
+
+2. **screen_raw** — Run screen from raw override dicts (advanced)
+   ```json
+   {"type": "screen_raw", "topic": "raw_test", "variants": [{"name": "wider_mlp", "desc": "3x MLP", "overrides": {"mlp_mult": 3}}], "ladder": "quick"}
+   ```
+
+3. **leaderboard** — Show top experiments ranked by val_bpb
+   ```json
+   {"type": "leaderboard", "filter": "moe", "limit": 10}
+   ```
+   filter is optional (matches experiment name). limit defaults to 20.
+
+4. **compare** — Side-by-side comparison of experiments
+   ```json
+   {"type": "compare", "names": ["arch_baseline_9L", "arch_ws_5x2_wide"]}
+   ```
+
+5. **knowledge** — Search the knowledge base for specific topics
+   ```json
+   {"type": "knowledge", "question": "what works for MoE"}
+   ```
+
+6. **tournament** — Bracket elimination: configs fight head-to-head
+   ```json
+   {"type": "tournament", "bracket": [{"name": "cfg1", "selections": {...}}, {"name": "cfg2", "selections": {...}}, {"name": "cfg3", "selections": {...}}, {"name": "cfg4", "selections": {...}}], "ladder": "quick"}
+   ```
+   Minimum 4 configs. Each round uses progressively longer screens.
+
+7. **predict** — User guesses winner, then we run and score
+   ```json
+   {"type": "predict", "guess": "config_name", "topic": "pred_test", "configs": [{"name": "a", "selections": {...}}, {"name": "b", "selections": {...}}], "ladder": "quick"}
+   ```
+
+8. **what_if** — Check param count and size WITHOUT running anything
+   ```json
+   {"type": "what_if", "selections": {"width": "dim384", "moe": "moe4_d384", "embeddings": "untied_bn128"}}
+   ```
+   Can also use "overrides": {"model_dim": 384, ...} directly.
+
+9. **explain** — Look up knowledge base explanations for a config
+   ```json
+   {"type": "explain", "name": "my_config", "overrides": {"mlp_act": "swiglu", "num_experts": 4}}
+   ```
+
+10. **share** — Format results as a shareable card
+    ```json
+    {"type": "share", "topic": "my_test", "results": [{"name": "variant", "loss": 1.35, "delta": "-0.02"}], "takeaway": "MoE4 wins again"}
+    ```
+
+11. **remix** — Take a past experiment and tweak it
+    ```json
+    {"type": "remix", "name": "arch_baseline_9L", "tweak": {"mlp_mult": 3}}
+    ```
+
+You can output MULTIPLE [ACTION] blocks in one response. They run sequentially.
+"""
 
 # ── SYSTEM PROMPT ────────────────────────────────────────────────────────
 SYSTEM_PROMPT = f"""You are the Experiment Lab — an interactive AI research game where users design tiny language models and race to beat the leaderboard.
@@ -90,89 +138,46 @@ SYSTEM_PROMPT = f"""You are the Experiment Lab — an interactive AI research ga
 ## The game
 Users are designing 16MB language models scored by bits-per-byte (val_bpb, lower = better). Target: beat 1.2244 BPB.
 
-The experiment pipeline:
-1. **Design** — user picks options from the menu (you guide them)
-2. **Screen** — quick 1-2 step test eliminates bad ideas (seconds)
-3. **Results** — show what worked, what flopped, and why
-4. **Iterate** — learn from results, try again
+## How to trigger actions
 
-## How to interact
+When you want the backend to DO something (run a screen, show leaderboard, compare results, etc.), output an [ACTION] block:
 
-### Phase 1: Welcome & suggest
-When a user starts, welcome them and show 2-3 interesting experiment ideas. Ask what direction interests them. Show the preset options if they want a quick start.
+[ACTION]
+{{"type": "action_type", ...params...}}
+[/ACTION]
 
-### Phase 2: Build the experiment
-Walk them through choices category by category. For each category:
-- Show the options as a numbered list
-- Give your recommendation with brief reasoning
-- Let them pick (they can say the number, name, or describe what they want)
-- Move to next category
+The backend executes it and injects the result into your response. You can use multiple [ACTION] blocks in one message.
 
-You DON'T need to go through every category. Skip categories the user hasn't mentioned — use defaults. Only show categories relevant to their idea.
+{ACTION_TYPES_DOC}
 
-### Phase 3: Confirm & run
-Once selections are made, show a summary card like:
+## Interaction flow
 
-**Your Experiment:**
-| Category | Choice | Why |
-|----------|--------|-----|
-| ⚡ Activation | leaky05 | Lets negative signal through |
-| 🧠 MoE | 4 experts | Best scaling found |
-...
+### Welcome
+When a user starts, welcome them briefly and suggest 2-3 interesting experiments. Mention they can:
+- **Design & run** experiments (you'll guide them through the menu)
+- **Check the leaderboard** to see what's winning
+- **Run a tournament** between configs
+- **Predict** which config wins before running
+- **Ask questions** about what's been tried
 
-Then ask: "Ready to run? Say **go** to start the screen!"
+### Building experiments
+Walk them through relevant categories. Skip defaults. Show a summary table, then ask "Ready? Say **go**!"
 
-### Phase 4: Results & next steps
-After results come back, explain them in plain English:
-- What beat the baseline and by how much
-- What flopped and a theory why
-- Suggest what to try next
-- Generate a shareable results card the user can post
+When they confirm, output an [ACTION] block with type "screen".
 
-## Triggering experiments
+### After results
+- Explain what won and why (use knowledge base)
+- Suggest next steps
+- Offer to generate a shareable card
 
-When the user confirms (says "go", "run it", "let's try", etc.), output EXACTLY this block:
+### Answering questions
+- "What's the best config?" → use leaderboard action
+- "What's been tried for X?" → use knowledge action
+- "Would X fit in 16MB?" → use what_if action
+- "Compare X and Y" → use compare action
+- "Why did X lose?" → use explain action, then add your analysis
 
-[BUILD_EXPERIMENT]
-{{
-  "topic": "short_snake_case_name",
-  "configs": [
-    {{
-      "name": "descriptive_name",
-      "selections": {{
-        "activation": "option_id",
-        "width": "option_id",
-        "depth": "option_id",
-        ...only include categories where selection differs from default
-      }}
-    }}
-  ],
-  "ladder": "quick"
-}}
-[/BUILD_EXPERIMENT]
-
-You can include 1-5 configs to test against baseline. Each config is a different combination.
-If the user picked a preset, use its selections.
-The baseline (all defaults) is added automatically — never include it.
-
-For advanced users who want raw overrides, use [RUN_EXPERIMENT] instead (same format as before).
-
-## Generating shareable results
-
-After an experiment completes, generate a **postable results card** in this format:
-
-```
-🧪 Experiment: [topic]
-🎯 Target: < 1.2244 BPB
-
-Results:
-[emoji] variant_name: loss [delta vs baseline]
-...
-
-💡 Takeaway: [one sentence insight]
-
-🔬 Built with Auto-Research — design ML experiments in chat
-```
+You are NOT limited to these — use your judgment. If the user asks for something and there's an action that helps, use it. If not, just answer from your knowledge.
 
 {MENU}
 
@@ -182,7 +187,7 @@ Results:
 ## Rules
 - NEVER suggest LR tuning — forbidden, architecture only
 - Check knowledge before suggesting — don't retry failed ideas
-- If a combo won't fit 16MB, warn the user
+- If a combo won't fit 16MB, warn the user (or use what_if to check)
 - Keep responses SHORT. No walls of text. Use tables and lists.
 - If the user asks something unrelated to experiments, answer briefly and steer back
 - Make it fun — this is a game, not a lecture
@@ -200,226 +205,41 @@ class ChatRequest(BaseModel):
     history: list[dict] = []
 
 
-# ── Pattern matching for experiment triggers ─────────────────────────────
-BUILD_EXP_PATTERN = re.compile(
-    r"\[BUILD_EXPERIMENT\]\s*(\{.*?\})\s*\[/BUILD_EXPERIMENT\]", re.DOTALL)
-RUN_EXP_PATTERN = re.compile(
-    r"\[RUN_EXPERIMENT\]\s*(\{.*?\})\s*\[/RUN_EXPERIMENT\]", re.DOTALL)
-DEEP_EXP_PATTERN = re.compile(
-    r"\[DEEP_EXPERIMENT\]\s*(\{.*?\})\s*\[/DEEP_EXPERIMENT\]", re.DOTALL)
+# ── Action block parsing and dispatch ────────────────────────────────────
+ACTION_PATTERN = re.compile(r"\[ACTION\]\s*(\{.*?\})\s*\[/ACTION\]", re.DOTALL)
 
 
-# ── Screen config generation ────────────────────────────────────────────
-def _write_screen_file(topic: str, content: str) -> Path:
-    screen_id = f"chat_{topic}_{uuid.uuid4().hex[:6]}"
-    screen_path = SCREENS_DIR / f"{screen_id}.py"
-    screen_path.write_text(content)
-    return screen_path
+def _process_actions(ai_reply: str) -> tuple[str, list[str]]:
+    """Find all [ACTION] blocks, execute them, return cleaned reply + reports."""
+    reports = []
+    matches = list(ACTION_PATTERN.finditer(ai_reply))
+
+    if not matches:
+        return ai_reply, []
+
+    for match in matches:
+        try:
+            data = json.loads(match.group(1))
+            report = dispatch_action(data)
+            reports.append(report)
+        except json.JSONDecodeError as e:
+            reports.append(f"Failed to parse action JSON: {e}")
+        except Exception as e:
+            reports.append(f"Action error: {e}")
+
+    # Remove action blocks from reply
+    cleaned = ACTION_PATTERN.sub("", ai_reply).strip()
+    return cleaned, reports
 
 
-def _run_screen(screen_path: Path, ladder: str = "quick") -> str:
-    result = subprocess.run(
-        ["python3", "infra/tiered_screen.py", "--screen", str(screen_path), "--ladder", ladder],
-        capture_output=True, text=True, timeout=300, cwd=str(PG_ROOT),
-    )
-    import glob as gl
-    topic = screen_path.stem
-    reports = sorted(gl.glob(str(RESULTS_DIR / f"tiered_screen_{topic}_*.md")))
-    if reports:
-        return Path(reports[-1]).read_text()
-    output = result.stdout
-    if result.returncode != 0:
-        output += f"\n\nSTDERR:\n{result.stderr[-500:]}" if result.stderr else ""
-    return output or "Screen completed but no report found."
+# ── Endpoints ────────────────────────────────────────────────────────────
 
-
-def _handle_build_experiment(data: dict) -> Optional[str]:
-    """Handle [BUILD_EXPERIMENT] — menu-based config assembly."""
-    topic = data.get("topic", "experiment")
-    configs = data.get("configs", [])
-    ladder = data.get("ladder", "quick")
-    if not configs:
-        return None
-
-    content = build_screen_from_selections(topic, configs)
-    screen_path = _write_screen_file(topic, content)
-    return _run_screen(screen_path, ladder)
-
-
-def _handle_run_experiment(data: dict) -> Optional[str]:
-    """Handle [RUN_EXPERIMENT] — raw override configs."""
-    topic = data.get("topic", "experiment")
-    variants = data.get("variants", [])
-    ladder = data.get("ladder", "quick")
-    why = data.get("why", "")
-    if not variants:
-        return None
-
-    lines = [f'WHY = {json.dumps(why)}', "", "CONFIGS = [",
-             '    ("baseline", "Control — no changes.", {}),']
-    for v in variants:
-        name = re.sub(r"[^a-z0-9_]", "_", v["name"].lower())[:32]
-        desc = v.get("desc", v["name"])
-        overrides = {k: v2 for k, v2 in v.get("overrides", {}).items() if k in VALID_OVERRIDES}
-        lines.append(f"    ({json.dumps(name)}, {json.dumps(desc)}, {json.dumps(overrides)}),")
-    lines.append("]")
-
-    screen_path = _write_screen_file(topic, "\n".join(lines) + "\n")
-    return _run_screen(screen_path, ladder)
-
-
-def _handle_deep_experiment(data: dict) -> Optional[str]:
-    """Handle [DEEP_EXPERIMENT] — code changes via Novita."""
-    import shutil
-
-    topic = data.get("topic", "experiment")
-    description = data.get("description", "")
-    env_var = data.get("env_var", "EXPERIMENT")
-    test_values = data.get("test_values", [])
-    ladder = data.get("ladder", "quick")
-
-    if not description or not test_values:
-        return None
-
-    original = PG_ROOT / "train_gpt.py"
-    backup = PG_ROOT / "train_gpt.py.backup"
-    shutil.copy2(original, backup)
-
-    try:
-        client = get_client()
-        full_code = original.read_text()
-
-        response = client.chat.completions.create(
-            model=settings.chat_model,
-            messages=[{"role": "user", "content": f"""Modify this code to add: {description}
-
-Control via env var `{env_var}`: when NOT set = original behavior, when set = activates change.
-Output ONLY the complete modified Python file. No markdown, no fences, no explanation.
-
-{full_code}"""}],
-            max_tokens=16000, temperature=0.0,
-        )
-
-        new_code = response.choices[0].message.content
-        if new_code.startswith("```"):
-            lines = new_code.split("\n")
-            if lines[0].startswith("```"): lines = lines[1:]
-            if lines and lines[-1].strip() == "```": lines = lines[:-1]
-            new_code = "\n".join(lines)
-
-        if "class GPT" not in new_code or env_var not in new_code:
-            return "Code generation failed — invalid output."
-
-        original.write_text(new_code)
-
-        diff_result = subprocess.run(
-            ["diff", "-u", str(backup), str(original)],
-            capture_output=True, text=True)
-        diff_text = diff_result.stdout[:2000] if diff_result.stdout else "(no diff)"
-
-        # Run each value manually
-        ld = {"quick": 2, "standard": 6, "thorough": 20}
-        steps = ld.get(ladder, 2)
-        results = []
-        env_clean = {k: v for k, v in os.environ.items() if k != env_var}
-
-        for val in [None] + test_values:
-            env = {**env_clean, **(({env_var: str(val)}) if val is not None else {})}
-            label = re.sub(r"[^a-z0-9_]", "_", str(val).lower())[:32] if val else "baseline"
-            r = subprocess.run(
-                ["python3", "-c", _make_runner_script(steps, env_var, val)],
-                capture_output=True, text=True, timeout=300,
-                cwd=str(PG_ROOT), env=env)
-            try:
-                results.append(json.loads(r.stdout.strip().split('\n')[-1]))
-            except (json.JSONDecodeError, IndexError):
-                results.append({"name": label, "loss": 999, "error": (r.stderr or r.stdout)[-200:]})
-
-        baseline_loss = results[0]["loss"] if results else 999
-        rpt = [f"## Deep Experiment Results ({steps} steps)", "",
-               f"**Env var:** `{env_var}`", "",
-               "| Variant | Loss | Delta | Verdict |",
-               "|---------|-----:|------:|---------|"]
-        for r in sorted(results, key=lambda x: x.get("loss", 999)):
-            loss, name = r.get("loss", 999), r.get("name", "?")
-            delta = loss - baseline_loss
-            verdict = "baseline" if name == "baseline" else ("better" if delta < -0.001 else "worse" if delta > 0.001 else "noise")
-            rpt.append(f"| `{name}` | {loss:.4f} | {delta:+.4f} | {verdict} |")
-
-        return f"**Code diff:**\n```diff\n{diff_text}\n```\n\n{chr(10).join(rpt)}"
-
-    except Exception as e:
-        return f"Deep experiment failed: {e}"
-    finally:
-        shutil.copy2(backup, original)
-        backup.unlink(missing_ok=True)
-
-
-def _make_runner_script(steps: int, env_var: str, val) -> str:
-    env_line = f"os.environ['{env_var}'] = '{val}'" if val is not None else f"os.environ.pop('{env_var}', None)"
-    name = re.sub(r"[^a-z0-9_]", "_", str(val).lower())[:32] if val is not None else "baseline"
-    return f"""
-import sys, os, json
-{env_line}
-sys.path.insert(0, '.')
-import torch
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
-torch.cuda.set_device(0)
-import train_gpt as tg
-torch.manual_seed(1337); torch.cuda.manual_seed_all(1337)
-loader = tg.DistributedTokenLoader('./data/datasets/fineweb10B_sp1024/fineweb_train_*.bin', 0, 1, torch.device('cuda',0))
-model = tg.GPT(vocab_size=1024, num_layers=9, model_dim=512, num_heads=8, num_kv_heads=4, mlp_mult=2, tie_embeddings=True, tied_embed_init_std=0.005, logit_softcap=30.0, rope_base=10000.0, qk_gain_init=1.5, attnres_mode='none', mlp_act='relu2', act_power=2.0, act_gate_floor=0.5, embed_bottleneck=0, num_unique_blocks=0, num_cycles=1, conv_kernel=0, num_experts=0, resid_scale_init=1.0, stoch_depth_rate=0.0, highway_net=False, skip_weight_init=1.0).to('cuda').bfloat16()
-tg.restore_low_dim_params_to_fp32(model)
-opt = torch.optim.Adam(model.parameters(), lr=0.04)
-model.train()
-losses = []
-for _ in range({steps}):
-    opt.zero_grad(set_to_none=True)
-    sl = 0.0
-    for _ in range(8):
-        x, y = loader.next_batch(32768, 256, 8)
-        with torch.autocast('cuda', torch.bfloat16):
-            loss = model(x, y)
-        (loss / 8).backward()
-        sl += loss.item() / 8
-    opt.step()
-    losses.append(sl)
-print(json.dumps({{'name': '{name}', 'loss': sum(losses)/len(losses)}}))
-"""
-
-
-# ── Dispatch experiment from AI reply ────────────────────────────────────
-def _maybe_run_experiment(ai_reply: str) -> tuple[str, Optional[str]]:
-    """Check AI reply for experiment blocks, run if found."""
-
-    for pattern, handler in [
-        (BUILD_EXP_PATTERN, _handle_build_experiment),
-        (RUN_EXP_PATTERN, _handle_run_experiment),
-        (DEEP_EXP_PATTERN, _handle_deep_experiment),
-    ]:
-        match = pattern.search(ai_reply)
-        if match:
-            try:
-                data = json.loads(match.group(1))
-            except json.JSONDecodeError:
-                continue
-            report = handler(data)
-            if report:
-                cleaned = pattern.sub("", ai_reply).strip()
-                return cleaned, report
-
-    return ai_reply, None
-
-
-# ── Endpoint: get menu ───────────────────────────────────────────────────
 @router.get("/menu")
 def get_menu():
     """Return experiment categories and presets for the frontend."""
     return {"categories": CATEGORIES, "presets": PRESETS}
 
 
-# ── Endpoint: chat ───────────────────────────────────────────────────────
 @router.post("/")
 async def chat(req: ChatRequest, db: Session = Depends(get_db), user: Optional[User] = Depends(get_optional_user)):
     client = get_client()
@@ -463,11 +283,11 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: Optional[U
         cache_read_tokens = getattr(details, "cached_tokens", 0) or 0
     cost = calc_cost(input_tokens, cache_read_tokens, output_tokens)
 
-    # Check for experiment triggers
-    cleaned_reply, report = _maybe_run_experiment(reply)
+    # Process action blocks
+    cleaned_reply, reports = _process_actions(reply)
 
-    if report:
-        final_reply = cleaned_reply + f"\n\n---\n\n{report}"
+    if reports:
+        final_reply = cleaned_reply + "\n\n---\n\n" + "\n\n---\n\n".join(reports)
     else:
         final_reply = reply
 
@@ -485,8 +305,8 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: Optional[U
         "output_tokens": output_tokens, "cost_usd": round(cost, 8),
         "latency_ms": latency_ms,
     }
-    if report:
-        result["experiment_ran"] = True
+    if reports:
+        result["actions_executed"] = len(reports)
     return result
 
 
@@ -540,3 +360,12 @@ def chat_stats(db: Session = Depends(get_db)):
          "total_cost_usd": round(r.total_cost or 0, 6)}
         for r in rows
     ]
+
+
+@router.get("/actions")
+def list_actions():
+    """List all available action types with descriptions."""
+    return {
+        "actions": list(ACTION_HANDLERS.keys()),
+        "count": len(ACTION_HANDLERS),
+    }

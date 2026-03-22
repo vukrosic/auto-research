@@ -581,7 +581,13 @@
             chatTotalCost = 0;
             const history = await api('/chat/history') || [];
             if (history.length === 0) {
-                chatMsgs = [{ role:'ai', text:'Hi! I\'m your AI research assistant. Ask me anything about ML experiments, model architecture, results, or what to try next.' }];
+                // Trigger AI welcome with recommendations
+                renderChatMessages();
+                const welcomeRes = await api('/chat/', {method:'POST', body:JSON.stringify({message:'hi', history:[]})});
+                if (welcomeRes?.response) {
+                    chatMsgs.push({role:'ai', text:welcomeRes.response, usage:welcomeRes.usage});
+                    if (welcomeRes.usage?.cost_usd) chatTotalCost += welcomeRes.usage.cost_usd;
+                }
             } else {
                 for (const m of history) {
                     const entry = { role: m.role === 'assistant' ? 'ai' : 'user', text: m.content };
@@ -606,7 +612,7 @@
                 </div>
                 <div class="chat-messages" id="chat-messages"></div>
                 <div class="chat-input">
-                    <input type="text" id="chat-input" placeholder="Ask about experiments, architecture ideas, results..." onkeydown="if(event.key==='Enter')sendChat()">
+                    <input type="text" id="chat-input" placeholder="Pick a number, describe an idea, or ask anything..." onkeydown="if(event.key==='Enter')sendChat()">
                     <button class="btn btn-primary" onclick="sendChat()">Send</button>
                 </div>
             </div>`;
@@ -641,7 +647,14 @@
     async function clearChat() {
         if (!confirm('Clear chat history?')) return;
         await api('/chat/history', {method:'DELETE'});
-        chatMsgs = [{ role:'ai', text:'Chat cleared. How can I help with your research?' }];
+        chatMsgs = [];
+        // Trigger fresh AI welcome with new recommendations
+        renderChatMessages();
+        const welcomeRes = await api('/chat/', {method:'POST', body:JSON.stringify({message:'hi', history:[]})});
+        if (welcomeRes?.response) {
+            chatMsgs.push({role:'ai', text:welcomeRes.response, usage:welcomeRes.usage});
+            if (welcomeRes.usage?.cost_usd) chatTotalCost += welcomeRes.usage.cost_usd;
+        }
         chatTotalCost = 0;
         chatLoaded = true;
         renderChat();

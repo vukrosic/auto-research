@@ -298,7 +298,9 @@
         try {
             const res = await fetch(API + path, { headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', ...opts });
             if (res.status === 401) { showLogin(); return null; }
-            return await res.json();
+            const data = await res.json();
+            if (!res.ok) return { _error: true, detail: data.detail || `Error ${res.status}`, status: res.status, ...data };
+            return data;
         } catch (e) { console.error('API error:', e); return null; }
     }
 
@@ -748,12 +750,21 @@
     async function submitExperiment() {
         const name = document.getElementById('exp-name').value.trim();
         if (!name) return alert('Name required');
-        const stage = document.getElementById('exp-stage').value;
-        const steps = parseInt(document.getElementById('exp-steps').value) || {explore:500,validate:2000,full:13780}[stage];
+        const steps = parseInt(document.getElementById('exp-steps').value) || 500;
         const overrides = {};
-        document.getElementById('exp-overrides').value.trim().split('\n').forEach(l => { const [k,...v] = l.split('='); if(k&&v.length) overrides[k.trim()]=v.join('=').trim(); });
-        await api('/experiments/',{method:'POST',body:JSON.stringify({name,template:document.getElementById('exp-template').value,stage,steps,config_overrides:overrides})});
-        closeModal('modal-new-exp'); renderDashboard();
+        document.getElementById('exp-overrides').value.trim().split('\n').forEach(l => {
+            const m = l.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+            if (m) overrides[m[1]] = m[2].trim();
+        });
+        const res = await api('/experiments/', {method:'POST', body:JSON.stringify({name, template:document.getElementById('exp-template').value, steps, config_overrides:overrides})});
+        if (res?.id) {
+            closeModal('modal-new-exp');
+            document.getElementById('exp-name').value = '';
+            document.getElementById('exp-overrides').value = '';
+            renderDashboard();
+        } else if (res?.detail) {
+            alert(res.detail);
+        }
     }
 
     async function cancelExp(id) { if(confirm('Cancel?')){ await api(`/experiments/${id}`,{method:'DELETE'}); renderExperiments(); }}

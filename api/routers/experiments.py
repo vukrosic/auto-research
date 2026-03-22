@@ -1,21 +1,117 @@
 """Experiment routes — submit, list, cancel, monitor."""
 import json
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
+from api.config import settings
 from api.database import get_db
 from api.models import Experiment, User
 from api.routers.auth import get_current_user
 
 router = APIRouter()
 
+STAGE_THRESHOLDS = [
+    (800, "explore"),
+    (5000, "validate"),
+    (float("inf"), "full"),
+]
+
+
+def classify_stage(steps: int) -> str:
+    for threshold, stage in STAGE_THRESHOLDS:
+        if steps <= threshold:
+            return stage
+    return "full"
+
+
+def maybe_reset_usage(user: User, db: Session):
+    """Reset usage counters if 30+ days since last reset."""
+    now = datetime.now(timezone.utc)
+    reset_at = user.usage_reset_at
+    if reset_at and reset_at.tzinfo is None:
+        reset_at = reset_at.replace(tzinfo=timezone.utc)
+    if not reset_at or (now - reset_at) >= timedelta(days=30):
+        user.explore_runs_used = 0
+        user.validate_runs_used = 0
+        user.full_runs_used = 0
+        user.usage_reset_at = now
+        db.flush()
+
+
+def check_tier_limits(user: User, stage: str, db: Session):
+    """Enforce run count and concurrent limits. Raises HTTPException on violation."""
+    tier = user.tier
+    limits = settings.tier_limits.get(tier)
+    if not limits:
+        raise HTTPException(status_code=403, detail=f"Unknown tier: {tier}")
+
+    # Admin bypasses all limits
+    if limits.get(stage, 0) == -1:
+        return
+
+    # Check stage is allowed for this tier
+    stage_limit = limits.get(stage, 0)
+    if stage_limit == 0:
+        tier_needed = {"validate": "Researcher", "full": "Pro"}.get(stage, "a higher tier")
+        raise HTTPException(
+            status_code=403,
+            detail=f"{stage.capitalize()} runs are not available on the {tier.capitalize()} tier. Upgrade to {tier_needed}.",
+        )
+
+    # Check monthly run count
+    usage_field = {"explore": "explore_runs_used", "validate": "validate_runs_used", "full": "full_runs_used"}
+    used = getattr(user, usage_field.get(stage, "explore_runs_used"), 0)
+    if used >= stage_limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Monthly {stage} limit reached ({used}/{stage_limit}). Resets in {days_until_reset(user)} days.",
+        )
+
+    # Check concurrent limit
+    concurrent_limit = limits.get("concurrent", 1)
+    active_count = (
+        db.query(Experiment)
+        .filter(
+            Experiment.user_id == user.id,
+            Experiment.status.in_(["queued", "running"]),
+        )
+        .count()
+    )
+    if active_count >= concurrent_limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Concurrent limit reached ({active_count}/{concurrent_limit} experiments active). Wait for one to finish or cancel one.",
+        )
+
+
+def increment_usage(user: User, stage: str):
+    """Increment the usage counter for the given stage."""
+    if stage == "explore":
+        user.explore_runs_used += 1
+    elif stage == "validate":
+        user.validate_runs_used += 1
+    elif stage == "full":
+        user.full_runs_used += 1
+
+
+def days_until_reset(user: User) -> int:
+    now = datetime.now(timezone.utc)
+    reset_at = user.usage_reset_at
+    if reset_at and reset_at.tzinfo is None:
+        reset_at = reset_at.replace(tzinfo=timezone.utc)
+    if not reset_at:
+        return 30
+    next_reset = reset_at + timedelta(days=30)
+    return max(0, (next_reset - now).days)
+
 
 class ExperimentCreate(BaseModel):
     name: str
     template: str = "parameter_golf"
-    stage: str = "explore"  # explore, validate, full
+    stage: str = "explore"  # ignored — auto-set from steps
     config_overrides: dict = {}
     steps: int = 500
     competition_id: int | None = None
@@ -23,21 +119,37 @@ class ExperimentCreate(BaseModel):
 
 @router.post("/")
 def submit_experiment(exp: ExperimentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Submit a new experiment to the queue."""
-    # TODO: check user tier limits, check concurrent limit
+    """Submit a new experiment to the queue.
+
+    Stage is auto-determined from steps: <=800 explore, <=5000 validate, >5000 full.
+    Enforces tier limits on run count, stage access, and concurrency.
+    """
+    # Auto-set stage from steps
+    stage = classify_stage(exp.steps)
+
+    # Reset usage if 30+ days old
+    maybe_reset_usage(current_user, db)
+
+    # Enforce tier limits
+    check_tier_limits(current_user, stage, db)
+
     experiment = Experiment(
         user_id=current_user.id,
         name=exp.name,
         template=exp.template,
-        stage=exp.stage,
+        stage=stage,
         config_overrides=json.dumps(exp.config_overrides),
         steps=exp.steps,
         competition_id=exp.competition_id,
     )
     db.add(experiment)
+
+    # Increment usage counter
+    increment_usage(current_user, stage)
+
     db.commit()
     db.refresh(experiment)
-    return {"id": experiment.id, "status": "queued"}
+    return {"id": experiment.id, "status": "queued", "stage": stage}
 
 
 @router.get("/")

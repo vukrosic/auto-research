@@ -96,6 +96,30 @@ class Competition(Base):
     experiments = relationship("Experiment", back_populates="competition")
 
 
+class GPU(Base):
+    __tablename__ = "gpus"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    host = Column(String, nullable=False)  # e.g. proxy.us-ca-6.gpu-instance.novita.ai
+    port = Column(Integer, default=22)
+    user = Column(String, default="root")
+    password = Column(String, nullable=True)  # TODO: encrypt in production
+    ssh_key = Column(Text, nullable=True)
+
+    # Status
+    status = Column(String, default="unknown")  # online, offline, training, idle, unknown
+    current_experiment = Column(String, nullable=True)
+    current_step = Column(Integer, nullable=True)
+    gpu_utilization = Column(Float, nullable=True)
+    gpu_temp = Column(Float, nullable=True)
+
+    # Config
+    repo_path = Column(String, default="/root/parameter-golf")
+    added_at = Column(DateTime, default=utcnow)
+    last_seen = Column(DateTime, nullable=True)
+
+
 class SupportTicket(Base):
     __tablename__ = "support_tickets"
 

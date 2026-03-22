@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from api.database import get_db
-from api.models import User, Competition
+from api.models import User, Competition, GPU, Experiment, SupportTicket
 
 router = APIRouter()
 
@@ -71,4 +71,48 @@ def admin_dashboard(db: Session = Depends(get_db)):
         "flagged_issues": 0,  # TODO: from support tickets
         "gpu_utilization": "TODO",
         "monthly_revenue_estimate": "TODO",
+    }
+
+
+@router.get("/db")
+def view_database(db: Session = Depends(get_db)):
+    """View all database contents. For debugging/admin."""
+    users = db.query(User).all()
+    experiments = db.query(Experiment).all()
+    competitions = db.query(Competition).all()
+    gpus = db.query(GPU).all()
+    tickets = db.query(SupportTicket).all()
+
+    return {
+        "users": [
+            {"id": u.id, "email": u.email, "name": u.name, "tier": u.tier,
+             "api_key": u.api_key, "explore_used": u.explore_runs_used,
+             "validate_used": u.validate_runs_used, "full_used": u.full_runs_used,
+             "created": str(u.created_at)}
+            for u in users
+        ],
+        "gpus": [
+            {"id": g.id, "name": g.name, "host": g.host, "port": g.port,
+             "user": g.user, "status": g.status, "current_experiment": g.current_experiment,
+             "gpu_util": g.gpu_utilization, "gpu_temp": g.gpu_temp,
+             "repo_path": g.repo_path, "last_seen": str(g.last_seen), "added": str(g.added_at)}
+            for g in gpus
+        ],
+        "experiments": [
+            {"id": e.id, "user_id": e.user_id, "name": e.name, "template": e.template,
+             "stage": e.stage, "status": e.status, "steps": e.steps,
+             "current_step": e.current_step, "val_bpb": e.val_bpb,
+             "gpu": e.gpu_name, "config": e.config_overrides}
+            for e in experiments
+        ],
+        "competitions": [
+            {"id": c.id, "name": c.name, "status": c.status, "metric": c.metric,
+             "sponsor": c.sponsor, "prize": c.prize_description}
+            for c in competitions
+        ],
+        "support_tickets": [
+            {"id": t.id, "user_id": t.user_id, "message": t.message,
+             "resolved_by_ai": t.resolved_by_ai, "needs_human": t.needs_human}
+            for t in tickets
+        ],
     }

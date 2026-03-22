@@ -1,10 +1,13 @@
 """Auto-Research Platform — API Entry Point"""
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from api.config import settings
 from api.database import engine, Base
-from api.routers import auth, experiments, competitions, results, chat, webhooks, admin
+from api.routers import auth, experiments, competitions, results, chat, webhooks, admin, fleet
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -26,8 +29,18 @@ app.include_router(results.router, prefix="/results", tags=["results"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+app.include_router(fleet.router, prefix="/fleet", tags=["fleet"])
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# Serve frontend
+STATIC_DIR = Path(__file__).parent.parent / "web" / "static"
+
+
+@app.get("/")
+def index():
+    return FileResponse(STATIC_DIR / "index.html")

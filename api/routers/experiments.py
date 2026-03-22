@@ -20,6 +20,18 @@ from engine.collector import check_experiment
 
 router = APIRouter()
 
+FAST_DEFAULT_OVERRIDES = {
+    "NUM_LAYERS": 2,
+    "MODEL_DIM": 128,
+    "NUM_HEADS": 2,
+    "NUM_KV_HEADS": 1,
+    "MLP_MULT": 1,
+    "TRAIN_BATCH_TOKENS": 131072,
+    "VAL_BATCH_SIZE": 131072,
+    "VAL_LOSS_EVERY": 50,
+    "TRAIN_LOG_EVERY": 10,
+}
+
 STAGE_THRESHOLDS = [
     (800, "explore"),
     (5000, "validate"),
@@ -32,6 +44,13 @@ def classify_stage(steps: int) -> str:
         if steps <= threshold:
             return stage
     return "full"
+
+
+def merge_fast_profile(config: dict | None) -> dict:
+    merged = dict(FAST_DEFAULT_OVERRIDES)
+    if config:
+        merged.update(config)
+    return merged
 
 
 def maybe_reset_usage(user: User, db: Session):
@@ -144,7 +163,7 @@ def submit_experiment(exp: ExperimentCreate, db: Session = Depends(get_db), curr
         name=exp.name,
         template=exp.template,
         stage=stage,
-        config_overrides=json.dumps(exp.config_overrides),
+        config_overrides=json.dumps(merge_fast_profile(exp.config_overrides)),
         steps=exp.steps,
     )
     db.add(experiment)

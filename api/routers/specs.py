@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from api.database import get_db
 from api.models import Experiment, ExperimentSpec, User
 from api.routers.auth import get_current_user
-from api.routers.experiments import check_tier_limits, classify_stage, increment_usage, maybe_reset_usage
+from api.routers.experiments import check_tier_limits, classify_stage, increment_usage, maybe_reset_usage, merge_fast_profile
 from engine.sync import export_queue_file, export_spec_to_repo, sync_specs_to_db
 
 router = APIRouter()
@@ -210,7 +210,7 @@ def queue_spec(spec_id: int, db: Session = Depends(get_db), current_user: User =
         name=spec.slug,
         template=spec.template,
         stage=stage,
-        config_overrides=spec.config_overrides,
+        config_overrides=json.dumps(merge_fast_profile(_loads(spec.config_overrides, {})), sort_keys=True),
         steps=spec.steps,
     )
     db.add(experiment)

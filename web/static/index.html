@@ -1286,9 +1286,9 @@
 
     async function renderResearch() {
         const [docs, specs, exps] = await Promise.all([api('/research/'), api('/specs/'), api('/experiments/')]);
-        researchData = docs || {};
-        researchData.experiment_specs = specs || [];
-        researchData.experiments = exps || [];
+        researchData = docs && !docs._error && typeof docs === 'object' ? docs : {};
+        researchData.experiment_specs = Array.isArray(specs) ? specs : [];
+        researchData.experiments = Array.isArray(exps) ? exps : [];
         const findings = researchData.findings || [];
         const hypotheses = researchData.hypotheses || [];
         const explorations = researchData.explorations || [];
@@ -1299,6 +1299,7 @@
         const best = experiments.filter(e => e.val_bpb).sort((a,b) => a.val_bpb - b.val_bpb)[0];
 
         document.getElementById('content').innerHTML = `
+            ${(docs && docs._error) || (specs && specs._error) ? `<div class="card" style="border-color:var(--red);"><h3>Research API Warning</h3><p style="color:var(--text2);font-size:14px;">The backend routes for research/specs are unavailable. Restart the API server to load the latest routes.</p></div>` : ''}
             <div class="stats-grid">
                 <div class="stat-card"><div class="label">Experiment Specs</div><div class="value">${experimentSpecs.length}</div><div class="sub">${activeSpecs} active or queued</div></div>
                 <div class="stat-card"><div class="label">Hypotheses</div><div class="value">${hypotheses.length}</div><div class="sub">${findings.length} findings published</div></div>

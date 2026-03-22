@@ -51,7 +51,8 @@ def _build_overrides(exp: Experiment) -> str:
                         "NUM_HEADS", "NUM_KV_HEADS", "MLP_MULT", "WARMDOWN_ITERS",
                         "WARMUP_STEPS", "LOGIT_SOFTCAP", "QK_GAIN_INIT", "ROPE_BASE",
                         "MUON_MOMENTUM", "GRAD_CLIP_NORM", "TIED_EMBED_LR", "TIED_EMBED_INIT_STD",
-                        "MLP_ACT", "SEED"}
+                        "MLP_ACT", "SEED", "TRAIN_BATCH_TOKENS", "VAL_BATCH_SIZE",
+                        "VAL_LOSS_EVERY", "TRAIN_LOG_EVERY"}
             overrides = " ".join(f"{k}={shlex.quote(str(v))}" for k, v in config.items() if k in env_keys)
     except (json.JSONDecodeError, TypeError):
         pass

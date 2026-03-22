@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 TOKEN = os.environ["DISCORD_BOT_TOKEN"]
-API_URL = os.environ.get("DISCORD_API_URL", "http://localhost:8000/api/chat/")
+API_URL = os.environ.get("DISCORD_API_URL", "http://localhost:8000/chat/")
 
 intents = discord.Intents.default()
 intents.message_content = True

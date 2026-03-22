@@ -170,6 +170,22 @@
         .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
         .view-toggle button { padding: 4px 12px; font-size: 12px; background: var(--bg); color: var(--text2); border: none; cursor: pointer; }
         .view-toggle button.active { background: var(--accent); color: white; }
+
+        /* Deploy page */
+        .deploy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .deploy-grid { grid-template-columns: 1fr; } }
+        .gpu-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+        .gpu-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .gpu-card-header h4 { font-size: 15px; font-weight: 600; }
+        .gpu-card .gpu-stat { display: flex; gap: 16px; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+        .gpu-card .gpu-stat strong { color: var(--text); }
+        .queue-editor { width: 100%; min-height: 200px; resize: vertical; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.6; outline: none; tab-size: 4; }
+        .queue-editor:focus { border-color: var(--accent); }
+        .queue-file-list { display: flex; flex-direction: column; gap: 6px; }
+        .queue-file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg3); border-radius: 6px; font-size: 13px; cursor: pointer; transition: background 0.15s; }
+        .queue-file-item:hover { background: var(--border); }
+        .queue-file-item .qf-name { font-family: monospace; }
+        .queue-file-item .qf-count { color: var(--text2); font-size: 12px; }
     </style>
     <style>
         /* Terminal styles */
@@ -238,6 +254,9 @@
             </div>
             <div class="nav-item" data-page="research">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Research
+            </div>
+            <div class="nav-item" data-page="deploy">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4z"/></svg></span> Deploy
             </div>
             <div class="nav-item" data-page="fleet" id="nav-fleet" style="display:none;">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1" fill="currentColor" stroke="none"/></svg></span> GPU Fleet <span class="nav-admin-badge">ADMIN</span>
@@ -399,9 +418,9 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             const page = el.dataset.page;
-            const titles = { chat: 'AI Research Chat', experiments: 'Experiments', research: 'Research', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
+            const titles = { chat: 'AI Research Chat', experiments: 'Experiments', research: 'Research', deploy: 'Deploy', fleet: 'GPU Fleet', terminals: 'Terminals', pricing: 'Pricing', profile: 'Profile', admin: 'Admin' };
             document.getElementById('page-title').textContent = titles[page] || page;
-            const r = { experiments: renderExperiments, research: renderResearch, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
+            const r = { experiments: renderExperiments, research: renderResearch, deploy: renderDeploy, chat: renderChat, fleet: renderFleet, terminals: renderTerminals, pricing: renderPricing, profile: renderProfile, admin: renderAdmin };
             (r[page] || renderChat)();
         });
     });
@@ -1090,6 +1109,151 @@
             showTermSession(activeTermIdx);
         }
         renderTermTabs();
+    }
+
+    // ---- Deploy ----
+    let deployQueueDirty = false;
+
+    async function renderDeploy() {
+        const [queue, gpus, files, plans] = await Promise.all([
+            api('/queues/active'),
+            api('/fleet/').catch(() => []),
+            api('/queues/files'),
+            api('/queues/plans'),
+        ]);
+
+        const gpuList = Array.isArray(gpus) ? gpus : [];
+        const queueData = queue || { entries: [], raw: '', count: 0 };
+        const queueFiles = files || [];
+        const wavePlans = plans || [];
+
+        document.getElementById('content').innerHTML = `
+            <div class="deploy-grid">
+                <div>
+                    <div class="card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <h3>Active Queue</h3>
+                            <div style="display:flex;gap:6px;">
+                                <button class="btn btn-primary btn-sm" id="queue-save-btn" onclick="saveQueue()" style="opacity:0.4;" disabled>Save</button>
+                            </div>
+                        </div>
+                        <textarea class="queue-editor" id="queue-editor" oninput="onQueueEdit()" spellcheck="false" placeholder="# name steps [ENV=val ...]\nmy_experiment 500 MATRIX_LR=0.08">${escHtml(queueData.raw)}</textarea>
+                        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:12px;color:var(--text2);">${queueData.count} experiment${queueData.count!==1?'s':''} in queue</span>
+                            <span style="font-size:11px;color:var(--text2);font-family:monospace;">queues/active.txt</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Queue Files</h3>
+                        <div class="queue-file-list" style="margin-top:10px;">
+                            ${queueFiles.map(f => `<div class="queue-file-item" onclick="loadQueueFile('${escHtml(f.filename)}')">
+                                <span class="qf-name">${f.active ? '<strong>' : ''}${f.filename}${f.active ? '</strong>' : ''}</span>
+                                <span class="qf-count">${f.count} exp${f.count!==1?'s':''}</span>
+                            </div>`).join('')}
+                            ${!queueFiles.length ? '<div style="color:var(--text2);font-size:13px;padding:8px;">No queue files</div>' : ''}
+                        </div>
+                    </div>
+                    ${wavePlans.length ? `<div class="card">
+                        <h3>Wave Plans</h3>
+                        <div class="queue-file-list" style="margin-top:10px;">
+                            ${wavePlans.map(p => `<div class="queue-file-item" onclick="viewWavePlan('${escHtml(p.filename)}')">
+                                <span class="qf-name">${escHtml(p.title)}</span>
+                                <span class="qf-count">${p.filename}</span>
+                            </div>`).join('')}
+                        </div>
+                    </div>` : ''}
+                </div>
+                <div>
+                    <div class="card">
+                        <h3>GPU Fleet</h3>
+                        ${gpuList.length ? gpuList.map(g => `<div class="gpu-card" style="margin-top:10px;">
+                            <div class="gpu-card-header">
+                                <h4>${escHtml(g.name)}</h4>
+                                <span class="badge badge-${g.status}">${g.status}</span>
+                            </div>
+                            <div class="gpu-stat">
+                                <span>Util: <strong>${g.gpu_utilization != null ? g.gpu_utilization + '%' : '?'}</strong></span>
+                                <span>Temp: <strong>${g.gpu_temp != null ? g.gpu_temp + 'C' : '?'}</strong></span>
+                                <span>Rate: <strong>$${(g.hourly_rate||0).toFixed(2)}/hr</strong></span>
+                            </div>
+                            ${g.current_experiment ? `<div style="font-size:13px;margin-top:4px;">Running: <strong style="color:var(--green);">${escHtml(g.current_experiment)}</strong> ${g.current_step ? `(step ${g.current_step})` : ''}</div>` : ''}
+                            <div style="margin-top:8px;display:flex;gap:6px;">
+                                <button class="btn btn-secondary btn-sm" onclick="refreshGPU(${g.id})">Refresh</button>
+                                ${g.status==='training'?`<button class="btn btn-danger btn-sm" onclick="killGPUExp(${g.id},'${escHtml(g.name)}')">Kill</button>`:''}
+                            </div>
+                        </div>`).join('') : '<div style="color:var(--text2);padding:12px;">No GPUs registered. Add via GPU Fleet tab.</div>'}
+                    </div>
+                    <div id="deploy-detail" style="margin-top:16px;"></div>
+                </div>
+            </div>`;
+        deployQueueDirty = false;
+    }
+
+    function onQueueEdit() {
+        deployQueueDirty = true;
+        const btn = document.getElementById('queue-save-btn');
+        if (btn) { btn.style.opacity = '1'; btn.disabled = false; }
+    }
+
+    async function saveQueue() {
+        const editor = document.getElementById('queue-editor');
+        if (!editor) return;
+        const result = await api('/queues/active', {
+            method: 'PUT',
+            body: JSON.stringify({ content: editor.value }),
+        });
+        if (result && result.ok) {
+            deployQueueDirty = false;
+            const btn = document.getElementById('queue-save-btn');
+            if (btn) { btn.style.opacity = '0.4'; btn.disabled = true; btn.textContent = 'Saved'; setTimeout(() => btn.textContent = 'Save', 1500); }
+        }
+    }
+
+    async function loadQueueFile(filename) {
+        const data = await api(`/queues/file/${filename}`);
+        if (!data) return;
+        const detail = document.getElementById('deploy-detail');
+        if (detail) {
+            detail.innerHTML = `<div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <h3>${escHtml(filename)}</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="copyQueueToActive('${escHtml(filename)}')">Copy to Active</button>
+                </div>
+                <pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:13px;overflow-x:auto;max-height:300px;overflow-y:auto;">${escHtml(data.raw)}</pre>
+                <div style="font-size:12px;color:var(--text2);margin-top:6px;">${data.entries.length} experiments</div>
+            </div>`;
+        }
+    }
+
+    async function copyQueueToActive(filename) {
+        const data = await api(`/queues/file/${filename}`);
+        if (!data) return;
+        const editor = document.getElementById('queue-editor');
+        if (editor) {
+            editor.value = data.raw;
+            onQueueEdit();
+        }
+    }
+
+    async function viewWavePlan(filename) {
+        const data = await api(`/queues/plan/${filename}`);
+        if (!data) return;
+        const detail = document.getElementById('deploy-detail');
+        if (detail) {
+            const html = typeof marked !== 'undefined' ? marked.parse(data.content, {breaks: true}) : escHtml(data.content);
+            detail.innerHTML = `<div class="card"><div class="doc-preview" style="max-height:500px;overflow-y:auto;">${html}</div></div>`;
+        }
+    }
+
+    async function refreshGPU(gpuId) {
+        await api(`/fleet/${gpuId}/status`, {method: 'POST'});
+        renderDeploy();
+    }
+
+    async function killGPUExp(gpuId, gpuName) {
+        if (!confirm(`Kill running experiment on ${gpuName}?`)) return;
+        await api(`/fleet/${gpuId}/exec`, {method: 'POST', body: JSON.stringify({command: 'pkill -f train_gpt || true'})});
+        renderDeploy();
     }
 
     // ---- Research ----

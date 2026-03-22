@@ -162,6 +162,13 @@ def admin_dashboard(db: Session = Depends(get_db)):
     }
 
 
+@router.post("/import-results")
+def import_historical_results(dry_run: bool = False):
+    """Import all existing parameter-golf results into the DB."""
+    from engine.result_importer import import_results
+    return import_results(dry_run=dry_run)
+
+
 @router.get("/db")
 def view_database(db: Session = Depends(get_db)):
     """View all database contents. For debugging."""

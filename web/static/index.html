@@ -22,7 +22,8 @@
         .nav-item { padding: 10px 20px; cursor: pointer; color: var(--text2); font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.15s; }
         .nav-item:hover { background: var(--bg3); color: var(--text); }
         .nav-item.active { color: var(--accent2); background: var(--bg3); border-right: 2px solid var(--accent); }
-        .nav-icon { width: 18px; text-align: center; }
+        .nav-icon { width: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .nav-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .topbar { height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
         .topbar h2 { font-size: 16px; font-weight: 600; }
@@ -121,7 +122,35 @@
         .chat-msg.ai table { margin: 6px 0; font-size: 13px; }
         .chat-msg.ai th { background: rgba(0,0,0,0.2); }
     </style>
+        /* Terminal styles */
+        .terminal-page { display: flex; flex-direction: column; height: calc(100vh - 140px); }
+        .terminal-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; flex-shrink: 0; align-items: flex-end; }
+        .terminal-tab { padding: 8px 16px; cursor: pointer; color: var(--text2); font-size: 13px; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 8px; transition: all 0.15s; white-space: nowrap; }
+        .terminal-tab:hover { background: var(--bg3); color: var(--text); }
+        .terminal-tab.active { background: var(--bg2); color: var(--green); border-color: var(--border); position: relative; }
+        .terminal-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px; background: var(--bg2); }
+        .terminal-tab .close-tab { font-size: 16px; line-height: 1; opacity: 0.5; cursor: pointer; padding: 0 2px; }
+        .terminal-tab .close-tab:hover { opacity: 1; color: var(--red); }
+        .terminal-tab .tab-status { width: 6px; height: 6px; border-radius: 50%; }
+        .terminal-tab .tab-status.connected { background: var(--green); }
+        .terminal-tab .tab-status.disconnected { background: var(--red); }
+        .terminal-tab .tab-status.connecting { background: var(--yellow); }
+        .terminal-add-tab { padding: 8px 12px; cursor: pointer; color: var(--text2); font-size: 16px; border: 1px dashed var(--border); border-bottom: none; border-radius: 8px 8px 0 0; transition: all 0.15s; }
+        .terminal-add-tab:hover { background: var(--bg3); color: var(--accent2); border-color: var(--accent); }
+        .terminal-body { flex: 1; background: #000; border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; position: relative; overflow: hidden; }
+        .terminal-body .xterm { height: 100%; }
+        .terminal-picker { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; }
+        .terminal-picker h3 { margin-bottom: 16px; color: var(--text); }
+        .gpu-pick-list { display: flex; flex-direction: column; gap: 8px; min-width: 300px; }
+        .gpu-pick-item { padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.15s; }
+        .gpu-pick-item:hover { border-color: var(--accent); background: var(--bg); }
+        .gpu-pick-item .gpu-pick-name { font-weight: 600; }
+        .gpu-pick-item .gpu-pick-host { font-size: 12px; color: var(--text2); font-family: monospace; }
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js"></script>
 </head>
 <body>
     <!-- Login Screen -->
@@ -151,32 +180,35 @@
                 <span>Autonomous AI Research</span>
             </div>
             <div class="nav-item active" data-page="chat">
-                <span class="nav-icon">🤖</span> AI Research Chat
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> AI Research Chat
             </div>
             <div class="nav-item" data-page="dashboard">
-                <span class="nav-icon">📊</span> Dashboard
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Dashboard
             </div>
             <div class="nav-item" data-page="experiments">
-                <span class="nav-icon">🧪</span> Experiments
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3h6v10l3.5 7H5.5L9 13V3z"/><path d="M6.5 17.5h11"/></svg></span> Experiments
             </div>
             <div class="nav-item" data-page="competitions">
-                <span class="nav-icon">🏆</span> Competitions
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 3H7l-2 7h14L17 3z"/><path d="M5 10c0 3.87 3.13 7 7 7s7-3.13 7-7"/></svg></span> Competitions
             </div>
             <div class="nav-item" data-page="results">
-                <span class="nav-icon">📈</span> Results
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> Results
             </div>
             <div class="nav-item" data-page="fleet" id="nav-fleet" style="display:none;">
-                <span class="nav-icon">🖥️</span> GPU Fleet <span class="nav-admin-badge">ADMIN</span>
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1" fill="currentColor" stroke="none"/></svg></span> GPU Fleet <span class="nav-admin-badge">ADMIN</span>
+            </div>
+            <div class="nav-item" data-page="terminals" id="nav-terminals" style="display:none;">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span> Terminals <span class="nav-admin-badge">ADMIN</span>
             </div>
             <div class="nav-bottom">
                 <div class="nav-item" data-page="pricing">
-                    <span class="nav-icon">💎</span> Pricing
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg></span> Pricing
                 </div>
                 <div class="nav-item" data-page="profile">
-                    <span class="nav-icon">👤</span> Profile
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Profile
                 </div>
                 <div class="nav-item" data-page="admin" id="nav-admin" style="display:none;">
-                    <span class="nav-icon">⚙️</span> Admin <span class="nav-admin-badge">ADMIN</span>
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M17.66 7.34a6 6 0 0 1 0 8.49M6.34 7.34a6 6 0 0 0 0 8.49"/></svg></span> Admin <span class="nav-admin-badge">ADMIN</span>
                 </div>
             </div>
         </div>
@@ -559,12 +591,12 @@
                     <span class="tier tier-starter">STARTER</span>
                     <div class="price">$9<span>/mo</span></div>
                     <ul>
-                        <li>🧪 <strong>500</strong> explore experiments/mo</li>
-                        <li>⚡ <strong>1</strong> concurrent experiment</li>
-                        <li>📊 Dashboard & results viewer</li>
-                        <li>🤖 AI research chat</li>
-                        <li>🏆 Competition access</li>
-                        <li>📢 <strong>~10</strong> social media research posts/mo</li>
+                        <li><strong>500</strong> explore experiments/mo</li>
+                        <li><strong>1</strong> concurrent experiment</li>
+                        <li>Dashboard & results viewer</li>
+                        <li>AI research chat</li>
+                        <li>Competition access</li>
+                        <li><strong>~10</strong> social media research posts/mo</li>
                         <li style="color:var(--text2);font-size:12px;">(1 post per 50 completed experiments)</li>
                     </ul>
                     <a href="${SKOOL_URL}" target="_blank" class="btn btn-secondary" style="width:100%;display:block;text-align:center;text-decoration:none;">Join on Skool</a>
@@ -573,13 +605,13 @@
                     <span class="tier tier-researcher">RESEARCHER</span>
                     <div class="price">$29<span>/mo</span></div>
                     <ul>
-                        <li>🧪 <strong>2000</strong> explore experiments/mo</li>
-                        <li>🔬 <strong>200</strong> validate experiments/mo</li>
-                        <li>⚡ <strong>3</strong> concurrent experiments</li>
-                        <li>📊 Priority queue scheduling</li>
-                        <li>🤖 Full AI research assistant</li>
-                        <li>🏆 Competition access + leaderboard</li>
-                        <li>📢 <strong>~44</strong> social media research posts/mo</li>
+                        <li><strong>2000</strong> explore experiments/mo</li>
+                        <li><strong>200</strong> validate experiments/mo</li>
+                        <li><strong>3</strong> concurrent experiments</li>
+                        <li>Priority queue scheduling</li>
+                        <li>Full AI research assistant</li>
+                        <li>Competition access + leaderboard</li>
+                        <li><strong>~44</strong> social media research posts/mo</li>
                         <li style="color:var(--text2);font-size:12px;">(1 post per 50 completed experiments)</li>
                     </ul>
                     <a href="${SKOOL_URL}" target="_blank" class="btn btn-primary" style="width:100%;display:block;text-align:center;text-decoration:none;">Join on Skool</a>
@@ -588,13 +620,13 @@
                     <span class="tier tier-pro">PRO</span>
                     <div class="price">$79<span>/mo</span></div>
                     <ul>
-                        <li>🧪 <strong>Unlimited</strong> explore experiments</li>
-                        <li>🔬 <strong>1000</strong> validate experiments/mo</li>
-                        <li>🚀 <strong>50</strong> full training runs/mo</li>
-                        <li>⚡ <strong>5</strong> concurrent experiments</li>
-                        <li>🖥️ BYOG (Bring Your Own GPU)</li>
-                        <li>🔑 API access</li>
-                        <li>📢 <strong>~100+</strong> social media research posts/mo</li>
+                        <li><strong>5,000</strong> explore experiments/mo</li>
+                        <li><strong>1000</strong> validate experiments/mo</li>
+                        <li><strong>50</strong> full training runs/mo</li>
+                        <li><strong>5</strong> concurrent experiments</li>
+                        <li>BYOG (Bring Your Own GPU)</li>
+                        <li>API access</li>
+                        <li><strong>~100+</strong> social media research posts/mo</li>
                     </ul>
                     <a href="${SKOOL_URL}" target="_blank" class="btn btn-secondary" style="width:100%;display:block;text-align:center;text-decoration:none;">Join on Skool</a>
                 </div>
@@ -618,7 +650,7 @@
     async function renderProfile() {
         const me = await api('/auth/me');
         if (!me) return;
-        const limits = {starter:{e:500,v:0,f:0,c:1},researcher:{e:2000,v:200,f:0,c:3},pro:{e:-1,v:1000,f:50,c:5},admin:{e:-1,v:-1,f:-1,c:-1}};
+        const limits = {starter:{e:500,v:0,f:0,c:1},researcher:{e:2000,v:200,f:0,c:3},pro:{e:5000,v:1000,f:50,c:5},admin:{e:-1,v:-1,f:-1,c:-1}};
         const l = limits[me.tier] || limits.starter;
 
         function usageBar(used, limit) {

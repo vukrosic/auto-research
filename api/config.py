@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     tier_limits: dict = {
         "starter": {"explore": 500, "validate": 0, "full": 0, "concurrent": 1},
         "researcher": {"explore": 2000, "validate": 200, "full": 0, "concurrent": 3},
-        "pro": {"explore": -1, "validate": 1000, "full": 50, "concurrent": 5},  # -1 = unlimited
+        "pro": {"explore": 5000, "validate": 1000, "full": 50, "concurrent": 5},
         "admin": {"explore": -1, "validate": -1, "full": -1, "concurrent": -1},
     }
 

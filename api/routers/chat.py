@@ -117,11 +117,29 @@ We can test ideas INSTANTLY by running quick screens — head-to-head battles be
 
 ## How you run experiments
 
+You run **elimination bracket tournaments**. This is critical — ALWAYS submit 8-10 diverse configs per screen. The system automatically runs a 3-stage elimination:
+- **Stage 1** (30 steps): All 8-10 configs compete. Top 5 advance.
+- **Stage 2** (50 steps): Top 5 re-run at higher fidelity. Top 2 advance.
+- **Stage 3** (70 steps): Final 2 fight it out. Winners beat baseline = success.
+
 When you want to test something, output an [ACTION] block (the user never sees this, they just see results):
 
 [ACTION]
-{{"type": "screen", "topic": "my_test", "configs": [{{"name": "variant_name", "selections": {{"activation": "leaky05"}}}}], "ladder": "bot"}}
+{{"type": "screen", "topic": "my_test", "configs": [
+  {{"name": "leaky_relu", "selections": {{"activation": "leaky05"}}}},
+  {{"name": "swiglu", "selections": {{"activation": "swiglu"}}}},
+  {{"name": "gelu_sq", "selections": {{"activation": "gelu2"}}}},
+  {{"name": "mish_sq", "selections": {{"activation": "mish2"}}}},
+  {{"name": "elu_sq", "selections": {{"activation": "elu2"}}}},
+  {{"name": "silu_sq", "selections": {{"activation": "silu2"}}}},
+  {{"name": "tanh_sq", "selections": {{"activation": "tanh2"}}}},
+  {{"name": "softplus_sq", "selections": {{"activation": "softplus2"}}}},
+  {{"name": "leaky_moe", "selections": {{"activation": "leaky05", "moe": "moe4_d384"}}}},
+  {{"name": "swiglu_deep", "selections": {{"activation": "swiglu", "depth": "deep12"}}}}
+], "ladder": "bot"}}
 [/ACTION]
+
+**IMPORTANT**: Always include 8-10 configs. NEVER submit just 1-3 configs — that defeats the elimination bracket. Mix different categories and combinations. Be creative with combos!
 
 {ACTION_TYPES_DOC}
 
@@ -142,9 +160,10 @@ End with something like: "Pick a number, **combine** ideas (e.g. '1 + 3'), bring
 
 ### When the user picks an idea or describes one
 1. Show them what you're about to test in a quick summary (1-3 lines)
-2. Then RUN IT IMMEDIATELY with a [ACTION] block. Do NOT ask follow-up questions unless there is a genuine hard conflict (e.g. two options that literally cannot coexist). Default to making reasonable choices yourself.
-3. When the user asks to COMBINE ideas, merge all the components they referenced. If there's a conflict (e.g. dim640 + MoE4 which needs dim384), pick the one that fits and briefly note why. Do NOT drop components the user asked for — if they said "leaky", use leaky, not relu2. Be faithful to what they asked for.
-4. NEVER substitute a component the user explicitly named. If they say "leaky", use leaky_relu2_05. If they say "SwiGLU", use swiglu. Don't silently swap things.
+2. Design an **8-10 config elimination bracket** around their idea. Include the specific thing they asked for PLUS related variants, combos, and creative riffs. Think of it as a mini tournament exploring that design space.
+3. Then RUN IT IMMEDIATELY with a [ACTION] block. Do NOT ask follow-up questions unless there is a genuine hard conflict (e.g. two options that literally cannot coexist). Default to making reasonable choices yourself.
+4. When the user asks to COMBINE ideas, merge all the components they referenced. If there's a conflict (e.g. dim640 + MoE4 which needs dim384), pick the one that fits and briefly note why. Do NOT drop components the user asked for — if they said "leaky", use leaky, not relu2. Be faithful to what they asked for.
+5. NEVER substitute a component the user explicitly named. If they say "leaky", use leaky_relu2_05. If they say "SwiGLU", use swiglu. Don't silently swap things.
 
 ### After results come back
 This is the most important part! Write a **fun, insightful analysis**:

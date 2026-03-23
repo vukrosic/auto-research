@@ -132,8 +132,8 @@ def extract_details(text: str) -> tuple[str, list[tuple[str, str]]]:
     return cleaned, attachments
 
 
-def _parse_screen_report(report_text: str) -> str:
-    """Parse a tiered screen markdown report into a Discord-friendly code block summary."""
+def _parse_screen_report(report_text: str) -> dict | None:
+    """Parse a tiered screen markdown report into structured data."""
     lines = report_text.split("\n")
     stages: list[dict] = []
     current_stage = None
@@ -141,25 +141,22 @@ def _parse_screen_report(report_text: str) -> str:
     in_verdict = False
 
     for line in lines:
-        # Stage header
         m = re.match(r"###\s+Stage\s+(\d+)\s*—\s*(\d+)\s+step", line)
         if m:
             current_stage = {"num": int(m.group(1)), "steps": int(m.group(2)), "rows": []}
             stages.append(current_stage)
             in_verdict = False
             continue
-        # Table row with data
         if current_stage and line.startswith("|") and "---" not in line and "Run" not in line:
             cells = [c.strip() for c in line.split("|")[1:-1]]
             if len(cells) >= 6:
                 name = cells[0].strip("`")
-                desc = cells[1][:40]
-                loss = cells[2]
-                delta = cells[4]
-                decision = cells[5]
+                desc = cells[1][:45]
+                loss = cells[2].strip()
+                delta = cells[4].strip()
+                decision = cells[5].strip()
                 current_stage["rows"].append((name, desc, loss, delta, decision))
             continue
-        # "What happened" section
         if "## What happened" in line:
             in_verdict = True
             continue
@@ -167,23 +164,151 @@ def _parse_screen_report(report_text: str) -> str:
             verdict_lines.append(line.strip().replace("**", ""))
 
     if not stages:
-        return ""
+        return None
+    return {"stages": stages, "verdict": verdict_lines}
 
-    out = ["```"]
-    for s in stages:
-        out.append(f"─── Stage {s['num']} ({s['steps']} steps) ───")
-        # Find max name width
-        nw = max((len(r[0]) for r in s["rows"]), default=10)
-        for name, desc, loss, delta, decision in s["rows"]:
-            icon = "✓" if "✓" in decision else "✗" if "drop" in decision else "○"
-            out.append(f"  {icon} {name:<{nw}}  {loss:>8}  {delta:>8}  {desc[:35]}")
-        out.append("")
 
-    if verdict_lines:
-        for v in verdict_lines[:3]:
-            out.append(v)
-    out.append("```")
-    return "\n".join(out)
+def _render_results_image(parsed: dict) -> io.BytesIO:
+    """Render parsed screen results as a clean table image."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import to_rgba
+
+    stages = parsed["stages"]
+    verdict = parsed["verdict"]
+
+    # Colors
+    BG = "#1e1e2e"
+    TEXT = "#cdd6f4"
+    HEADER_BG = "#313244"
+    GREEN = "#a6e3a1"
+    RED = "#f38ba8"
+    YELLOW = "#f9e2af"
+    BLUE = "#89b4fa"
+    DIM = "#6c7086"
+    BASELINE_BG = "#282838"
+    WIN_BG = "#1e3a2e"
+    LOSE_BG = "#3a1e2e"
+
+    # Calculate total rows for figure sizing
+    total_rows = sum(len(s["rows"]) for s in stages)
+    n_headers = len(stages)
+    n_verdict = min(len(verdict), 3)
+    fig_height = max(2.0, 0.38 * total_rows + 0.55 * n_headers + 0.35 * n_verdict + 0.8)
+    fig_width = 9.5
+
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    fig.patch.set_facecolor(BG)
+    ax.set_facecolor(BG)
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+    y = 0.96
+    row_h = 0.38 / max(total_rows + n_headers + n_verdict, 1)
+    row_h = min(row_h, 0.055)
+
+    for si, stage in enumerate(stages):
+        # Stage header
+        ax.add_patch(plt.Rectangle((0.02, y - row_h * 0.8), 0.96, row_h * 0.9,
+                                    facecolor=HEADER_BG, edgecolor="none", transform=ax.transData,
+                                    clip_on=False, zorder=1))
+        ax.text(0.04, y - row_h * 0.3, f"Stage {stage['num']}",
+                fontsize=11, fontweight="bold", color=BLUE, fontfamily="monospace",
+                va="center", transform=ax.transData)
+        ax.text(0.18, y - row_h * 0.3, f"{stage['steps']} steps  ·  {len(stage['rows'])} configs",
+                fontsize=9, color=DIM, fontfamily="monospace",
+                va="center", transform=ax.transData)
+        y -= row_h * 1.1
+
+        # Column headers
+        cols = [("Name", 0.04), ("Loss", 0.38), ("Delta", 0.52), ("Decision", 0.66), ("Description", 0.80)]
+        for label, x in cols:
+            ax.text(x, y - row_h * 0.3, label, fontsize=7.5, color=DIM, fontfamily="monospace",
+                    fontweight="bold", va="center", transform=ax.transData)
+        y -= row_h * 0.8
+
+        # Data rows
+        for name, desc, loss, delta, decision in stage["rows"]:
+            is_baseline = "baseline" in decision.lower()
+            is_win = "✓" in decision
+            is_drop = "drop" in decision.lower()
+
+            # Row background
+            if is_baseline:
+                rbg = BASELINE_BG
+            elif is_win:
+                rbg = WIN_BG
+            elif is_drop:
+                rbg = LOSE_BG
+            else:
+                rbg = BG
+            ax.add_patch(plt.Rectangle((0.02, y - row_h * 0.75), 0.96, row_h * 0.85,
+                                        facecolor=rbg, edgecolor="none",
+                                        transform=ax.transData, clip_on=False, zorder=0))
+
+            # Icon
+            if is_baseline:
+                icon, icon_color = "○", DIM
+            elif is_win:
+                icon, icon_color = "▲", GREEN
+            elif is_drop:
+                icon, icon_color = "▼", RED
+            else:
+                icon, icon_color = "·", DIM
+
+            # Delta color
+            try:
+                dval = float(delta)
+                delta_color = GREEN if dval < -0.001 else RED if dval > 0.001 else DIM
+            except ValueError:
+                delta_color = DIM
+
+            # Decision text
+            if is_baseline:
+                dec_text, dec_color = "baseline", DIM
+            elif "promote" in decision.lower():
+                dec_text, dec_color = "advance →", GREEN
+            elif "finalist" in decision.lower():
+                dec_text, dec_color = "winner ★", YELLOW
+            elif is_drop:
+                dec_text, dec_color = "eliminated", RED
+            else:
+                dec_text, dec_color = decision[:12], TEXT
+
+            vy = y - row_h * 0.3
+            ax.text(0.025, vy, icon, fontsize=9, color=icon_color, fontfamily="monospace",
+                    va="center", transform=ax.transData)
+            ax.text(0.04, vy, name[:18], fontsize=9, color=TEXT, fontfamily="monospace",
+                    fontweight="bold", va="center", transform=ax.transData)
+            ax.text(0.38, vy, loss[:8], fontsize=9, color=TEXT, fontfamily="monospace",
+                    va="center", transform=ax.transData)
+            ax.text(0.52, vy, delta[:8], fontsize=9, color=delta_color, fontfamily="monospace",
+                    va="center", transform=ax.transData)
+            ax.text(0.66, vy, dec_text, fontsize=8.5, color=dec_color, fontfamily="monospace",
+                    va="center", transform=ax.transData)
+            ax.text(0.80, vy, desc[:25], fontsize=7.5, color=DIM, fontfamily="monospace",
+                    va="center", transform=ax.transData)
+            y -= row_h
+
+        y -= row_h * 0.3  # gap between stages
+
+    # Verdict
+    if verdict:
+        y -= row_h * 0.2
+        for v in verdict[:3]:
+            ax.text(0.04, y - row_h * 0.3, v[:90], fontsize=8.5, color=YELLOW,
+                    fontfamily="monospace", va="center", transform=ax.transData, style="italic")
+            y -= row_h * 0.8
+
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight",
+                facecolor=fig.get_facecolor(), pad_inches=0.15)
+    plt.close(fig)
+    buf.seek(0)
+    return buf
 
 
 def split_message(text: str, limit: int = 1900) -> list[str]:
@@ -429,33 +554,31 @@ async def on_message(message: discord.Message):
     finally:
         ticker.cancel()
 
-    # Extract details blocks (raw screen reports) and build code-block summary
+    # Extract details blocks (raw screen reports) and render as image
     reply, attachments = extract_details(reply)
-    results_block = ""
+    results_image = None
     for title, content in attachments:
         parsed = _parse_screen_report(content)
         if parsed:
-            results_block = parsed
+            try:
+                results_image = _render_results_image(parsed)
+            except Exception as e:
+                print(f"Image render error: {e}")
             break
 
-    # Build final message: AI analysis + results table
-    final_parts = []
-    if reply.strip():
-        final_parts.append(reply.strip())
-    if results_block:
-        final_parts.append(results_block)
-    final_text = "\n\n".join(final_parts)
+    # Build final message: AI analysis text only (table is the image)
+    final_text = reply.strip() if reply.strip() else "Results:"
 
-    # Send as file attachment too for full report
+    # Collect files: results image + raw .md report
     files = []
+    if results_image:
+        files.append(discord.File(fp=results_image, filename="results.png"))
     if attachments:
-        files = [
-            discord.File(
+        for title, content in attachments:
+            files.append(discord.File(
                 fp=io.BytesIO(content.encode()),
                 filename=f"{title.replace(' ', '_').replace('/', '_')[:40]}.md",
-            )
-            for title, content in attachments
-        ]
+            ))
 
     # Replace the progress message with the first chunk; send remaining as new messages
     chunks = split_message(final_text)

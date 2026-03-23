@@ -8,11 +8,16 @@ Setup:
 Run:
   cd /root/auto-research && python3 bot/discord_bot.py
 
-Commands (via mention or slash):
-  /new              — Clear conversation history
+Commands (via mention, DM, or slash):
+  /new              — Clear conversation history and reset message counter
+  /stop             — Cancel the currently running experiment
   /status           — Show usage stats
   /research <topic> — Launch full pipeline: 12 screens → 5 scales → 2 full runs
   /progress         — Show pipeline progress with steps
+
+Limits:
+  - 5 messages per conversation (preview limit), reset with /new
+  - DMs work without @mention; server messages require @mention
 """
 import asyncio
 import io
@@ -39,6 +44,13 @@ tree = app_commands.CommandTree(client)
 
 # Per-user research pipeline state
 research_jobs: dict[int, dict] = {}
+
+# Per-user active chat tasks (for interrupt/cancel)
+active_chat_tasks: dict[int, asyncio.Task] = {}
+
+# Per-user conversation message counter (resets on /new)
+conversation_counts: dict[int, int] = {}
+MAX_PREVIEW_MESSAGES = 5
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────
@@ -400,6 +412,18 @@ async def cmd_status(interaction: discord.Interaction):
     await interaction.response.send_message(msg, ephemeral=True)
 
 
+@tree.command(name="stop", description="Cancel the currently running experiment")
+async def cmd_stop(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    task = active_chat_tasks.get(user_id)
+    if task and not task.done():
+        task.cancel()
+        active_chat_tasks.pop(user_id, None)
+        await interaction.response.send_message("🛑 Training interrupted!", ephemeral=True)
+    else:
+        await interaction.response.send_message("Nothing running to stop.", ephemeral=True)
+
+
 @tree.command(name="research", description="Launch full pipeline: 12 screens → 5 scales → 2 full runs")
 @app_commands.describe(topic="What to research (e.g. 'activation functions', 'MoE routing')")
 async def cmd_research(interaction: discord.Interaction, topic: str):
@@ -426,32 +450,81 @@ async def cmd_progress(interaction: discord.Interaction):
     await interaction.followup.send(format_progress(job, scale_exps=scale_exps, full_exps=full_exps))
 
 
+# ── Access control ────────────────────────────────────────────────────────
+
+from api.config import settings as _settings
+SKOOL_LINK = _settings.skool_link
+
+GATE_MSG = (
+    "Hey! This bot is exclusive to Skool premium members. 🔒\n\n"
+    f"**Join here:** {SKOOL_LINK}\n\n"
+    "Once you're a member, ask Vuk to register your Discord username and you'll get instant access!"
+)
+
+
+def _is_dm(message: discord.Message) -> bool:
+    return isinstance(message.channel, discord.DMChannel)
+
+
 # ── Message handler ───────────────────────────────────────────────────────
 
 @client.event
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
-    if client.user not in message.mentions:
-        return
+
+    is_dm = _is_dm(message)
+
+    # In servers: respond to @mentions or any message in the channel
+    if not is_dm:
+        mentioned = client.user in message.mentions
+        if not mentioned:
+            return
 
     discord_username = str(message.author.name)
     user_id = message.author.id
     text = message.content
     text = re.sub(rf"<@!?{client.user.id}>", "", text).strip()
 
-    print(f"MSG from {discord_username}: {repr(text[:100])}")
+    print(f"{'DM' if is_dm else 'MSG'} from {discord_username}: {repr(text[:100])}")
+
+    # ── Access gate: unregistered users get Skool invite ──
+    user_obj, _db = _get_user(discord_username)
+    _db.close()
+    if not user_obj:
+        if is_dm:
+            await message.channel.send(GATE_MSG)
+        else:
+            # Ephemeral-like: reply then auto-delete after 30s
+            gate_reply = await message.channel.send(GATE_MSG, reference=message)
+            await asyncio.sleep(30)
+            try:
+                await gate_reply.delete()
+            except Exception:
+                pass
+        return
 
     # ── Text-based commands ──
     if text.lower() in ("/new", "new", "reset", "/reset"):
         await clear_history(discord_username)
-        await message.channel.send("🧹 History cleared!", reference=message)
+        conversation_counts[user_id] = 0
+        await message.channel.send("🧹 History cleared!", reference=message if not is_dm else None)
+        return
+
+    if text.lower() in ("/stop", "stop", "cancel", "/cancel"):
+        task = active_chat_tasks.get(user_id)
+        if task and not task.done():
+            task.cancel()
+            active_chat_tasks.pop(user_id, None)
+            await message.channel.send("🛑 Training interrupted!", reference=message if not is_dm else None)
+        else:
+            await message.channel.send("Nothing running to stop.", reference=message if not is_dm else None)
         return
 
     if text.lower() in ("/status", "status"):
         footer = get_usage_footer(discord_username)
         msg = f"Experiments remaining: **{footer}**" if footer else "❌ Not registered."
-        await message.channel.send(msg, reference=message)
+        await message.channel.send(msg, reference=message if not is_dm else None)
         return
 
     if text.lower() in ("/progress", "progress"):
@@ -461,7 +534,7 @@ async def on_message(message: discord.Message):
     m = re.match(r"/?research\s+(.+)", text, re.IGNORECASE)
     if m:
         topic = m.group(1).strip()
-        await message.channel.send(f"🚀 Starting research on **{topic}**...", reference=message)
+        await message.channel.send(f"🚀 Starting research on **{topic}**...", reference=message if not is_dm else None)
         await start_research(user_id, message.channel, discord_username, topic)
         return
 
@@ -469,11 +542,26 @@ async def on_message(message: discord.Message):
         await message.channel.send("Hey! Ask me about experiments or say `hi` to get started 🧪")
         return
 
+    # ── Conversation limit check ──
+    count = conversation_counts.get(user_id, 0)
+    if count >= MAX_PREVIEW_MESSAGES:
+        await message.channel.send(
+            "⛔ You've reached the **5-message preview limit** for this conversation.\n\n"
+            "Type **`/new`** to start a fresh conversation, or run your experiment with the ideas discussed so far!\n\n"
+            "-# This is the preview limit. Full access coming soon.",
+            reference=message if not is_dm else None,
+        )
+        return
+
     # ── Normal chat ──
     allowed, limit_msg = check_and_increment_usage(discord_username)
     if not allowed:
         await message.channel.send(limit_msg)
         return
+
+    # Increment conversation counter
+    conversation_counts[user_id] = count + 1
+    msg_num = count + 1
 
     api_key = get_api_key(discord_username)
     cookies = {"session": api_key} if api_key else {}
@@ -532,17 +620,28 @@ async def on_message(message: discord.Message):
             except Exception:
                 break
 
-    ticker = asyncio.create_task(_update_progress())
-    try:
+    async def _do_chat():
         async with httpx.AsyncClient(timeout=1800) as http:
             resp = await http.post(
                 API_URL,
                 json={"message": text, "history": []},
                 cookies=cookies,
             )
+        return resp
+
+    ticker = asyncio.create_task(_update_progress())
+    chat_task = asyncio.create_task(_do_chat())
+    active_chat_tasks[user_id] = chat_task
+
+    try:
+        resp = await chat_task
         print(f"API {resp.status_code}: {resp.text[:200]}")
         data = resp.json()
         reply = data.get("response") or f"API error. Keys: {list(data.keys())}"
+    except asyncio.CancelledError:
+        ticker.cancel()
+        await prog_msg.edit(content="🛑 **Interrupted.** Training was cancelled.")
+        return
     except httpx.ConnectError as e:
         ticker.cancel()
         await prog_msg.edit(content=f"❌ Can't reach API at `{API_URL}`\n`{e}`")
@@ -553,6 +652,7 @@ async def on_message(message: discord.Message):
         return
     finally:
         ticker.cancel()
+        active_chat_tasks.pop(user_id, None)
 
     # Extract details blocks (raw screen reports) and render as image
     reply, attachments = extract_details(reply)
@@ -568,6 +668,15 @@ async def on_message(message: discord.Message):
 
     # Build final message: AI analysis text only (table is the image)
     final_text = reply.strip() if reply.strip() else "Results:"
+
+    # Append conversation counter footer
+    if msg_num >= MAX_PREVIEW_MESSAGES:
+        final_text += (
+            "\n\n-# ⚠️ This is your last message in this conversation (preview limit)."
+            " Type `/new` to start fresh."
+        )
+    counter_footer = f"\n-# 💬 message {msg_num}/{MAX_PREVIEW_MESSAGES}"
+    final_text += counter_footer
 
     # Collect files: results image + raw .md report
     files = []

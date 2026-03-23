@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Discord bot
     discord_bot_token: str = ""
     discord_api_url: str = "http://localhost:8000/chat/"
+    skool_link: str = "https://www.skool.com/vukrosic"
 
     class Config:
         env_file = ".env"

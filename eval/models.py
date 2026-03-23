@@ -22,6 +22,8 @@ class LLMResponse:
 # ── Model Registry ────────────────────────────────────────────────────────
 
 MODELS = {
+    # Current production model — the only one we benchmark for now.
+    # To add another: copy this block, change the key and fields, set the API key env var.
     "mimo-v2-flash": {
         "provider": "openai_compat",
         "base_url": "https://api.novita.ai/openai",
@@ -29,45 +31,6 @@ MODELS = {
         "api_key_env": "NOVITA_API_KEY",
         "price_input": 0.10,   # per 1M tokens
         "price_output": 0.30,
-    },
-    "gpt-4o-mini": {
-        "provider": "openai_compat",
-        "base_url": "https://api.openai.com/v1",
-        "model": "gpt-4o-mini",
-        "api_key_env": "OPENAI_API_KEY",
-        "price_input": 0.15,
-        "price_output": 0.60,
-    },
-    "gpt-4o": {
-        "provider": "openai_compat",
-        "base_url": "https://api.openai.com/v1",
-        "model": "gpt-4o",
-        "api_key_env": "OPENAI_API_KEY",
-        "price_input": 2.50,
-        "price_output": 10.00,
-    },
-    "claude-haiku": {
-        "provider": "openai_compat",
-        "base_url": "https://api.anthropic.com/v1/",
-        "model": "claude-haiku-4-5-20251001",
-        "api_key_env": "ANTHROPIC_API_KEY",
-        "price_input": 0.80,
-        "price_output": 4.00,
-        "extra_headers": {"anthropic-version": "2023-06-01"},
-    },
-    "claude-sonnet": {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-6",
-        "api_key_env": "ANTHROPIC_API_KEY",
-        "price_input": 3.00,
-        "price_output": 15.00,
-    },
-    "claude-opus": {
-        "provider": "anthropic",
-        "model": "claude-opus-4-6",
-        "api_key_env": "ANTHROPIC_API_KEY",
-        "price_input": 15.00,
-        "price_output": 75.00,
     },
 }
 

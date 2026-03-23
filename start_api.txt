@@ -1,0 +1,18 @@
+# Commands to start the auto-research API server
+# Run from /root/auto-research/
+
+# Option 1: Direct uvicorn (development)
+cd /root/auto-research
+pip install -r requirements.txt
+uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Option 2: Docker Compose (production)
+cd /root/auto-research
+docker-compose up --build
+
+# Option 3: Background uvicorn (no reload)
+cd /root/auto-research
+uvicorn api.main:app --host 0.0.0.0 --port 8000 &
+
+# Verify the API is up:
+curl http://localhost:8000/chat/

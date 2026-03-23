@@ -40,10 +40,10 @@ def _write_screen_file(topic: str, content: str) -> Path:
     return screen_path
 
 
-def _run_screen(screen_path: Path, ladder: str = "quick") -> str:
+def _run_screen(screen_path: Path, ladder: str = "bot") -> str:
     result = subprocess.run(
         ["python3", "infra/tiered_screen.py", "--screen", str(screen_path), "--ladder", ladder],
-        capture_output=True, text=True, timeout=300, cwd=str(PG_ROOT),
+        capture_output=True, text=True, timeout=1200, cwd=str(PG_ROOT),
     )
     topic = screen_path.stem
     reports = sorted(gl.glob(str(RESULTS_DIR / f"tiered_screen_{topic}_*.md")))

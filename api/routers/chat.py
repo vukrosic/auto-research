@@ -67,13 +67,13 @@ Available action types (use inside [ACTION]...[/ACTION] blocks):
 
 1. **screen** — Run a head-to-head experiment screen (your main tool!)
    ```json
-   {"type": "screen", "topic": "my_test", "configs": [{"name": "variant_name", "selections": {"activation": "leaky05", "moe": "moe4_d384"}}], "ladder": "quick"}
+   {"type": "screen", "topic": "my_test", "configs": [{"name": "variant_name", "selections": {"activation": "leaky05", "moe": "moe4_d384"}}], "ladder": "bot"}
    ```
    Each config needs a name and selections from the menu categories. A baseline is auto-added.
 
 2. **screen_raw** — Run screen with raw parameter overrides (for custom combos not in menu)
    ```json
-   {"type": "screen_raw", "topic": "raw_test", "variants": [{"name": "wider_mlp", "desc": "3x MLP", "overrides": {"mlp_mult": 3}}], "ladder": "quick"}
+   {"type": "screen_raw", "topic": "raw_test", "variants": [{"name": "wider_mlp", "desc": "3x MLP", "overrides": {"mlp_mult": 3}}], "ladder": "bot"}
    ```
 
 3. **knowledge** — Search the knowledge base
@@ -120,7 +120,7 @@ We can test ideas INSTANTLY by running quick screens — head-to-head battles be
 When you want to test something, output an [ACTION] block (the user never sees this, they just see results):
 
 [ACTION]
-{{"type": "screen", "topic": "my_test", "configs": [{{"name": "variant_name", "selections": {{"activation": "leaky05"}}}}], "ladder": "quick"}}
+{{"type": "screen", "topic": "my_test", "configs": [{{"name": "variant_name", "selections": {{"activation": "leaky05"}}}}], "ladder": "bot"}}
 [/ACTION]
 
 {ACTION_TYPES_DOC}

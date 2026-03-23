@@ -89,7 +89,7 @@ def _run_screen_sync(name: str, overrides: dict, description: str) -> tuple[floa
     screen_path.write_text(content)
 
     result = subprocess.run(
-        ["python3", "infra/tiered_screen.py", "--screen", str(screen_path), "--ladder", "quick"],
+        ["python3", "infra/tiered_screen.py", "--screen", str(screen_path), "--ladder", "bot"],
         capture_output=True, text=True, timeout=120, cwd=str(PG_ROOT),
     )
 

@@ -15,6 +15,8 @@ Commands (via mention or slash):
   /progress         — Show pipeline progress with steps
 """
 import asyncio
+import io
+import json
 import discord
 from discord import app_commands
 import httpx
@@ -84,7 +86,11 @@ def get_usage_footer(discord_username: str) -> str:
         if max_exp == -1:
             return ""
         remaining = max(0, max_exp - user.explore_runs_used)
-        return str(remaining)
+        used = max_exp - remaining
+        bar_len = 10
+        filled = round(bar_len * remaining / max_exp)
+        bar = "🟩" * filled + "⬜" * (bar_len - filled)
+        return f"-# 🧪 **{remaining}/{max_exp}** experiments remaining  {bar}"
     finally:
         db.close()
 
@@ -109,10 +115,75 @@ async def clear_history(discord_username: str):
             print(f"Clear history error: {e}")
 
 
-def strip_html(text: str) -> str:
-    text = re.sub(r"<details>.*?</details>", "[📊 raw results — use web UI for full table]", text, flags=re.DOTALL)
-    text = re.sub(r"<[^>]+>", "", text)
-    return text.strip()
+def extract_details(text: str) -> tuple[str, list[tuple[str, str]]]:
+    """Return (cleaned_text, [(title, content), ...]) extracting <details> blocks as attachments."""
+    attachments = []
+
+    def replacer(m):
+        inner = m.group(0)
+        title_match = re.search(r"<summary>(.*?)</summary>", inner)
+        title = title_match.group(1) if title_match else "results"
+        content = re.sub(r"<[^>]+>", "", inner).strip()
+        attachments.append((title, content))
+        return ""
+
+    cleaned = re.sub(r"<details>.*?</details>", replacer, text, flags=re.DOTALL)
+    cleaned = re.sub(r"<[^>]+>", "", cleaned).strip()
+    return cleaned, attachments
+
+
+def _parse_screen_report(report_text: str) -> str:
+    """Parse a tiered screen markdown report into a Discord-friendly code block summary."""
+    lines = report_text.split("\n")
+    stages: list[dict] = []
+    current_stage = None
+    verdict_lines = []
+    in_verdict = False
+
+    for line in lines:
+        # Stage header
+        m = re.match(r"###\s+Stage\s+(\d+)\s*—\s*(\d+)\s+step", line)
+        if m:
+            current_stage = {"num": int(m.group(1)), "steps": int(m.group(2)), "rows": []}
+            stages.append(current_stage)
+            in_verdict = False
+            continue
+        # Table row with data
+        if current_stage and line.startswith("|") and "---" not in line and "Run" not in line:
+            cells = [c.strip() for c in line.split("|")[1:-1]]
+            if len(cells) >= 6:
+                name = cells[0].strip("`")
+                desc = cells[1][:40]
+                loss = cells[2]
+                delta = cells[4]
+                decision = cells[5]
+                current_stage["rows"].append((name, desc, loss, delta, decision))
+            continue
+        # "What happened" section
+        if "## What happened" in line:
+            in_verdict = True
+            continue
+        if in_verdict and line.strip() and not line.startswith("_"):
+            verdict_lines.append(line.strip().replace("**", ""))
+
+    if not stages:
+        return ""
+
+    out = ["```"]
+    for s in stages:
+        out.append(f"─── Stage {s['num']} ({s['steps']} steps) ───")
+        # Find max name width
+        nw = max((len(r[0]) for r in s["rows"]), default=10)
+        for name, desc, loss, delta, decision in s["rows"]:
+            icon = "✓" if "✓" in decision else "✗" if "drop" in decision else "○"
+            out.append(f"  {icon} {name:<{nw}}  {loss:>8}  {delta:>8}  {desc[:35]}")
+        out.append("")
+
+    if verdict_lines:
+        for v in verdict_lines[:3]:
+            out.append(v)
+    out.append("```")
+    return "\n".join(out)
 
 
 def split_message(text: str, limit: int = 1900) -> list[str]:
@@ -282,31 +353,120 @@ async def on_message(message: discord.Message):
     api_key = get_api_key(discord_username)
     cookies = {"session": api_key} if api_key else {}
 
-    async with message.channel.typing():
-        try:
-            async with httpx.AsyncClient(timeout=120) as http:
-                resp = await http.post(
-                    API_URL,
-                    json={"message": text, "history": []},
-                    cookies=cookies,
-                )
-            print(f"API {resp.status_code}: {resp.text[:200]}")
-            data = resp.json()
-            reply = data.get("response") or f"API error. Keys: {list(data.keys())}"
-        except httpx.ConnectError as e:
-            await message.channel.send(f"❌ Can't reach API at `{API_URL}`\n`{e}`")
-            return
-        except Exception as e:
-            await message.channel.send(f"❌ {type(e).__name__}: {e}")
-            return
+    # Send a live progress message that updates while the API works
+    _spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    _progress_file = Path("/root/parameter-golf/results/.screen_progress.json")
+    prog_msg = await message.channel.send(f"{_spinners[0]} Thinking...")
 
-    reply = strip_html(reply)
-    footer = get_usage_footer(discord_username)
-    if footer:
-        reply = reply + "\n\n" + footer
+    def _bar(done, total, width=12):
+        filled = int(width * done / max(total, 1))
+        return "█" * filled + "░" * (width - filled)
 
-    for chunk in split_message(reply):
-        await message.channel.send(chunk)
+    def _fmt_time(seconds):
+        m, s = divmod(int(seconds), 60)
+        return f"{m}m {s:02d}s" if m else f"{s}s"
+
+    async def _update_progress():
+        i = 0
+        elapsed = 0
+        while True:
+            await asyncio.sleep(3)
+            elapsed += 3
+            i = (i + 1) % len(_spinners)
+            timer = _fmt_time(elapsed)
+
+            # Try to read real screen progress
+            content = f"{_spinners[i]} **Thinking...** `[{timer}]`"
+            try:
+                if _progress_file.exists():
+                    prog = json.loads(_progress_file.read_text())
+                    stage = prog.get("stage", 1)
+                    ci = prog.get("config_i", 0)
+                    ct = prog.get("config_total", 1)
+                    cname = prog.get("config_name", "")
+                    steps = prog.get("stage_steps", 0)
+                    done_all = prog.get("done_all", 0)
+                    total_all = prog.get("total_all", 1)
+                    eta_s = prog.get("eta_s", 0)
+
+                    overall_bar = _bar(done_all, total_all)
+                    stage_bar = _bar(ci, ct)
+
+                    eta_str = f"  ⏱ ~{_fmt_time(eta_s)} remaining" if eta_s > 0 else ""
+
+                    content = (
+                        f"{_spinners[i]} **Training** `[{timer}]`{eta_str}\n"
+                        f"Overall [{overall_bar}] {done_all}/{total_all} configs\n"
+                        f"Stage {stage}/3 [{stage_bar}] {ci}/{ct} · `{cname}` · {steps} steps"
+                    )
+            except Exception:
+                pass
+
+            try:
+                await prog_msg.edit(content=content)
+            except Exception:
+                break
+
+    ticker = asyncio.create_task(_update_progress())
+    try:
+        async with httpx.AsyncClient(timeout=1800) as http:
+            resp = await http.post(
+                API_URL,
+                json={"message": text, "history": []},
+                cookies=cookies,
+            )
+        print(f"API {resp.status_code}: {resp.text[:200]}")
+        data = resp.json()
+        reply = data.get("response") or f"API error. Keys: {list(data.keys())}"
+    except httpx.ConnectError as e:
+        ticker.cancel()
+        await prog_msg.edit(content=f"❌ Can't reach API at `{API_URL}`\n`{e}`")
+        return
+    except Exception as e:
+        ticker.cancel()
+        await prog_msg.edit(content=f"❌ {type(e).__name__}: {e}")
+        return
+    finally:
+        ticker.cancel()
+
+    # Extract details blocks (raw screen reports) and build code-block summary
+    reply, attachments = extract_details(reply)
+    results_block = ""
+    for title, content in attachments:
+        parsed = _parse_screen_report(content)
+        if parsed:
+            results_block = parsed
+            break
+
+    # Build final message: AI analysis + results table
+    final_parts = []
+    if reply.strip():
+        final_parts.append(reply.strip())
+    if results_block:
+        final_parts.append(results_block)
+    final_text = "\n\n".join(final_parts)
+
+    # Send as file attachment too for full report
+    files = []
+    if attachments:
+        files = [
+            discord.File(
+                fp=io.BytesIO(content.encode()),
+                filename=f"{title.replace(' ', '_').replace('/', '_')[:40]}.md",
+            )
+            for title, content in attachments
+        ]
+
+    # Replace the progress message with the first chunk; send remaining as new messages
+    chunks = split_message(final_text)
+    for i, chunk in enumerate(chunks):
+        chunk_files = files if i == len(chunks) - 1 and files else []
+        if i == 0:
+            await prog_msg.edit(content=chunk)
+            if chunk_files:
+                await message.channel.send(files=chunk_files[:10])
+        else:
+            await message.channel.send(chunk, files=chunk_files[:10] if chunk_files else [])
 
 
 client.run(TOKEN)

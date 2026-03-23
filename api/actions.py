@@ -26,7 +26,8 @@ VALID_OVERRIDES = [
     "qk_gain_init", "attnres_mode", "mlp_act", "act_power", "act_gate_floor",
     "embed_bottleneck", "num_unique_blocks", "num_cycles", "conv_kernel",
     "num_experts", "resid_scale_init", "stoch_depth_rate", "highway_net",
-    "skip_weight_init",
+    "skip_weight_init", "grad_clip_norm", "muon_momentum", "warmup_steps",
+    "warmdown_iters", "beta1", "beta2",
 ]
 
 

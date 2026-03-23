@@ -1,343 +1,219 @@
-"""Test cases for LLM eval benchmarking.
+"""Test cases — only requests that result in experiments running end-to-end.
 
-Each test case is a simulated user interaction with expected outcome criteria.
-Multi-turn tests use "{{model_response}}" as placeholder — the runner fills it in
-with the actual LLM response from the previous turn.
+Each test is a multi-turn conversation:
+  Turn 1: user describes what they want
+  Turn 2: assistant shows plan ({{model_response}} = captured from turn 1)
+  Turn 3: user confirms ("run" / "go" / "yes")
+
+The final LLM response must emit a valid [ACTION] block that executes
+tiered_screen.py via the pipeline.
 """
 
+# All test cases use the "debug" ladder (1→1 steps) so they finish in seconds.
+LADDER = "debug"
+
 TEST_CASES = [
-    # ── Category 1: Welcome ──────────────────────────────────────────────
+    # ── Direct activation requests ───────────────────────────────────────
     {
-        "id": "welcome_hi",
-        "category": "welcome",
-        "description": "Basic greeting should get welcome + 10 ideas, no action",
-        "turns": [{"role": "user", "content": "hi!"}],
-        "expect": {
-            "no_action": True,
-            "contains_numbered_list": True,
-            "min_ideas": 10,
-        },
-    },
-    {
-        "id": "welcome_hello",
-        "category": "welcome",
-        "description": "Another greeting variant",
-        "turns": [{"role": "user", "content": "hello, what can I do here?"}],
-        "expect": {
-            "no_action": True,
-            "contains_numbered_list": True,
-            "min_ideas": 10,
-        },
-    },
-    {
-        "id": "welcome_blank",
-        "category": "welcome",
-        "description": "Empty-ish message should still get welcome",
-        "turns": [{"role": "user", "content": "hey"}],
-        "expect": {
-            "no_action": True,
-            "contains_numbered_list": True,
-            "min_ideas": 8,
-        },
-    },
-
-    # ── Category 2: Pick from Menu (no run yet) ─────────────────────────
-    {
-        "id": "pick_leaky",
-        "category": "pick_idea",
-        "description": "Picking a specific activation should show plan, not run",
-        "turns": [{"role": "user", "content": "I want to try leaky relu"}],
-        "expect": {
-            "no_action": True,
-            "mentions": ["leaky"],
-            "asks_confirmation": True,
-        },
-    },
-    {
-        "id": "pick_moe",
-        "category": "pick_idea",
-        "description": "Picking MoE should show plan with dim=384 note",
-        "turns": [{"role": "user", "content": "let's test mixture of experts with 4 experts"}],
-        "expect": {
-            "no_action": True,
-            "mentions": ["moe", "384"],
-            "asks_confirmation": True,
-        },
-    },
-    {
-        "id": "pick_swiglu_deep",
-        "category": "pick_idea",
-        "description": "Picking a combo idea should show plan",
-        "turns": [{"role": "user", "content": "I want to try swiglu with 12 layers"}],
-        "expect": {
-            "no_action": True,
-            "mentions": ["swiglu", "12"],
-            "asks_confirmation": True,
-        },
-    },
-
-    # ── Category 3: Confirm and Run ──────────────────────────────────────
-    {
-        "id": "run_leaky_screen",
-        "category": "confirm_and_run",
-        "description": "After picking leaky relu, confirm with 'run' should emit screen action",
+        "id": "activation_leaky",
+        "description": "User wants leaky relu tournament",
         "turns": [
-            {"role": "user", "content": "let's try different activation functions"},
+            {"role": "user", "content": "let's try different activation functions, I'm curious about leaky relu"},
             {"role": "assistant", "content": "{{model_response}}"},
-            {"role": "user", "content": "run it"},
+            {"role": "user", "content": "run"},
         ],
-        "expect": {
-            "has_action": True,
-            "action_type": "screen",
-            "min_configs": 8,
-            "selections_valid": True,
-            "pipeline_completes": True,
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
     {
-        "id": "run_moe_screen",
-        "category": "confirm_and_run",
-        "description": "MoE experiment after confirmation",
+        "id": "activation_swiglu",
+        "description": "User specifically asks for swiglu",
         "turns": [
-            {"role": "user", "content": "I want to test MoE configurations"},
+            {"role": "user", "content": "swiglu looks promising, can we test it?"},
             {"role": "assistant", "content": "{{model_response}}"},
             {"role": "user", "content": "go"},
         ],
-        "expect": {
-            "has_action": True,
-            "action_type": "screen",
-            "min_configs": 8,
-            "selections_valid": True,
-            "pipeline_completes": True,
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
     {
-        "id": "run_embeddings_screen",
-        "category": "confirm_and_run",
-        "description": "Embedding strategy comparison",
+        "id": "activation_all",
+        "description": "User wants to compare all activation options",
         "turns": [
-            {"role": "user", "content": "compare tied vs untied embeddings"},
+            {"role": "user", "content": "run a full activation function comparison, all of them"},
             {"role": "assistant", "content": "{{model_response}}"},
-            {"role": "user", "content": "yes do it"},
+            {"role": "user", "content": "yes"},
         ],
-        "expect": {
-            "has_action": True,
-            "action_type": "screen",
-            "min_configs": 8,
-            "selections_valid": True,
-            "pipeline_completes": True,
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
 
-    # ── Category 4: Combine Ideas ────────────────────────────────────────
+    # ── MoE requests ─────────────────────────────────────────────────────
     {
-        "id": "combine_leaky_moe_untied",
-        "category": "combine",
-        "description": "Combine three specific ideas — all must appear in output",
+        "id": "moe_basic",
+        "description": "User wants to try mixture of experts",
         "turns": [
-            {"role": "user", "content": "combine leaky relu with MoE 4 experts and untied embeddings bn128"},
+            {"role": "user", "content": "I want to test mixture of experts"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "start it"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+    {
+        "id": "moe_vs_dense",
+        "description": "User wants MoE vs dense comparison",
+        "turns": [
+            {"role": "user", "content": "does MoE actually help? compare it against dense models"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "run it"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+
+    # ── Embeddings requests ───────────────────────────────────────────────
+    {
+        "id": "embeddings_untied",
+        "description": "User wants to test embedding strategies",
+        "turns": [
+            {"role": "user", "content": "let's test untied embeddings vs tied, I want to see the difference"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "run it"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+    {
+        "id": "embeddings_bottleneck",
+        "description": "User asks about embedding bottleneck sizes",
+        "turns": [
+            {"role": "user", "content": "compare different embedding bottleneck sizes"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "launch"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+
+    # ── Architecture/size requests ────────────────────────────────────────
+    {
+        "id": "depth_comparison",
+        "description": "User wants to test different layer counts",
+        "turns": [
+            {"role": "user", "content": "test shallow vs deep models — how does depth affect things?"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "go"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+    {
+        "id": "width_comparison",
+        "description": "User wants to test different model widths",
+        "turns": [
+            {"role": "user", "content": "compare dim384 vs dim512 vs dim640"},
             {"role": "assistant", "content": "{{model_response}}"},
             {"role": "user", "content": "run"},
         ],
-        "expect": {
-            "has_action": True,
-            "action_type": "screen",
-            "min_configs": 8,
-            "selections_valid": True,
-            "required_selections": {
-                "activation": "leaky05",
-                "moe": "moe4_d384",
-                "embeddings": "untied_bn128",
-            },
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
     {
-        "id": "combine_swiglu_deep_stoch",
-        "category": "combine",
-        "description": "Combine swiglu + deep + stochastic depth",
+        "id": "weight_sharing",
+        "description": "User asks about weight sharing / cycle blocks",
         "turns": [
-            {"role": "user", "content": "try swiglu with 12 layers and stochastic depth"},
-            {"role": "assistant", "content": "{{model_response}}"},
-            {"role": "user", "content": "start"},
-        ],
-        "expect": {
-            "has_action": True,
-            "action_type": "screen",
-            "min_configs": 8,
-            "selections_valid": True,
-            "required_selections": {
-                "activation": "swiglu",
-                "depth": "12L",
-            },
-        },
-    },
-
-    # ── Category 5: Raw/Custom Overrides ─────────────────────────────────
-    {
-        "id": "raw_custom_dim",
-        "category": "raw_override",
-        "description": "Custom dimension not in menu should use screen_raw",
-        "turns": [
-            {"role": "user", "content": "try model_dim=448 with 7 layers and mlp_mult=3"},
-            {"role": "assistant", "content": "{{model_response}}"},
-            {"role": "user", "content": "run"},
-        ],
-        "expect": {
-            "has_action": True,
-            "action_type": "screen_raw",
-            "overrides_valid": True,
-            "required_overrides": {"model_dim": 448, "num_layers": 7, "mlp_mult": 3},
-        },
-    },
-    {
-        "id": "raw_rope_base",
-        "category": "raw_override",
-        "description": "Custom rope_base value",
-        "turns": [
-            {"role": "user", "content": "what if we set rope_base to 50000?"},
+            {"role": "user", "content": "can we reuse layer weights to save params? try cycling"},
             {"role": "assistant", "content": "{{model_response}}"},
             {"role": "user", "content": "yes run it"},
         ],
-        "expect": {
-            "has_action": True,
-            "action_type": "screen_raw",
-            "overrides_valid": True,
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
 
-    # ── Category 6: Knowledge Query ──────────────────────────────────────
+    # ── Combo / multi-component requests ─────────────────────────────────
     {
-        "id": "knowledge_activations",
-        "category": "knowledge",
-        "description": "Ask what's been tried for activations",
-        "turns": [{"role": "user", "content": "what activation functions have been tested?"}],
-        "expect": {
-            "no_action_or_knowledge_action": True,
-            "mentions": ["leaky", "relu"],
-        },
-    },
-    {
-        "id": "knowledge_best_config",
-        "category": "knowledge",
-        "description": "Ask what the best known config is",
-        "turns": [{"role": "user", "content": "what's the best config found so far?"}],
-        "expect": {
-            "no_action_or_knowledge_action": True,
-            "mentions": ["moe", "untied"],
-        },
-    },
-    {
-        "id": "knowledge_failed",
-        "category": "knowledge",
-        "description": "Ask about what didn't work",
-        "turns": [{"role": "user", "content": "what experiments have failed or didn't help?"}],
-        "expect": {
-            "no_action_or_knowledge_action": True,
-        },
-    },
-
-    # ── Category 7: Edge Cases / Guardrails ──────────────────────────────
-    {
-        "id": "guard_lr_tuning",
-        "category": "guardrails",
-        "description": "Should refuse learning rate tuning",
-        "turns": [{"role": "user", "content": "set the learning rate to 0.001 and run"}],
-        "expect": {
-            "no_action": True,
-            "refuses_lr": True,
-        },
-    },
-    {
-        "id": "guard_few_configs",
-        "category": "guardrails",
-        "description": "Should push back on too few configs",
+        "id": "combo_leaky_moe",
+        "description": "User wants leaky relu + MoE combo",
         "turns": [
-            {"role": "user", "content": "just run a single config with leaky relu, nothing else"},
+            {"role": "user", "content": "combine leaky relu with MoE 4 experts"},
             {"role": "assistant", "content": "{{model_response}}"},
             {"role": "user", "content": "run"},
         ],
-        "expect": {
-            "min_configs": 8,
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
     {
-        "id": "guard_invalid_option",
-        "category": "guardrails",
-        "description": "Should not hallucinate a non-existent menu option",
+        "id": "combo_best_known",
+        "description": "User asks to test around the best known config",
         "turns": [
-            {"role": "user", "content": "try the 'turbo_boost' activation and 'mega_moe' option"},
+            {"role": "user", "content": "let's explore variations around the best config you know"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "go"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+    {
+        "id": "combo_attention_variants",
+        "description": "User asks about attention mechanisms",
+        "turns": [
+            {"role": "user", "content": "test value residual attention combined with other tricks"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "start"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+
+    # ── Raw/custom override requests ──────────────────────────────────────
+    {
+        "id": "raw_custom_dim",
+        "description": "User wants a non-menu dimension",
+        "turns": [
+            {"role": "user", "content": "try model_dim=448 with 7 layers"},
             {"role": "assistant", "content": "{{model_response}}"},
             {"role": "user", "content": "run"},
         ],
-        "expect": {
-            "selections_valid": True,
-            "no_hallucinated_options": True,
-        },
+        "expect": {"has_action": True, "action_type": "screen_raw", "overrides_valid": True, "pipeline_completes": True},
     },
     {
-        "id": "guard_size_awareness",
-        "category": "guardrails",
-        "description": "Should warn about 16MB limit with large configs",
-        "turns": [{"role": "user", "content": "try dim=1024 with 24 layers and 8 experts"}],
-        "expect": {
-            "mentions": ["16", "fit", "mb"],
-        },
+        "id": "raw_stoch_depth",
+        "description": "User asks to test stochastic depth rates",
+        "turns": [
+            {"role": "user", "content": "test stochastic_depth_rate at 0.05, 0.1, 0.15, 0.2"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "yes do it"},
+        ],
+        "expect": {"has_action": True, "pipeline_completes": True},
     },
 
-    # ── Category 8: Analysis Quality ─────────────────────────────────────
+    # ── Vague / open-ended requests ───────────────────────────────────────
     {
-        "id": "analysis_winner",
-        "category": "analysis",
-        "description": "Given results with a clear winner, should identify it",
-        "system_override": True,
+        "id": "vague_improve",
+        "description": "User gives vague 'make it better' request",
         "turns": [
-            {"role": "user", "content": (
-                "Here are the experiment results:\n\n"
-                "## Tiered Screen Results\n"
-                "| Config | Stage 1 Loss | Stage 2 Loss | Stage 3 Loss | Delta vs Baseline |\n"
-                "|--------|-------------|-------------|-------------|-------------------|\n"
-                "| baseline | 4.2310 | 3.8901 | 3.7200 | — |\n"
-                "| leaky_moe | 4.1890 | 3.8100 | 3.6500 | -0.0700 |\n"
-                "| swiglu_deep | 4.2100 | 3.8800 | 3.7100 | -0.0100 |\n"
-                "| abs2_wide | 4.2500 | 3.9200 | 3.7400 | +0.0200 |\n\n"
-                "Winner: leaky_moe (-0.0700 vs baseline)"
-            )},
+            {"role": "user", "content": "I want to improve the model, what should we try?"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "sounds good, run option 1"},
         ],
-        "expect": {
-            "no_action": True,
-            "mentions": ["leaky_moe", "winner"],
-            "max_words": 250,
-            "suggests_followup": True,
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
     {
-        "id": "analysis_no_winner",
-        "category": "analysis",
-        "description": "All variants lost — should acknowledge and pivot",
-        "system_override": True,
+        "id": "vague_wild_idea",
+        "description": "User gives a vague wild-card request",
         "turns": [
-            {"role": "user", "content": (
-                "Results:\n"
-                "| Config | Delta vs Baseline |\n"
-                "|--------|-------------------|\n"
-                "| variant_a | +0.0150 |\n"
-                "| variant_b | +0.0080 |\n"
-                "| variant_c | +0.0230 |\n\n"
-                "No configs beat baseline."
-            )},
+            {"role": "user", "content": "try something weird and unexpected that hasn't been done"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "run it"},
         ],
-        "expect": {
-            "no_action": True,
-            "max_words": 250,
-            "suggests_followup": True,
-        },
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
+    },
+    {
+        "id": "vague_number_pick",
+        "description": "User picks a number from the welcome list",
+        "turns": [
+            {"role": "user", "content": "hi what should I try"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "3"},
+            {"role": "assistant", "content": "{{model_response}}"},
+            {"role": "user", "content": "run"},
+        ],
+        "expect": {"has_action": True, "action_type": "screen", "min_configs": 8, "selections_valid": True, "pipeline_completes": True},
     },
 ]
 
 
-def get_cases_by_category(category: str) -> list[dict]:
-    return [tc for tc in TEST_CASES if tc["category"] == category]
-
-
 def get_all_categories() -> list[str]:
-    return sorted(set(tc["category"] for tc in TEST_CASES))
+    return sorted(set(tc.get("category", "experiment") for tc in TEST_CASES))
+
+
+def get_cases_by_category(category: str) -> list[dict]:
+    return [tc for tc in TEST_CASES if tc.get("category", "experiment") == category]

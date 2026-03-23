@@ -469,10 +469,9 @@ async def on_message(message: discord.Message):
     api_key = get_api_key(discord_username)
     cookies = {"session": api_key} if api_key else {}
 
-    # Send a live progress message that updates while the API works
-    _spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    # Show Discord typing indicator while waiting; create a progress msg only when training starts
     _progress_file = Path("/root/parameter-golf/results/.screen_progress.json")
-    prog_msg = await message.channel.send(f"{_spinners[0]} Thinking...")
+    prog_msg = None  # created only once training progress data is available
 
     def _bar(done, total, width=12):
         filled = int(width * done / max(total, 1))
@@ -483,15 +482,13 @@ async def on_message(message: discord.Message):
         return f"{m}m {s:02d}s" if m else f"{s}s"
 
     async def _update_progress():
-        i = 0
+        nonlocal prog_msg
         elapsed = 0
         while True:
             await asyncio.sleep(3)
             elapsed += 3
-            i = (i + 1) % len(_spinners)
             timer = _fmt_time(elapsed)
 
-            content = f"{_spinners[i]} **Thinking...** `[{timer}]`"
             try:
                 if _progress_file.exists():
                     prog = json.loads(_progress_file.read_text())
@@ -515,7 +512,7 @@ async def on_message(message: discord.Message):
                     eta_str = f"  ⏱ ~{_fmt_time(eta_s)}" if eta_s > 0 else ""
 
                     lines = [
-                        f"{_spinners[i]} **Training** `[{timer}]`{eta_str}",
+                        f"**Training** `[{timer}]`{eta_str}",
                         f"Overall [{overall_bar}] {done_all}/{total_all} configs",
                         f"Stage {stage}/{n_stages} [{stage_bar}] {ci}/{ct} · `{cname}` · {steps} steps",
                     ]
@@ -529,13 +526,15 @@ async def on_message(message: discord.Message):
                         lines.append(f"⚠️ {slow_warning}")
 
                     content = "\n".join(lines)
+                    if prog_msg is None:
+                        prog_msg = await message.channel.send(content)
+                    else:
+                        await prog_msg.edit(content=content)
+                else:
+                    # Still thinking — keep Discord typing indicator alive
+                    await message.channel.trigger_typing()
             except Exception:
                 pass
-
-            try:
-                await prog_msg.edit(content=content)
-            except Exception:
-                break
 
     async def _do_chat():
         async with httpx.AsyncClient(timeout=1800) as http:
@@ -546,6 +545,14 @@ async def on_message(message: discord.Message):
             )
         return resp
 
+    async def _send_status(text):
+        nonlocal prog_msg
+        if prog_msg:
+            await prog_msg.edit(content=text)
+        else:
+            await message.channel.send(text)
+
+    await message.channel.trigger_typing()
     ticker = asyncio.create_task(_update_progress())
     chat_task = asyncio.create_task(_do_chat())
     active_chat_tasks[user_id] = chat_task
@@ -557,15 +564,15 @@ async def on_message(message: discord.Message):
         reply = data.get("response") or f"API error. Keys: {list(data.keys())}"
     except asyncio.CancelledError:
         ticker.cancel()
-        await prog_msg.edit(content="🛑 **Interrupted.** Training was cancelled.")
+        await _send_status("🛑 **Interrupted.** Training was cancelled.")
         return
     except httpx.ConnectError as e:
         ticker.cancel()
-        await prog_msg.edit(content=f"❌ Can't reach API at `{API_URL}`\n`{e}`")
+        await _send_status(f"❌ Can't reach API at `{API_URL}`\n`{e}`")
         return
     except Exception as e:
         ticker.cancel()
-        await prog_msg.edit(content=f"❌ {type(e).__name__}: {e}")
+        await _send_status(f"❌ {type(e).__name__}: {e}")
         return
     finally:
         ticker.cancel()
@@ -595,27 +602,20 @@ async def on_message(message: discord.Message):
     counter_footer = f"\n-# 💬 message {msg_num}/{MAX_PREVIEW_MESSAGES}"
     final_text += counter_footer
 
-    # Collect files: results image + raw .md report
+    # Collect files: results image (in-memory only, never saved to disk)
     files = []
     if results_image:
         files.append(discord.File(fp=results_image, filename="results.png"))
-    if attachments:
-        for title, content in attachments:
-            files.append(discord.File(
-                fp=io.BytesIO(content.encode()),
-                filename=f"{title.replace(' ', '_').replace('/', '_')[:40]}.md",
-            ))
 
-    # Replace the progress message with the first chunk; send remaining as new messages
+    # Send result as new messages
     chunks = split_message(final_text)
     for i, chunk in enumerate(chunks):
         chunk_files = files if i == len(chunks) - 1 and files else []
-        if i == 0:
-            await prog_msg.edit(content=chunk)
-            if chunk_files:
-                await message.channel.send(files=chunk_files[:10])
-        else:
-            await message.channel.send(chunk, files=chunk_files[:10] if chunk_files else [])
+        await message.channel.send(chunk, files=chunk_files[:10] if chunk_files else [])
+
+    # Free in-memory image buffer after sending
+    if results_image:
+        results_image.close()
 
 
 client.run(TOKEN)

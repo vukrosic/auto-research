@@ -41,18 +41,21 @@ def _write_screen_file(topic: str, content: str) -> Path:
 
 
 def _run_screen(screen_path: Path, ladder: str = "bot") -> str:
-    result = subprocess.run(
-        ["python3", "infra/tiered_screen.py", "--screen", str(screen_path), "--ladder", ladder],
-        capture_output=True, text=True, timeout=1200, cwd=str(PG_ROOT),
-    )
-    topic = screen_path.stem
-    reports = sorted(gl.glob(str(RESULTS_DIR / f"tiered_screen_{topic}_*.md")))
-    if reports:
-        return Path(reports[-1]).read_text()
-    output = result.stdout
-    if result.returncode != 0:
-        output += f"\n\nSTDERR:\n{result.stderr[-500:]}" if result.stderr else ""
-    return output or "Screen completed but no report found."
+    try:
+        result = subprocess.run(
+            ["python3", "infra/tiered_screen.py", "--screen", str(screen_path), "--ladder", ladder],
+            capture_output=True, text=True, timeout=1200, cwd=str(PG_ROOT),
+        )
+        topic = screen_path.stem
+        reports = sorted(gl.glob(str(RESULTS_DIR / f"tiered_screen_{topic}_*.md")))
+        if reports:
+            return Path(reports[-1]).read_text()
+        output = result.stdout
+        if result.returncode != 0:
+            output += f"\n\nSTDERR:\n{result.stderr[-500:]}" if result.stderr else ""
+        return output or "Screen completed but no report found."
+    finally:
+        screen_path.unlink(missing_ok=True)
 
 
 def _find_results(pattern: str = "*", limit: int = 50) -> list[dict]:

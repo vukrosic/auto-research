@@ -150,18 +150,53 @@ MVP: ideas go straight to queue, no scoring gate. At $0.05/experiment the cost o
 
 ---
 
+## Bot Modes
+
+The Discord bot has two modes. Users can switch anytime with `/mode auto` or `/mode learn`.
+
+### Auto-Research Mode
+Fire-and-forget. User submits idea → bot generates configs → runs full pipeline → returns results table. No hand-holding, no waiting for user input between stages. Designed for power users who already know what they're doing.
+
+### Learning Mode
+The bot becomes a research mentor that teaches through real experiments. Designed for beginners who want to understand AI research, not just get numbers.
+
+**Flow:**
+
+1. **Guided hypothesis building** — User describes a vague idea. Bot explains what the idea actually tests, generates 4 variants with plain-English descriptions of each, and asks the user which to run. User learns what hyperparameters mean and why you'd test a range.
+
+2. **Live commentary during screening** — While 100-step screen runs (~1 min), bot explains what the screening stage does and what to look for. When results come in, bot explains *why* certain configs won or lost (e.g. "dim=896 was worse because wider width forced fewer layers, which hurt more than width helped — this is the parameter allocation tradeoff").
+
+3. **User-controlled stage gates** — Bot recommends which configs to advance to the next stage, explains its reasoning, then asks the user to confirm. User develops judgment. Timeout auto-advances after 1 hour so GPU isn't blocked.
+
+4. **Final takeaway** — After the full pipeline, bot delivers results plus a plain-English summary of what the user learned, what the finding means for the project, and how this contributes to the knowledge base.
+
+5. **Progressive difficulty** — First 5 experiments get full explanations. After that, explanations shorten and go more technical as the user levels up. Weekly progress tracking shows experiments run, wins/losses, and concepts encountered.
+
+**What makes this worth $49**: users aren't paying for compute. They're paying for a private AI research tutor that uses real experiments as the teaching medium.
+
+**Minimum viable learning mode (build this week):**
+1. Pre-experiment explanation before running (what does this idea test, why)
+2. Post-experiment explanation after results (what happened, what it means)
+3. Stage gate prompts between screen/explore/validate instead of auto-advancing
+
+The rest (progress tracking, difficulty scaling, streaks) comes after.
+
+---
+
 ## Revenue Model
 
 **No free tier.** Open source is the free tier — clone it and run it yourself.
 
 Payment is through Skool membership. Access is manually granted for MVP — no Stripe integration yet.
 
-| Plan | Price | Experiments/mo | What You Get |
-|------|------:|---------------:|-------------|
-| Basic | $9/mo | 40 | Discord bot access, 40 full experiments, results history |
-| Pro | $49/mo | 200 | Everything in Basic, priority queue, export results, API access |
+| Plan | Price | Experiments/mo | Mode | What You Get |
+|------|------:|---------------:|------|-------------|
+| Basic | $9/mo | 40 | Auto-Research only | Discord bot access, 40 full experiments, results history |
+| Pro | $49/mo | 200 | Auto-Research + Learning | Everything in Basic, Learning Mode, priority queue, export results, API access |
 
-One "experiment" = one idea through the full pipeline (10×100 + 5×300 + 2×500 steps, ~10 min on GPU). User never thinks about steps or configs.
+One "experiment" = one idea through the full pipeline (10×100 + 5×300 + 2×500 steps, ~10 min on GPU). In Auto-Research mode the user never thinks about steps or configs. In Learning Mode the user makes decisions at each stage with the bot explaining what's happening.
+
+**Learning Mode is the primary justification for the $49 price.** Auto-Research alone is worth ~$9. The teaching layer — guided hypotheses, live explanations, user-controlled stage gates, progressive difficulty — is the value that makes $49 feel cheap.
 
 Additional:
 - **Bring your own GPU**: Users provide SSH creds, we orchestrate (free compute for us)
@@ -185,12 +220,14 @@ Everything is open source (MIT or Apache 2.0). Self-hosters clone the repo, set 
 ### Phase 1: MVP (NOW)
 
 - Discord bot as primary interface (already working)
+- **Learning Mode** — guided hypothesis building, live commentary, stage gate prompts, post-experiment takeaways
+- Auto-Research Mode — existing fire-and-forget pipeline
 - Parameter-golf as only research template
 - 2-4 cheap GPUs
 - Skool community as paying beta testers
 - Experiment = screen(100) → explore(300) → validate(500) pipeline
 - Knowledge base: restructured KNOWLEDGE.md + STATE.md
-- **Goal**: Skool members running experiments weekly, sharing results
+- **Goal**: $49/mo justified by Learning Mode; Skool members running experiments weekly, sharing results
 
 ### Phase 2: Platform (3-6 months)
 

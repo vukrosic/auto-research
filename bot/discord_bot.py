@@ -8,16 +8,12 @@ Setup:
 Run:
   cd /root/auto-research && python3 bot/discord_bot.py
 
-Commands (via mention, DM, or slash):
-  /new              — Clear conversation history and reset message counter
-  /stop             — Cancel the currently running experiment
-  /status           — Show usage stats
-  /research <topic> — Launch full pipeline: 12 screens → 5 scales → 2 full runs
-  /progress         — Show pipeline progress with steps
+Commands (via slash or text in DM):
+  /new    — Clear conversation history and reset message counter
+  /stop   — Cancel the currently running experiment
+  /status — Show usage stats
 
-Limits:
-  - 5 messages per conversation (preview limit), reset with /new
-  - DMs work without @mention; server messages require @mention
+Note: DMs work without @mention — recommended for private sessions.
 """
 import asyncio
 import io
@@ -41,9 +37,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-
-# Per-user research pipeline state
-research_jobs: dict[int, dict] = {}
 
 # Per-user active chat tasks (for interrupt/cancel)
 active_chat_tasks: dict[int, asyncio.Task] = {}
@@ -336,59 +329,6 @@ def split_message(text: str, limit: int = 1900) -> list[str]:
     return chunks
 
 
-# ── Research pipeline ─────────────────────────────────────────────────────
-
-def make_job(topic: str) -> dict:
-    return {
-        "topic": topic,
-        "phase": "starting",
-        "screen_done": 0, "screen_total": 12,
-        "scale_done": 0, "scale_total": 5, "scale_ids": [],
-        "full_done": 0, "full_total": 2, "full_ids": [],
-        "prog_msg_id": None,
-    }
-
-
-async def start_research(user_id: int, channel, discord_username: str, topic: str):
-    from bot.research_pipeline import run_pipeline, format_progress
-
-    if user_id in research_jobs and research_jobs[user_id].get("phase") not in ("done", "error"):
-        await channel.send("⚠️ Pipeline already running. Use `@bot /progress` to check status.")
-        return
-
-    job = make_job(topic)
-    research_jobs[user_id] = job
-
-    api_key = get_api_key(discord_username)
-    prog_msg = await channel.send(format_progress(job))
-    job["prog_msg_id"] = prog_msg.id
-
-    asyncio.create_task(run_pipeline(job, channel, api_key, prog_msg))
-
-
-async def show_progress(user_id: int, discord_username: str, channel):
-    from bot.research_pipeline import poll_experiments, format_progress
-
-    job = research_jobs.get(user_id)
-    if not job:
-        await channel.send("No active research pipeline. Start one with `@bot research <topic>`.")
-        return
-
-    api_key = get_api_key(discord_username)
-    scale_exps = None
-    full_exps = None
-
-    if api_key:
-        if job.get("scale_ids"):
-            scale_exps = await poll_experiments(api_key, job["scale_ids"])
-            job["scale_done"] = sum(1 for e in scale_exps if e["status"] in ("completed", "failed"))
-        if job.get("full_ids"):
-            full_exps = await poll_experiments(api_key, job["full_ids"])
-            job["full_done"] = sum(1 for e in full_exps if e["status"] in ("completed", "failed"))
-
-    await channel.send(format_progress(job, scale_exps=scale_exps, full_exps=full_exps))
-
-
 # ── Bot lifecycle ─────────────────────────────────────────────────────────
 
 @client.event
@@ -422,32 +362,6 @@ async def cmd_stop(interaction: discord.Interaction):
         await interaction.response.send_message("🛑 Training interrupted!", ephemeral=True)
     else:
         await interaction.response.send_message("Nothing running to stop.", ephemeral=True)
-
-
-@tree.command(name="research", description="Launch full pipeline: 12 screens → 5 scales → 2 full runs")
-@app_commands.describe(topic="What to research (e.g. 'activation functions', 'MoE routing')")
-async def cmd_research(interaction: discord.Interaction, topic: str):
-    await interaction.response.send_message(f"🚀 Starting research on **{topic}**...", ephemeral=True)
-    await start_research(interaction.user.id, interaction.channel, str(interaction.user.name), topic)
-
-
-@tree.command(name="progress", description="Check research pipeline progress")
-async def cmd_progress(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    job = research_jobs.get(interaction.user.id)
-    if not job:
-        await interaction.followup.send("No active pipeline. Start one with `/research <topic>`.")
-        return
-    from bot.research_pipeline import poll_experiments, format_progress
-    api_key = get_api_key(str(interaction.user.name))
-    scale_exps = None
-    full_exps = None
-    if api_key:
-        if job.get("scale_ids"):
-            scale_exps = await poll_experiments(api_key, job["scale_ids"])
-        if job.get("full_ids"):
-            full_exps = await poll_experiments(api_key, job["full_ids"])
-    await interaction.followup.send(format_progress(job, scale_exps=scale_exps, full_exps=full_exps))
 
 
 # ── Access control ────────────────────────────────────────────────────────
@@ -527,17 +441,6 @@ async def on_message(message: discord.Message):
         await message.channel.send(msg, reference=message if not is_dm else None)
         return
 
-    if text.lower() in ("/progress", "progress"):
-        await show_progress(user_id, discord_username, message.channel)
-        return
-
-    m = re.match(r"/?research\s+(.+)", text, re.IGNORECASE)
-    if m:
-        topic = m.group(1).strip()
-        await message.channel.send(f"🚀 Starting research on **{topic}**...", reference=message if not is_dm else None)
-        await start_research(user_id, message.channel, discord_username, topic)
-        return
-
     if not text:
         await message.channel.send("Hey! Ask me about experiments or say `hi` to get started 🧪")
         return
@@ -588,7 +491,6 @@ async def on_message(message: discord.Message):
             i = (i + 1) % len(_spinners)
             timer = _fmt_time(elapsed)
 
-            # Try to read real screen progress
             content = f"{_spinners[i]} **Thinking...** `[{timer}]`"
             try:
                 if _progress_file.exists():
@@ -600,18 +502,33 @@ async def on_message(message: discord.Message):
                     steps = prog.get("stage_steps", 0)
                     done_all = prog.get("done_all", 0)
                     total_all = prog.get("total_all", 1)
-                    eta_s = prog.get("eta_s", 0)
+                    eta_s  = prog.get("eta_s", 0)
+                    eta_s1 = prog.get("eta_s1", 0)
+                    eta_s2 = prog.get("eta_s2", 0)
+                    eta_s3 = prog.get("eta_s3", 0)
+                    s3_steps = prog.get("s3_steps", 0)
+                    slow_warning = prog.get("slow_warning", "")
 
                     overall_bar = _bar(done_all, total_all)
                     stage_bar = _bar(ci, ct)
+                    n_stages = 3 if s3_steps else 2
+                    eta_str = f"  ⏱ ~{_fmt_time(eta_s)}" if eta_s > 0 else ""
 
-                    eta_str = f"  ⏱ ~{_fmt_time(eta_s)} remaining" if eta_s > 0 else ""
+                    lines = [
+                        f"{_spinners[i]} **Training** `[{timer}]`{eta_str}",
+                        f"Overall [{overall_bar}] {done_all}/{total_all} configs",
+                        f"Stage {stage}/{n_stages} [{stage_bar}] {ci}/{ct} · `{cname}` · {steps} steps",
+                    ]
+                    stage_parts = []
+                    if eta_s1 > 0: stage_parts.append(f"S1 ~{_fmt_time(eta_s1)}")
+                    if eta_s2 > 0: stage_parts.append(f"S2 ~{_fmt_time(eta_s2)}")
+                    if eta_s3 > 0: stage_parts.append(f"S3 ~{_fmt_time(eta_s3)}")
+                    if stage_parts:
+                        lines.append("  ·  ".join(stage_parts))
+                    if slow_warning:
+                        lines.append(f"⚠️ {slow_warning}")
 
-                    content = (
-                        f"{_spinners[i]} **Training** `[{timer}]`{eta_str}\n"
-                        f"Overall [{overall_bar}] {done_all}/{total_all} configs\n"
-                        f"Stage {stage}/3 [{stage_bar}] {ci}/{ct} · `{cname}` · {steps} steps"
-                    )
+                    content = "\n".join(lines)
             except Exception:
                 pass
 

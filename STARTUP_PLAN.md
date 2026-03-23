@@ -77,7 +77,7 @@ A single experiment is the full tiered pipeline for one idea:
 | Explore | top 5 | 300 | Confirm the signal is real |
 | Validate | top 2 | 500 | Final confirmation before merge |
 
-Total GPU time per experiment: ~30-60 min depending on hardware. The user submits one idea and gets back a full report — they never think about steps or configs.
+Total GPU time per experiment: ~10 min on 5090. The user submits one idea and gets back a full report — they never think about steps, configs, or stages. The bot just says "running your experiment."
 
 ### Key Principles
 
@@ -119,19 +119,22 @@ parameter-golf/       # Research template (the experiment codebase)
 
 ### Backend (FastAPI)
 
-- **Auth**: Discord OAuth + Skool membership verification
+- **Auth**: Email + API key (simple, already implemented). You create user accounts manually when Skool members join.
 - **Chat API**: LLM-powered experiment builder
 - **Experiment API**: Submit, monitor, cancel
 - **Results API**: Query, compare, export
-- **Billing**: Stripe — experiment credits per plan
+- **Access**: manually granted — Skool membership is the gate, Vuk adds users by hand for now
 
 ### GPU Fleet
 
-- Workers connect via SSH through proxy
-- One experiment per GPU, FIFO queue
+- Workers connect via SSH through proxy (currently Novita free compute)
+- GPUs run Vuk's research as background jobs (interruptible)
+- User requests preempt background jobs: save checkpoint → run user experiment → resume research
+- User queue is FIFO among themselves; user jobs always jump Vuk's background research
+- Wait time displayed in Discord/web so users know when to expect results
 - Auto-discovery of available GPUs
 - Cost tracking per user
-- Scheduler daemon pulls from queue, assigns to idle GPUs
+- Scheduler daemon manages preemption and queue
 
 ### Idea Quality Control
 
@@ -143,94 +146,15 @@ MVP: ideas go straight to queue, no scoring gate. At $0.05/experiment the cost o
 
 ## Knowledge Architecture
 
-### The Problem with Current Design
-
-KNOWLEDGE.md currently mixes three things that should be separate:
-
-1. **Findings** — what worked, what failed (relu² beats relu, conv is dead)
-2. **Methodology** — how the system works (tiered elimination, pipeline stages)
-3. **State** — current best config, open questions, in-progress runs
-
-These serve different audiences and change at different rates.
-
-### Proposed Structure
-
-```
-research-template/
-├── KNOWLEDGE.md          # Findings only — proven facts, failed approaches
-│                         # Structured as claims with evidence
-│                         # Machine-readable for AI agents
-│
-├── METHODOLOGY.md        # How the research system works
-│                         # Tiered elimination rules
-│                         # Pipeline stages and gate criteria
-│                         # This rarely changes
-│
-├── STATE.md              # Current best config, open questions
-│                         # What's running now, what's next
-│                         # Updated constantly, ephemeral
-│
-├── FORBIDDEN.md          # Hard rules — things that must never be tested
-│
-└── findings/             # One file per major finding
-    ├── activation_squaring.md
-    ├── moe_scaling.md
-    ├── untied_embeddings.md
-    └── ...
-```
-
-### KNOWLEDGE.md redesign
-
-Each entry should be a structured claim:
-
-```markdown
-## Proven: Squaring activations is the most impactful design choice
-
-- **Effect**: +0.08-0.11 BPB penalty without squaring
-- **Evidence**: 60+ runs, 500-13000 steps
-- **Mechanism**: Quadratic shape matters, not just scale (2·relu ≠ relu²)
-- **Confidence**: High (replicated across seeds, step counts, architectures)
-- **Implications**: Any new activation must preserve squaring
-```
-
-vs failed approaches:
-
-```markdown
-## Failed: Depthwise convolution
-
-- **Effect**: +0.025 to +0.174 BPB (always hurts)
-- **Evidence**: All kernel sizes tested, combos tested
-- **Why it fails**: Unknown — possibly kills gradient flow at this scale
-- **Retry if**: Someone shows conv working at <20M params with a specific technique
-```
-
-This structure lets AI agents query: "has X been tried?" → grep for it. "What works?" → scan Proven entries. "What should I avoid?" → scan Failed entries + FORBIDDEN.md.
-
-### STATE.md (new — replaces bottom of current KNOWLEDGE.md)
-
-```markdown
-# Current State
-
-## Best Config
-[current best architecture + BPB + submission size]
-
-## In Progress
-[what's running on which GPUs]
-
-## Open Questions
-[what we don't know yet]
-
-## Next Up
-[what's queued]
-```
-
-This file changes constantly and is not knowledge — it's operational state.
+**TODO (not MVP):** Split KNOWLEDGE.md into separate files: findings-only KNOWLEDGE.md (structured claims with effect/evidence/confidence), METHODOLOGY.md (tiered elimination rules, pipeline stages), STATE.md (current best config, in-progress runs, open questions), and a `findings/` subdirectory with one file per major finding. This makes the knowledge base machine-readable for AI agents and easier to maintain.
 
 ---
 
 ## Revenue Model
 
 **No free tier.** Open source is the free tier — clone it and run it yourself.
+
+Payment is through Skool membership. Access is manually granted for MVP — no Stripe integration yet.
 
 | Plan | Price | Experiments/mo | What You Get |
 |------|------:|---------------:|-------------|
@@ -265,7 +189,6 @@ Everything is open source (MIT or Apache 2.0). Self-hosters clone the repo, set 
 - 2-4 cheap GPUs
 - Skool community as paying beta testers
 - Experiment = screen(100) → explore(300) → validate(500) pipeline
-- Stripe billing, experiment credits
 - Knowledge base: restructured KNOWLEDGE.md + STATE.md
 - **Goal**: Skool members running experiments weekly, sharing results
 
@@ -297,8 +220,7 @@ Everything is open source (MIT or Apache 2.0). Self-hosters clone the repo, set 
 4. ~~Message limit with counter~~ Done
 5. Restructure knowledge system (KNOWLEDGE.md → findings-only, add STATE.md, add METHODOLOGY.md)
 6. Implement experiment packaging (1 experiment = screen→explore→validate pipeline)
-7. Stripe integration for experiment credits
-8. Open source prep — clean up, docs, license, README
+7. Open source prep — clean up, docs, license, README
 
 ---
 

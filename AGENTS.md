@@ -88,8 +88,8 @@ The week plan tells you **exactly what to do next**.
 # Check GPU status
 scripts/gpu_status.sh
 
-# Check experiment snapshots for running/done status
-ls experiments/snapshots/*/status
+# Check experiment snapshots for running/done status across projects
+ls experiments/*/snapshots/*/status
 ```
 
 ### Step 5: Execute the research cycle

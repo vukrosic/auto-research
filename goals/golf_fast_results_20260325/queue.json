@@ -1,0 +1,158 @@
+{
+  "goal": "golf_fast_results_20260325",
+  "project": "parameter-golf",
+  "created_at": "2026-03-25T13:04:13Z",
+  "updated_at": "2026-03-25T15:05:32Z",
+  "dispatch_policy": {
+    "single_source_of_truth": true,
+    "ordering": "manual",
+    "priority": "goal.json.dispatch_priority"
+  },
+  "entries": [
+    {
+      "experiment": "explore_fast_baseline_500",
+      "dispatch_state": "completed",
+      "role": "baseline",
+      "reason": "Recalibrate the 500-step fast path with SKIP_QUANT_EVAL=1 and a single final eval.",
+      "stage": "explore",
+      "steps": 500,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.01,
+      "allow_promotion": false,
+      "expected_duration_seconds": 540,
+      "hypothesis": "The fast no-quant proxy should reproduce the existing 500-step baseline closely enough to rank candidates inside this 2-hour sprint.",
+      "changes_summary": "Base architecture with SKIP_QUANT_EVAL=1, VAL_LOSS_EVERY=500, MAX_WALLCLOCK_SECONDS=600, TRAIN_LOG_EVERY=25.",
+      "env_overrides": {
+        "SKIP_QUANT_EVAL": "1",
+        "VAL_LOSS_EVERY": "500",
+        "MAX_WALLCLOCK_SECONDS": "600",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T13:18:37Z",
+      "snapshot_status": "validated_winner",
+      "goal": "golf_fast_results_20260325",
+      "created_at": "2026-03-25T13:18:37Z",
+      "dispatched_at": "2026-03-25T13:19:09Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 1.6289
+      },
+      "collected_at": "2026-03-25T13:31:26Z",
+      "duration_seconds": 737
+    },
+    {
+      "experiment": "explore_fast_6e_d320",
+      "dispatch_state": "completed",
+      "role": "candidate",
+      "reason": "Expert-scaling screen at the narrow end.",
+      "stage": "explore",
+      "steps": 500,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.01,
+      "allow_promotion": false,
+      "expected_duration_seconds": 540,
+      "hypothesis": "6 experts at dim=320 may recover width loss with more specialization and beat the fast baseline.",
+      "changes_summary": "NUM_EXPERTS=6, MODEL_DIM=320, NUM_HEADS=8, NUM_KV_HEADS=4, SKIP_QUANT_EVAL=1, VAL_LOSS_EVERY=500, MAX_WALLCLOCK_SECONDS=600, TRAIN_LOG_EVERY=25.",
+      "env_overrides": {
+        "NUM_EXPERTS": "6",
+        "MODEL_DIM": "320",
+        "NUM_HEADS": "8",
+        "NUM_KV_HEADS": "4",
+        "SKIP_QUANT_EVAL": "1",
+        "VAL_LOSS_EVERY": "500",
+        "MAX_WALLCLOCK_SECONDS": "600",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T13:19:37Z",
+      "snapshot_status": "validated_winner",
+      "goal": "golf_fast_results_20260325",
+      "created_at": "2026-03-25T13:19:37Z",
+      "dispatched_at": "2026-03-25T13:31:45Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 1.64
+      },
+      "collected_at": "2026-03-25T13:44:20Z",
+      "duration_seconds": 755
+    },
+    {
+      "experiment": "explore_fast_10L_d384",
+      "dispatch_state": "completed",
+      "role": "candidate",
+      "reason": "Pure depth increase at full width.",
+      "stage": "explore",
+      "steps": 500,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.01,
+      "allow_promotion": false,
+      "expected_duration_seconds": 755,
+      "hypothesis": "10 layers at full width may beat the fast baseline by adding depth without narrowing the representation.",
+      "changes_summary": "NUM_LAYERS=10, MODEL_DIM=384, SKIP_QUANT_EVAL=1, VAL_LOSS_EVERY=500, MAX_WALLCLOCK_SECONDS=600, TRAIN_LOG_EVERY=25.",
+      "env_overrides": {
+        "NUM_LAYERS": "10",
+        "MODEL_DIM": "384",
+        "SKIP_QUANT_EVAL": "1",
+        "VAL_LOSS_EVERY": "500",
+        "MAX_WALLCLOCK_SECONDS": "600",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T13:19:37Z",
+      "snapshot_status": "validated_winner",
+      "goal": "golf_fast_results_20260325",
+      "created_at": "2026-03-25T13:19:37Z",
+      "dispatched_at": "2026-03-25T13:44:39Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 1.616
+      },
+      "collected_at": "2026-03-25T13:57:38Z",
+      "duration_seconds": 779,
+      "expected_duration_source": "empirical_median_same_steps",
+      "expected_duration_samples": 3,
+      "expected_duration_updated_at": "2026-03-25T14:50:16Z",
+      "preflight": {
+        "status": "fail",
+        "dispatch_ready": false,
+        "checked_at": "2026-03-25T15:05:28Z",
+        "summary": "preflight blocked parameter-golf/explore_fast_10L_d384: goal_max_duration - expected duration 755s exceeds cap 630s",
+        "effective_expected_duration_seconds": 755,
+        "recommended_expected_duration_seconds": 755
+      }
+    },
+    {
+      "experiment": "explore_fast_11L_d352",
+      "dispatch_state": "completed",
+      "role": "candidate",
+      "reason": "Moderate deep-and-narrow compromise.",
+      "stage": "explore",
+      "steps": 500,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.01,
+      "allow_promotion": false,
+      "expected_duration_seconds": 540,
+      "hypothesis": "11 layers at dim=352 may outperform both the baseline and the pure 10L@384 depth increase.",
+      "changes_summary": "NUM_LAYERS=11, MODEL_DIM=352, NUM_HEADS=8, NUM_KV_HEADS=4, SKIP_QUANT_EVAL=1, VAL_LOSS_EVERY=500, MAX_WALLCLOCK_SECONDS=600, TRAIN_LOG_EVERY=25.",
+      "env_overrides": {
+        "NUM_LAYERS": "11",
+        "MODEL_DIM": "352",
+        "NUM_HEADS": "8",
+        "NUM_KV_HEADS": "4",
+        "SKIP_QUANT_EVAL": "1",
+        "VAL_LOSS_EVERY": "500",
+        "MAX_WALLCLOCK_SECONDS": "600",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T13:19:37Z",
+      "snapshot_status": "validated_winner",
+      "goal": "golf_fast_results_20260325",
+      "created_at": "2026-03-25T13:19:37Z",
+      "dispatched_at": "2026-03-25T13:57:57Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 1.6271
+      },
+      "collected_at": "2026-03-25T14:12:46Z",
+      "duration_seconds": 889
+    }
+  ]
+}

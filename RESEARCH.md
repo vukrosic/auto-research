@@ -34,7 +34,7 @@ When the user says "run a research cycle" (or similar), execute these steps:
 
 - Check if `current_best.json` has `stage_baselines` for all active stages (explore, validate)
 - If running at a non-standard step count: check if a baseline exists for that exact count. If not, train one first.
-- If any are missing (e.g., after a promotion): run `scripts/calibrate_baselines.sh <gpu> [stage]`
+- If any are missing (e.g., after a promotion): run `scripts/calibrate_baselines.sh <project> <gpu> [stage]`
 - For custom step counts: run the base code manually at that step count and record the result in `current_best.json` under `stage_baselines`
 - This runs the base code at the stage's step count and records what metric to beat
 - **Without calibrated baselines, explore experiments will be compared against the full-run metric and always rejected**
@@ -47,8 +47,8 @@ When the user says "run a research cycle" (or similar), execute these steps:
 ### 2. Orient
 
 - Read `knowledge/<project>/` to understand what's been tried and what works
-- Read `experiments/base/KNOWLEDGE.md` if it exists
-- Check `experiments/snapshots/` for experiments in any active status
+- Read `experiments/<project>/base/KNOWLEDGE.md` if it exists
+- Check `experiments/<project>/snapshots/` for experiments in any active status
 - Check GPU availability: `scripts/gpu_status.sh`
 
 ### 3. Check Running Experiments
@@ -77,8 +77,8 @@ For each experiment with `status` = `done`:
 For each experiment with `status` = `validated_winner`:
 - Check all promotion preconditions in [05_PROMOTION_POLICY.md](/root/research/autoresearch/lab/05_PROMOTION_POLICY.md)
 - If all preconditions are met:
-  - Copy the winner's `code/` to `experiments/base/`
-  - Update `experiments/current_best.json` with new metric, experiment name, and timestamp
+  - Copy the winner's `code/` to `experiments/<project>/base/`
+  - Update `experiments/<project>/current_best.json` with new metric, experiment name, and timestamp
   - Write the promotion record (see promotion policy for required fields)
   - Set `status=promoted`
   - Log the promotion in `knowledge/<project>/wins.md`
@@ -88,22 +88,53 @@ For each experiment with `status` = `validated_winner`:
 
 - Think about what to try next based on knowledge, frontier, open questions, and the gap to target
 - For each idea:
-  - Create a new experiment snapshot: `scripts/new_experiment.sh <name>`
+  - Create a new experiment snapshot: `scripts/new_experiment.sh <project> <name>`
   - Name must follow [09_NAMING_CONVENTION.md](/root/research/autoresearch/lab/09_NAMING_CONVENTION.md)
-  - Make code changes in `experiments/snapshots/<name>/code/`
+  - Make code changes in `experiments/<project>/snapshots/<name>/code/`
   - Write `meta.json` with hypothesis, stage, parent_base, baseline metric, and promotion threshold
   - Set `status=pending`
 
 ### 7. Dispatch
 
-The **experiment queue** is all snapshots with `status=pending`, ordered by `meta.json.created_at` (oldest first). There is no separate queue file — the snapshots ARE the queue. This is the single source of truth for dispatch order.
+The default **project queue** is all snapshots with `status=pending`, ordered by `meta.json.created_at` (oldest first).
+
+Optional override: a goal may define `goals/<goal>/queue.json`. When present, that goal queue becomes the source of truth for dispatch order for experiments tagged with that goal. The runtime materializes snapshots from the goal queue and dispatches them in queue order before falling back to the legacy project queue.
+
+For short, hard-bounded research goals, timing must be defined in machine-readable form. If the user says "5 minutes of research", the recommended goal metadata is:
+
+```json
+{
+  "training_window_seconds": 300,
+  "training_window_anchor": "first_dispatch",
+  "report_due_policy": "training_deadline",
+  "experiment_constraints": {
+    "max_wallclock_seconds": 45,
+    "max_validation_sequences": 128,
+    "skip_quant_eval": true,
+    "skip_export_artifacts": true,
+    "single_final_eval_only": true
+  }
+}
+```
+
+That means:
+- the budget starts when training actually starts, not when planning starts
+- validation, quantization, export, and collection tails count against the budget
+- preflight must verify those tails are disabled or capped before dispatch
+- empirical timing must be used; guesses are not enough for a micro-sprint
 
 When a GPU becomes available, the dispatcher picks the next experiment from the queue:
 - `dispatch_pending()` in `autonomous_lab.py` handles this automatically
-- Manual dispatch: `scripts/dispatch.sh <experiment_name> <gpu_name>`
+- Manual dispatch: `scripts/dispatch.sh <project_name> <experiment_name> <gpu_name>`
+- Hard preflight gate: `scripts/preflight_experiment.py <project> <experiment> --gpu <gpu>`
+- Goal queue materialization: `python3 scripts/materialize_goal_queue.py <goal>`
 - A file lock (`.cycle.lock`) prevents concurrent dispatchers from double-booking
 
-Future: `created_at` ordering will be replaced by a ranking mechanism (e.g. priority score, expected value). The queue model stays the same — only the sort key changes.
+Before compute is allocated, `dispatch.sh` now runs preflight automatically. Preflight writes
+`experiments/<project>/snapshots/<name>/preflight.json`, validates config and queue state, checks
+deadline fit, compares expected duration against measured runs, and can auto-correct stale
+`expected_duration_seconds` metadata before dispatch. A blocked preflight means the experiment stays
+pending and must not bypass the queue.
 
 ### 8. Report
 
@@ -117,20 +148,23 @@ Summarize the session using the [Cycle Report template](/root/research/autoresea
 
 ```
 experiments/
-  base/                          # clean copy of the repo — current best
-  current_best.json              # canonical frontier record
-  snapshots/
-    explore_moe_width_7ac2/
-      code/                      # full repo copy with changes
-      meta.json                  # see below
-      status                     # see status vocabulary
-      result.json                # filled after training completes
+  <project_name>/                  # one subdirectory per project
+    base/                          # clean copy of the repo — current best
+    current_best.json              # canonical frontier record
+    base_id.txt                    # current base identity for stale detection
+    snapshots/
+      explore_moe_width_7ac2/
+        code/                      # full repo copy with changes
+        meta.json                  # see below (includes "project" field)
+        status                     # see status vocabulary
+        result.json                # filled after training completes
 ```
 
 ### meta.json format
 ```json
 {
   "name": "explore_moe_width_7ac2",
+  "project": "parameter-golf",
   "hypothesis": "8 experts might fit at dim=320 and improve over 4 experts",
   "parent_base": "base::pre_autoresearch_baseline::2026-03-24T00:00:00Z",
   "stage": "explore",
@@ -173,33 +207,71 @@ Defined in [04_EXPERIMENT_GOVERNANCE.md](/root/research/autoresearch/lab/04_EXPE
 
 ## Project Config
 
-Project-specific settings live in `projects/<name>.json`:
+Project-specific settings live in `projects/<name>.json`. This is the **universal contract** — each project defines how to run, parse, and evaluate experiments:
 ```json
 {
   "name": "parameter-golf",
+  "enabled": true,
   "repo_path": "/root/research/parameter-golf",
   "metric": "val_bpb",
+  "metric_direction": "lower",
+  "secondary_metrics": ["val_bpb_quant"],
   "target": 1.2194,
-  "current_best": 1.3564,
   "run_command": "bash infra/run_experiment.sh {name} {steps}",
+  "process_pattern": "train_gpt.py",
+  "log_path": "logs/{name}.txt",
+  "result_dir": "results/{name}/",
+  "completion_indicator": "results/{name}/summary.json",
+  "summary_json_path": "results/{name}/summary.json",
+  "metric_parse": {
+    "val_bpb": {
+      "summary_json_key": "last_eval.val_bpb",
+      "log_regex": "\\bval_bpb[:=]\\s*([0-9]+(?:\\.[0-9]+)?)\\b"
+    }
+  },
+  "step_parse": {
+    "summary_json_key": "last_eval.step",
+    "log_regex": "\\bstep[:=]\\s*([0-9]+)"
+  },
   "stages": {
     "explore": {"steps": 500, "threshold": 0.01},
     "validate": {"steps": 4000, "threshold": 0.005},
     "full": {"steps": 13780, "threshold": 0.0}
   },
+  "gpu_remote_dirs": {
+    "novita-rtx3090": "/root/parameter-golf"
+  },
   "gpus": ["novita-rtx3090"]
 }
 ```
 
+Notes:
+
+- `enabled: false` keeps a project configured but out of auto-dispatch.
+- `hooks.<step>` can override a lifecycle step when the generic runtime is not enough.
+  See [`scripts/project_hooks/README.md`](/root/research/autoresearch/scripts/project_hooks/README.md).
+
+### Adding a New Project
+
+1. Create `projects/<name>.json` with all fields above
+2. Run `scripts/init_base.sh <project_name>` to set up `experiments/<project>/base/`
+3. Create `experiments/<project>/current_best.json` with initial baseline metrics
+4. Create `knowledge/<project>/` directory for research notes
+5. Ensure the repo on the GPU has data and dependencies installed
+6. Leave `enabled: false` until the project is safe to auto-dispatch on shared GPUs
+
 ## GPU Operations
 
-All GPU operations go through helper scripts in `scripts/`:
-- `scripts/gpu_status.sh` — check what's running on each GPU
-- `scripts/new_experiment.sh <name>` — create snapshot from base
-- `scripts/dispatch.sh <experiment> <gpu>` — rsync + start training
-- `scripts/check_experiment.sh <experiment>` — check if training is done
-- `scripts/collect_result.sh <experiment>` — pull results back
-- `scripts/promote.sh <experiment>` — promote winner to base
+All GPU operations go through helper scripts in `scripts/`. All scripts now take `<project>` as the first argument:
+- `scripts/gpu_status.sh` — check what's running on each GPU (all projects)
+- `scripts/init_base.sh <project> [repo_path]` — initialize base from repo
+- `scripts/new_experiment.sh <project> <name>` — create snapshot from base
+- `scripts/dispatch.sh <project> <experiment> <gpu>` — rsync + start training
+- `scripts/check_experiment.sh <project> <experiment>` — check if training is done
+- `scripts/collect_result.sh <project> <experiment>` — pull results back
+- `scripts/promote.sh <project> <experiment>` — promote winner to base
+- `scripts/calibrate_baselines.sh <project> <gpu> [stage]` — calibrate stage baselines
+- `scripts/cleanup_snapshots.sh [project] [--dry-run]` — remove terminal experiments
 
 ## Knowledge Files
 

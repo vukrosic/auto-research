@@ -1,0 +1,18 @@
+{
+  "experiment_name": "explore_baseline_v2",
+  "promoted_at": "2026-03-25T12:33:13Z",
+  "hypothesis": "Calibration run \u2014 unmodified base at 500 steps with updated defaults (dim=384, MoE4e, bn128u, leaky). Establishes the correct explore baseline for the current architecture.",
+  "parent_base": "base::pre_autoresearch_baseline::2026-03-24T00:00:00Z",
+  "promotion_metric": "val_bpb_quant",
+  "stage_baselines": {
+    "explore": {
+      "steps": 500,
+      "calibrated_at": "2026-03-25T12:33:13Z",
+      "gpu": "novita-rtx3090",
+      "val_bpb": 1.6673,
+      "val_bpb_quant": 1.66794509
+    }
+  },
+  "val_bpb": 1.6673,
+  "val_bpb_quant": 1.66794509
+}

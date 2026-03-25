@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run the current base at each stage's step count to establish reference metrics.
-# Usage: scripts/calibrate_baselines.sh <gpu_name> [stage]
+# Canonical usage: scripts/calibrate_baselines.sh <project_name> <gpu_name> [stage]
+# Legacy one-project shorthand: scripts/calibrate_baselines.sh <gpu_name> [stage]
 #
 # If [stage] is given, only calibrate that stage. Otherwise calibrates all stages
 # that don't already have a baseline.
@@ -13,21 +14,45 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AUTORESEARCH_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/gpu_config.sh"
 
-GPU="${1:?Usage: scripts/calibrate_baselines.sh <gpu_name> [stage]}"
-ONLY_STAGE="${2:-}"
+if [ $# -ge 2 ] && project_exists "$AUTORESEARCH_DIR" "$1"; then
+    PROJECT="${1:?Usage: scripts/calibrate_baselines.sh <project_name> <gpu_name> [stage]}"
+    GPU="${2:?Usage: scripts/calibrate_baselines.sh <project_name> <gpu_name> [stage]}"
+    ONLY_STAGE="${3:-}"
+else
+    PROJECT="$(default_project_name "$AUTORESEARCH_DIR")"
+    GPU="${1:?Usage: scripts/calibrate_baselines.sh <project_name> <gpu_name> [stage]}"
+    ONLY_STAGE="${2:-}"
+fi
 
-REMOTE_DIR=$(gpu_var "$GPU" REMOTE_DIR)
-BEST_FILE="$AUTORESEARCH_DIR/experiments/current_best.json"
+PROJECT_JSON="$(project_config_path "$AUTORESEARCH_DIR" "$PROJECT")"
+if [ ! -f "$PROJECT_JSON" ]; then
+    echo "ERROR: No project config at $PROJECT_JSON"
+    exit 1
+fi
+
+HOOK="$(project_hook_path "$PROJECT_JSON" calibrate "$AUTORESEARCH_DIR" || true)"
+if [ -n "$HOOK" ]; then
+    if [ ! -x "$HOOK" ]; then
+        echo "ERROR: Calibrate hook is not executable: $HOOK"
+        exit 1
+    fi
+    if [ -n "$ONLY_STAGE" ]; then
+        exec "$HOOK" "$PROJECT" "$GPU" "$ONLY_STAGE"
+    else
+        exec "$HOOK" "$PROJECT" "$GPU"
+    fi
+fi
+
+PROJECT_EXPERIMENTS="$AUTORESEARCH_DIR/experiments/$PROJECT"
+REMOTE_DIR=$(project_remote_dir "$PROJECT_JSON" "$GPU")
+BEST_FILE="$PROJECT_EXPERIMENTS/current_best.json"
+RUN_COMMAND=$(project_field "$PROJECT_JSON" run_command)
 
 # Read project stages
 STAGES_JSON=$(python3 -c "
-import json, glob
-files = sorted(glob.glob('$AUTORESEARCH_DIR/projects/*.json'))
-if files:
-    project = json.load(open(files[0]))
-    print(json.dumps(project.get('stages', {})))
-else:
-    print('{}')
+import json
+project = json.load(open('$PROJECT_JSON'))
+print(json.dumps(project.get('stages', {})))
 ")
 
 # Get stages to calibrate
@@ -47,37 +72,60 @@ for name, conf in stages.items():
 ")
 
 if [ -z "$STAGES_TO_RUN" ]; then
-    echo "All stage baselines already calibrated. Use scripts/calibrate_baselines.sh <gpu> <stage> to force recalibration."
+    echo "All stage baselines already calibrated. Use scripts/calibrate_baselines.sh $PROJECT <gpu> <stage> to force recalibration."
     exit 0
 fi
 
 # Sync base code to GPU
 echo "=== Syncing base to $GPU ==="
-gpu_rsync_to "$GPU" "$AUTORESEARCH_DIR/experiments/base/" "$REMOTE_DIR/"
+gpu_rsync_to "$GPU" "$PROJECT_EXPERIMENTS/base/" "$REMOTE_DIR/"
 
 for entry in $STAGES_TO_RUN; do
     STAGE="${entry%%:*}"
     STEPS="${entry##*:}"
-    RUN_NAME="calibrate_${STAGE}"
+    RUN_NAME="$(project_json_get "$PROJECT_JSON" "stage_baseline_runs.$STAGE" "calibrate_${STAGE}")"
 
     echo ""
     echo "=== Calibrating stage '$STAGE' at $STEPS steps on $GPU ==="
 
+    # Build the run command from project config template
+    EXPANDED_CMD=$(echo "$RUN_COMMAND" | sed "s/{name}/$RUN_NAME/g; s/{steps}/$STEPS/g")
+
+    mkdir -p "/tmp/calibrate_${STAGE}"
     # Run training synchronously
-    gpu_ssh "$GPU" "cd $REMOTE_DIR && bash infra/run_experiment.sh '$RUN_NAME' '$STEPS'" 2>&1 | tail -30
+    gpu_ssh "$GPU" "cd $REMOTE_DIR && $EXPANDED_CMD" 2>&1 | tee "/tmp/calibrate_${STAGE}/command.log" | tail -30
 
     # Pull results
-    mkdir -p "/tmp/calibrate_${STAGE}"
-    gpu_rsync_from "$GPU" "${REMOTE_DIR}/logs/${RUN_NAME}.txt" "/tmp/calibrate_${STAGE}/train.log" 2>/dev/null || true
-    gpu_rsync_from "$GPU" "${REMOTE_DIR}/results/${RUN_NAME}/" "/tmp/calibrate_${STAGE}/results/" 2>/dev/null || true
+    LOG_PATH=$(python3 -c "
+import json
+p = json.load(open('$PROJECT_JSON'))
+print(p.get('log_path', 'logs/{name}.txt').replace('{name}', '$RUN_NAME'))
+")
+    RESULT_DIR_TEMPLATE=$(python3 -c "
+import json
+p = json.load(open('$PROJECT_JSON'))
+print(p.get('result_dir', 'results/{name}/').replace('{name}', '$RUN_NAME'))
+")
 
-    # Parse metrics
+    gpu_rsync_from "$GPU" "${REMOTE_DIR}/${LOG_PATH}" "/tmp/calibrate_${STAGE}/train.log" 2>/dev/null || true
+    gpu_rsync_from "$GPU" "${REMOTE_DIR}/${RESULT_DIR_TEMPLATE}" "/tmp/calibrate_${STAGE}/results/" 2>/dev/null || true
+
+    # Parse metrics using project config
     python3 -c "
 import json, re
 from pathlib import Path
 
 log_path = Path('/tmp/calibrate_${STAGE}/train.log')
+if not log_path.exists():
+    fallback = Path('/tmp/calibrate_${STAGE}/command.log')
+    if fallback.exists():
+        log_path = fallback
 summary_path = Path('/tmp/calibrate_${STAGE}/results/summary.json')
+project = json.load(open('$PROJECT_JSON'))
+metric_parse = project.get('metric_parse', {})
+primary_metric = project.get('metric', 'val_bpb')
+secondary_metrics = project.get('secondary_metrics', [])
+all_metrics = [primary_metric] + secondary_metrics
 
 if not log_path.exists():
     print('ERROR: No training log for stage $STAGE')
@@ -86,52 +134,61 @@ if not log_path.exists():
 text = log_path.read_text(encoding='utf-8', errors='replace')
 lines = text.splitlines()
 
-val_bpb = None
-val_quant = None
-
+summary = {}
 if summary_path.exists():
     try:
         summary = json.loads(summary_path.read_text(encoding='utf-8'))
-        last_eval = summary.get('last_eval') or {}
-        final_quant = summary.get('final_quant_eval') or {}
-        val_bpb = last_eval.get('val_bpb')
-        val_quant = final_quant.get('val_bpb')
     except Exception:
         pass
 
-if val_bpb is None:
-    for line in reversed(lines):
-        m = re.search(r'\bval_bpb[:=]\s*([0-9]+(?:\.[0-9]+)?)\b', line)
-        if m:
-            val_bpb = float(m.group(1))
-            break
+parsed = {}
+for metric_name in all_metrics:
+    mconf = metric_parse.get(metric_name, {})
+    value = None
+    sjk = mconf.get('summary_json_key', '')
+    if sjk and isinstance(summary, dict):
+        obj = summary
+        for part in sjk.split('.'):
+            if isinstance(obj, dict):
+                obj = obj.get(part)
+            else:
+                obj = None
+                break
+        if obj is not None:
+            try:
+                value = float(obj)
+            except (ValueError, TypeError):
+                pass
+    if value is None:
+        regex = mconf.get('log_regex')
+        if regex:
+            for line in reversed(lines):
+                m = re.search(regex, line)
+                if m:
+                    value = float(m.group(1))
+                    break
+    if value is not None:
+        parsed[metric_name] = value
 
-if val_quant is None:
-    for line in reversed(lines):
-        m = re.search(r'final_int8_zlib_roundtrip_exact[^0-9]*([0-9]+(?:\.[0-9]+)?)', line)
-        if m:
-            val_quant = float(m.group(1))
-            break
-
-if val_bpb is None:
-    print('ERROR: Could not parse val_bpb for stage $STAGE')
+if primary_metric not in parsed:
+    print(f'ERROR: Could not parse {primary_metric} for stage $STAGE')
     exit(1)
 
 # Update current_best.json
 best = json.load(open('$BEST_FILE'))
 baselines = best.get('stage_baselines', {})
-baselines['$STAGE'] = {
-    'val_bpb': val_bpb,
-    'val_bpb_quant': val_quant,
+baseline_entry = {
     'steps': $STEPS,
     'calibrated_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)',
     'gpu': '$GPU',
 }
+baseline_entry.update(parsed)
+baselines['$STAGE'] = baseline_entry
 best['stage_baselines'] = baselines
 with open('$BEST_FILE', 'w') as f:
     json.dump(best, f, indent=2)
 
-print(f'Stage $STAGE calibrated: val_bpb={val_bpb}, val_bpb_quant={val_quant} at $STEPS steps')
+print(f'Stage $STAGE calibrated: {parsed} at $STEPS steps')
 "
 done
 

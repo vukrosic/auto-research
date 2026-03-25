@@ -1,7 +1,0 @@
-{
-  "val_bpb": 3.0823,
-  "val_bpb_quant": 8.0,
-  "steps_completed": 15,
-  "gpu": "novita-rtx3090",
-  "log_tail": "step:2/15 train_loss:6.5107 train_time:1482ms step_avg:740.97ms\nstep:3/15 train_loss:6.4295 train_time:2226ms step_avg:741.90ms\nstep:4/15 train_loss:6.3328 train_time:2969ms step_avg:742.20ms\nstep:5/15 train_loss:6.2175 train_time:3713ms step_avg:742.59ms\nstep:6/15 train_loss:6.1069 train_time:4456ms step_avg:742.74ms\nstep:7/15 train_loss:6.0159 train_time:5199ms step_avg:742.78ms\nstep:8/15 train_loss:5.9139 train_time:5943ms step_avg:742.87ms\nstep:9/15 train_loss:5.8045 train_time:6687ms step_avg:742.96ms\nstep:10/15 train_loss:5.7002 train_time:7431ms step_avg:743.07ms\nstep:11/15 train_loss:5.5879 train_time:8174ms step_avg:743.13ms\nstep:12/15 train_loss:5.5321 train_time:8919ms step_avg:743.25ms\nstep:13/15 train_loss:5.4869 train_time:9664ms step_avg:743.40ms\nstep:14/15 train_loss:5.3720 train_time:10409ms step_avg:743.48ms\nstep:15/15 train_loss:5.3166 train_time:11155ms step_avg:743.66ms\nstep:15/15 val_loss:5.2686 val_bpb:3.0823 train_time:11155ms step_avg:743.69ms\npeak memory allocated: 2443 MiB reserved: 2482 MiB\nSerialized model: 64365969 bytes\nCode size: 85115 bytes\nTotal submission size: 64451084 bytes\nSKIP_QUANT_EVAL: skipping quantization eval"
-}

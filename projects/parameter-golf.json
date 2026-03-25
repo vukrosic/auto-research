@@ -1,18 +1,112 @@
 {
   "name": "parameter-golf",
+  "enabled": true,
   "description": "OpenAI Parameter Golf: best 16MB language model in <10min on 8xH100s. Scored by val_bpb (lower=better).",
   "repo_path": "/root/research/parameter-golf",
   "metric": "val_bpb",
+  "metric_direction": "lower",
+  "secondary_metrics": ["val_bpb_quant"],
 
   "target": 1.2194,
   "current_best": 1.3564,
-  "current_best_description": "MoE4e + bn128u + leaky(0.5)² at d384: 1.3564 BPB (4k steps, post-quant)",
+  "current_best_description": "MoE4e + bn128u + leaky(0.5)\u00b2 at d384: 1.3564 BPB (4k steps, post-quant)",
+
   "run_command": "bash infra/run_experiment.sh {name} {steps}",
-  "result_parse": "grep 'val_bpb' logs/{name}.txt | tail -1",
+  "process_pattern": "train_gpt.py",
+  "log_path": "logs/{name}.txt",
+  "result_dir": "results/{name}/",
+  "completion_indicator": "results/{name}/summary.json",
+  "summary_json_path": "results/{name}/summary.json",
+
+  "metric_parse": {
+    "val_bpb": {
+      "summary_json_key": "last_eval.val_bpb",
+      "log_regex": "\\bval_bpb[:=]\\s*([0-9]+(?:\\.[0-9]+)?)\\b"
+    },
+    "val_bpb_quant": {
+      "summary_json_key": "final_quant_eval.val_bpb",
+      "log_regex": "final_int8_zlib_roundtrip_exact\\s+val_loss:[0-9.]+\\s+val_bpb:([0-9]+(?:\\.[0-9]+)?)"
+    }
+  },
+  "step_parse": {
+    "summary_json_key": "last_eval.step",
+    "log_regex": "\\bstep[:=]\\s*([0-9]+)",
+    "log_regex_fallback": "warmup_step:(\\d+)/(\\d+)"
+  },
+
   "stages": {
     "explore": {"steps": 500, "threshold": 0.01, "description": "Quick screen, ~28min on 3090"},
     "validate": {"steps": 4000, "threshold": 0.005, "description": "Confirm winners, ~3.7hr on 3090"},
     "full": {"steps": 13780, "threshold": 0.0, "description": "Full run, ~12.7hr on 3090"}
   },
+
+  "gpu_remote_dirs": {
+    "novita-rtx3090": "/root/parameter-golf"
+  },
   "gpus": ["novita-rtx3090"]
+  ,
+  "preflight": {
+    "required_meta_fields": [
+      "name",
+      "project",
+      "parent_base",
+      "stage",
+      "steps",
+      "baseline_metric",
+      "promotion_threshold",
+      "expected_duration_seconds"
+    ],
+    "env_defaults": {
+      "NUM_LAYERS": "9",
+      "MODEL_DIM": "384",
+      "NUM_HEADS": "8",
+      "NUM_KV_HEADS": "4",
+      "MLP_MULT": "2",
+      "NUM_EXPERTS": "0",
+      "SKIP_QUANT_EVAL": "0",
+      "SKIP_EXPORT_ARTIFACTS": "0",
+      "VAL_MAX_SEQS": "0",
+      "VAL_LOSS_EVERY": "50",
+      "MAX_WALLCLOCK_SECONDS": "0"
+    },
+    "timing_signature_keys": [
+      "SKIP_QUANT_EVAL",
+      "SKIP_EXPORT_ARTIFACTS",
+      "VAL_MAX_SEQS",
+      "VAL_LOSS_EVERY",
+      "HARD_TIMEOUT_SECONDS"
+    ],
+    "snapshot_code_contracts": {
+      "env_features": {
+        "SKIP_QUANT_EVAL": [
+          {"path": "train_gpt.py", "pattern": "SKIP_QUANT_EVAL"}
+        ],
+        "SKIP_EXPORT_ARTIFACTS": [
+          {"path": "infra/run_experiment.sh", "pattern": "SKIP_EXPORT_ARTIFACTS"}
+        ],
+        "VAL_MAX_SEQS": [
+          {"path": "train_gpt.py", "pattern": "VAL_MAX_SEQS"}
+        ],
+        "HARD_TIMEOUT_SECONDS": [
+          {"path": "infra/run_experiment.sh", "pattern": "HARD_TIMEOUT_SECONDS"}
+        ]
+      }
+    },
+    "divisibility_checks": [
+      {
+        "numerator_env": "MODEL_DIM",
+        "denominator_env": "NUM_HEADS",
+        "default_numerator": 384,
+        "default_denominator": 8,
+        "message": "MODEL_DIM must be divisible by NUM_HEADS"
+      },
+      {
+        "numerator_env": "MODEL_DIM",
+        "denominator_env": "NUM_KV_HEADS",
+        "default_numerator": 384,
+        "default_denominator": 4,
+        "message": "MODEL_DIM must be divisible by NUM_KV_HEADS"
+      }
+    ]
+  }
 }

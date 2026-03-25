@@ -28,6 +28,9 @@ Each day the agent should:
 3. **Dispatch next** — send next pending experiment to idle GPU
 4. **Plan ahead** — ensure there are always 3+ pending experiments ready to dispatch
 
+If operating under a hard deadline:
+5. **Measure against the clock** — recompute remaining time, remaining queue budget, and report whether the plan is on track within a 5% error band
+
 > **HARD RULE: The GPU queue must never be empty while there are unexplored ideas.**
 > Before the current experiment finishes, the next experiment must be designed, snapshotted, and ready to dispatch. If you find the GPU idle with no pending experiments, this is a planning failure — design and dispatch immediately.
 
@@ -129,3 +132,19 @@ The week plan is a **living document** — update it as results come in and plan
 4. **Sunk cost** — don't keep exploring an axis because you already spent time on it. If it's not working, pivot.
 5. **Planning in a vacuum** — always read knowledge files before designing experiments. Don't re-run failed approaches.
 6. **Perfect plans** — a good plan executed now beats a perfect plan next week. Dispatch something.
+7. **Deadline blindness** — dispatching work that cannot finish inside the remaining window is a planning failure. Use exact times, expected durations, and a 5% tolerance budget.
+
+## Deadline-Bound Planning
+
+> **HARD RULE: Deadline-bound plans must be exact enough to manage, not approximate enough to excuse misses.**
+>
+> For a deadline-bound goal:
+> - compute remaining wall-clock exactly
+> - if the runtime budget starts at first dispatch, do not charge planning time against it
+> - once the first dispatch happens, treat the runtime window as live and binding
+> - sum expected durations for the remaining queue
+> - include validation, quantization, compression, export, and collection tails in every estimate
+> - include a 5% tolerance on each run
+> - do not dispatch the next run unless it fits
+> - after every completed run, compare actual vs expected and update all remaining estimates
+> - if estimates are wrong, fix either the runtime path or the plan immediately

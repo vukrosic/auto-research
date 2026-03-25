@@ -20,6 +20,12 @@ venv/
 /experiments/snapshots/*/code/
 /experiments/snapshots/*/gpu
 /experiments/snapshots/*/remote_pid
+/experiments/parameter-golf/base_id.txt
+/experiments/parameter-golf/base_backup_*/
+/experiments/parameter-golf/base/queues/active.txt
+/experiments/parameter-golf/snapshots/*/code/
+/experiments/parameter-golf/snapshots/*/gpu
+/experiments/parameter-golf/snapshots/*/remote_pid
 
 # Local machine and credential config
 /scripts/gpu_config.sh

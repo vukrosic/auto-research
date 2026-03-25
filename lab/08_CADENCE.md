@@ -10,6 +10,8 @@ This lab runs on a session-based trigger model. A human starts a Claude Code ses
 
 Cadence is therefore defined around sessions, not clock time.
 
+Exception: a goal may define a hard calendar deadline and a report time. In that case, the session must treat that deadline as binding and continuously track progress against it.
+
 ## Session Cadence
 
 ### Session Open
@@ -25,6 +27,7 @@ Cadence is therefore defined around sessions, not clock time.
 - Dispatch experiments to available GPUs
 - Monitor dispatched runs for early failures
 - Update knowledge from adjudicated results
+- Recompute remaining time to any active hard deadline after every collection and every dispatch
 
 ### Session Close
 
@@ -97,3 +100,17 @@ Every strategic review should answer:
 ## State Reconciliation Rule
 
 At session open, if `state/*.md` files disagree with experiment snapshot records, snapshot records win. Regenerate the state files. Do not trust stale dashboards.
+
+## Deadline Rule
+
+> **HARD RULE: Deadline misses beyond 5% are critical failures.**
+>
+> If a goal has a deadline:
+> - write the exact current time when the goal starts
+> - if the user specifies a runtime budget from training start, record `training_window_seconds`
+>   and `training_window_anchor=first_dispatch`
+> - stamp `training_started_at` on the first successful dispatch
+> - write the exact report time
+> - maintain a machine-readable queue or plan with expected durations
+> - update the expected completion picture after every finished run
+> - if progress is behind plan by more than 5%, stop and replan before spending more compute

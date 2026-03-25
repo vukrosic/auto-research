@@ -1,35 +1,42 @@
 # NOW — Current Work Context
 
-## ★ MISSION: Surpass transformer architecture for small LLMs
-**Best: 1.3564 BPB → Target: <1.2244 BPB | Gap: 0.132 | Deadline: Apr 30, 2026**
-Full goal: `goals/surpass_transformer_2026/MISSION.md`
+## ★ ACTIVE GOALS
+1. `surpass_transformer_2026` — best `1.3564 BPB`, target `<1.2244 BPB`, deadline `2026-04-30`
+2. `golf_fast_results_20260325` — fast golf sprint, start `2026-03-25T13:04:13Z`, deadline/report `2026-03-25T15:04:13Z`
 
 > **This file is the handoff note.** If you are a new agent or resuming a session, read this first after AGENTS.md.
 > Update it at every session close and whenever the current focus changes significantly.
 > Keep it short — this is a snapshot, not a log.
 
-**Last updated**: 2026-03-25T13:15Z
-**Active goal**: surpass_transformer_2026
-**Active campaign**: c01_close_the_gap
+**Last updated**: 2026-03-25T13:20:17Z
+**Primary active goal right now**: golf_fast_results_20260325
+**Long-horizon goal still active**: surpass_transformer_2026
+**Active campaigns**: `c01_close_the_gap`, `c01_fast_signal_under_10min`
 
 ---
 
 ## What We're Doing Right Now
 
-**GPU is IDLE. Ready to dispatch next experiment.**
+**`explore_fast_baseline_500` is RUNNING on `novita-rtx3090`.**
 
-Wave 1 queue has 12 experiments pending. Dispatch now:
+Current loop:
 ```
-bash scripts/dispatch.sh explore_6e_d352_v2 novita-rtx3090
-```
-
-Then after each finishes:
-```
-bash scripts/collect_result.sh <name>
-bash scripts/dispatch.sh <next_in_queue> novita-rtx3090
+bash scripts/check_experiment.sh parameter-golf explore_fast_baseline_500
 ```
 
-Queue order: see `state/ACTIVE_RUNS.md`.
+Automation:
+```
+scripts/run_goal_window.sh golf_fast_results_20260325 60
+```
+
+Goal runner state:
+- PID file: `goals/golf_fast_results_20260325/runner.pid`
+- Log: `logs/golf_fast_results_20260325.runner.log`
+- Report due at: `goals/golf_fast_results_20260325/reports/2026-03-25T15-04-13Z_report.md`
+
+Queue policy:
+- The sprint queue in `goals/golf_fast_results_20260325/queue.json` is currently ahead of the legacy parameter-golf queue.
+- `explore_6e_d320` was briefly auto-dispatched by a verification cycle and was immediately killed and returned to `pending`.
 
 ---
 
@@ -40,20 +47,21 @@ Queue order: see `state/ACTIVE_RUNS.md`.
 - Quant eval: ~39 min
 - Total: ~45 min
 
-**Option to consider**: Use `SKIP_QUANT_EVAL=1` for explore stage → cuts to ~8 min (5.6x faster).
-If doing this: recalibrate explore baseline with same flag first. Non-quant BPB is a reliable proxy (delta < 0.001).
+**Fast lane is now active**: `SKIP_QUANT_EVAL=1` is implemented in `parameter-golf/train_gpt.py`.
+Current sprint experiments also force `VAL_LOSS_EVERY=500` and `MAX_WALLCLOCK_SECONDS=600`.
 
 ---
 
 ## Current State
 
 → For live running/queued experiments: **`state/ACTIVE_RUNS.md`**
-→ For metric frontier: **`state/FRONTIER.md`** and `experiments/current_best.json`
+→ For metric frontier: **`state/FRONTIER.md`** and `experiments/parameter-golf/current_best.json`
 
 | Item | Value |
 |------|-------|
 | Best metric | 1.3564 BPB (pre-autoresearch, 4k steps, post-quant) |
 | Explore baseline | 1.6673 BPB at 500 steps (calibrated 2026-03-25) |
+| Fast sprint queue | `explore_fast_baseline_500` → `explore_fast_6e_d320` → `explore_fast_10L_d384` → `explore_fast_11L_d352` |
 | Budget used this month | ~$4 of $40 |
 
 ---

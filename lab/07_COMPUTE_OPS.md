@@ -69,6 +69,20 @@ At minimum, the operator should be able to answer:
 >
 > Do not waste compute waiting on a run that should have finished long ago. But also do not kill a run that is just slightly slow — the cost of restarting is higher than waiting.
 
+## Deadline Discipline
+
+> **HARD RULE: Deadlines are operationally critical.** Missing a stated deadline by more than **5%** is a critical system failure, not a soft miss.
+>
+> For every deadline-bound queue or goal:
+> - record the deadline explicitly in machine-readable form
+> - record `expected_duration_seconds` before dispatch
+> - treat required dispatch budget as `expected_duration_seconds * 1.05`
+> - **do not dispatch** if the run does not fit inside the remaining deadline window
+> - after every completed run, compare actual vs expected immediately
+> - if actual is outside the 5% band, recalibrate all pending siblings before dispatching more
+>
+> The lab must estimate, measure, adjust, and re-estimate continuously. Hope is not a scheduler.
+
 ## Required Artifacts
 
 For each run, preserve:
@@ -107,6 +121,46 @@ When in doubt, mark `failed` and record the reason in `result.json`. A mislabele
 >
 > A 30-second config check prevents a 45-minute wasted run.
 
+## Automatic Preflight Gate
+
+> **HARD RULE: Dispatch must be gated by machine-checked preflight.**
+> Human review is not sufficient for deadline-bound work.
+>
+> The runtime entrypoint is `scripts/preflight_experiment.py <project> <experiment> --gpu <gpu>`.
+> `dispatch.sh` must call it automatically before any remote launch.
+>
+> Preflight must:
+> - write `preflight.json` into the snapshot directory
+> - validate required meta fields and project invariants
+> - validate goal queue ownership and deadline window
+> - compare `expected_duration_seconds` to measured runs
+> - update stale expected durations before dispatch when empirical evidence exists
+> - block dispatch if the run does not fit the remaining deadline with the required 5% budget
+>
+> If preflight blocks a run, the queue is the source of truth: keep the experiment pending,
+> surface the blocker, fix the cause, and re-run preflight. Do not jump around the queue.
+
+## Micro-Sprint Runtime Rules
+
+> **HARD RULE: In a micro-sprint, runtime budget starts at training start and includes every tail.**
+>
+> If the human says "5 minutes of research", the 5 minutes begin at the first training dispatch,
+> not at the start of agent planning. From that point onward, the following all count:
+> - training time
+> - validation time
+> - quantization/compression time
+> - artifact export time
+> - result collection tail
+>
+> Therefore, before dispatching a micro-sprint batch:
+> - measure or infer actual runtime from prior runs with the same timing signature
+> - cap validation explicitly (for example `VAL_MAX_SEQS`)
+> - disable quantization/compression tails if they are not essential (`SKIP_QUANT_EVAL=1`)
+> - disable non-essential export/artifact work if collection can rely on logs
+> - set per-run wallclock caps low enough that many runs can fit in the window
+>
+> A plan that ignores validation or export tails is invalid.
+
 ## Prediction Calibration
 
 > **RULE: After every completed experiment, check actual vs predicted duration. Update predictions if off.**
@@ -126,6 +180,10 @@ When in doubt, mark `failed` and record the reason in `result.json`. A mislabele
 > - Explore 500 steps: **45 min** (2700s)
 > - Validate 4000 steps: ~3.7 hr (estimate, not yet measured)
 > - Full 13780 steps: ~12.7 hr (estimate, not yet measured)
+
+> **Deadline-bound override**:
+> - For any run class tied to a deadline, predictions must be kept within a **±5%** error band.
+> - If two consecutive runs miss the band, stop dispatching that class until the estimate or the runtime path is corrected.
 >
 > **Breakdown of explore wall time**: ~5 min training + ~39 min quant eval + ~1 min startup = 45 min total
 

@@ -1,0 +1,208 @@
+{
+  "goal": "golf_rope_5min_20260325_r2",
+  "project": "parameter-golf",
+  "created_at": "2026-03-25T15:49:55Z",
+  "dispatch_policy": {
+    "single_source_of_truth": true,
+    "ordering": "manual",
+    "priority": "goal.json.dispatch_priority"
+  },
+  "entries": [
+    {
+      "experiment": "explore_rope_r2_baseline_50",
+      "dispatch_state": "completed",
+      "role": "baseline",
+      "reason": "Establish the corrected micro-lane baseline.",
+      "stage": "explore",
+      "steps": 50,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.0,
+      "allow_promotion": false,
+      "expected_duration_seconds": 40,
+      "hypothesis": "A 50-step corrected micro baseline should finish safely under the hard 45-second cap.",
+      "changes_summary": "Base architecture, 50 steps, WARMUP_STEPS=0, VAL_LOSS_EVERY=999999, VAL_MAX_SEQS=32, SKIP_QUANT_EVAL=1, SKIP_EXPORT_ARTIFACTS=1, MAX_WALLCLOCK_SECONDS=45, HARD_TIMEOUT_SECONDS=45.",
+      "env_overrides": {
+        "WARMUP_STEPS": "0",
+        "SKIP_QUANT_EVAL": "1",
+        "SKIP_EXPORT_ARTIFACTS": "1",
+        "VAL_LOSS_EVERY": "999999",
+        "VAL_MAX_SEQS": "32",
+        "MAX_WALLCLOCK_SECONDS": "45",
+        "HARD_TIMEOUT_SECONDS": "45",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T15:51:04Z",
+      "preflight": {
+        "status": "pass",
+        "dispatch_ready": true,
+        "checked_at": "2026-03-25T15:51:32Z",
+        "summary": "preflight passed for parameter-golf/explore_rope_r2_baseline_50 on novita-rtx3090 with expected=40s",
+        "effective_expected_duration_seconds": 40,
+        "recommended_expected_duration_seconds": 78
+      },
+      "snapshot_status": "done",
+      "goal": "golf_rope_5min_20260325_r2",
+      "created_at": "2026-03-25T15:51:04Z",
+      "dispatched_at": "2026-03-25T15:51:56Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 2.8899
+      },
+      "collected_at": "2026-03-25T15:55:43Z",
+      "duration_seconds": 227
+    },
+    {
+      "experiment": "explore_rope_r2_base_2000_50",
+      "dispatch_state": "completed",
+      "role": "candidate",
+      "reason": "Low rope base test.",
+      "stage": "explore",
+      "steps": 50,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.0,
+      "allow_promotion": false,
+      "expected_duration_seconds": 40,
+      "hypothesis": "ROPE_BASE=2000 may improve the short-run micro signal relative to the default.",
+      "changes_summary": "ROPE_BASE=2000 with corrected micro runtime caps.",
+      "env_overrides": {
+        "ROPE_BASE": "2000",
+        "WARMUP_STEPS": "0",
+        "SKIP_QUANT_EVAL": "1",
+        "SKIP_EXPORT_ARTIFACTS": "1",
+        "VAL_LOSS_EVERY": "999999",
+        "VAL_MAX_SEQS": "32",
+        "MAX_WALLCLOCK_SECONDS": "45",
+        "HARD_TIMEOUT_SECONDS": "45",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T15:51:04Z",
+      "snapshot_status": "done",
+      "goal": "golf_rope_5min_20260325_r2",
+      "created_at": "2026-03-25T15:51:04Z",
+      "preflight": {
+        "status": "pass",
+        "dispatch_ready": true,
+        "checked_at": "2026-03-25T15:54:35Z",
+        "summary": "preflight passed for parameter-golf/explore_rope_r2_base_2000_50 on novita-rtx3090 with expected=40s",
+        "effective_expected_duration_seconds": 40,
+        "recommended_expected_duration_seconds": 78
+      },
+      "dispatched_at": "2026-03-25T15:54:57Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 2.8911
+      },
+      "collected_at": "2026-03-25T15:57:04Z",
+      "duration_seconds": 127
+    },
+    {
+      "experiment": "explore_rope_r2_base_5000_50",
+      "dispatch_state": "completed",
+      "role": "candidate",
+      "reason": "Moderately lower rope base test.",
+      "stage": "explore",
+      "steps": 50,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.0,
+      "allow_promotion": false,
+      "expected_duration_seconds": 40,
+      "hypothesis": "ROPE_BASE=5000 may outperform both the default and very low rope bases in the micro lane.",
+      "changes_summary": "ROPE_BASE=5000 with corrected micro runtime caps.",
+      "env_overrides": {
+        "ROPE_BASE": "5000",
+        "WARMUP_STEPS": "0",
+        "SKIP_QUANT_EVAL": "1",
+        "SKIP_EXPORT_ARTIFACTS": "1",
+        "VAL_LOSS_EVERY": "999999",
+        "VAL_MAX_SEQS": "32",
+        "MAX_WALLCLOCK_SECONDS": "45",
+        "HARD_TIMEOUT_SECONDS": "45",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T15:51:04Z",
+      "snapshot_status": "done",
+      "goal": "golf_rope_5min_20260325_r2",
+      "created_at": "2026-03-25T15:51:04Z",
+      "updated_at": "2026-03-25T16:57:10Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 2.8912
+      },
+      "collected_at": "2026-03-25T16:53:49Z",
+      "duration_seconds": 86
+    },
+    {
+      "experiment": "explore_rope_r2_base_20000_50",
+      "dispatch_state": "completed",
+      "role": "candidate",
+      "reason": "Moderately higher rope base test.",
+      "stage": "explore",
+      "steps": 50,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.0,
+      "allow_promotion": false,
+      "expected_duration_seconds": 40,
+      "hypothesis": "ROPE_BASE=20000 may outperform the default in the micro lane.",
+      "changes_summary": "ROPE_BASE=20000 with corrected micro runtime caps.",
+      "env_overrides": {
+        "ROPE_BASE": "20000",
+        "WARMUP_STEPS": "0",
+        "SKIP_QUANT_EVAL": "1",
+        "SKIP_EXPORT_ARTIFACTS": "1",
+        "VAL_LOSS_EVERY": "999999",
+        "VAL_MAX_SEQS": "32",
+        "MAX_WALLCLOCK_SECONDS": "45",
+        "HARD_TIMEOUT_SECONDS": "45",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T15:51:04Z",
+      "snapshot_status": "done",
+      "goal": "golf_rope_5min_20260325_r2",
+      "created_at": "2026-03-25T15:51:04Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 2.8904
+      },
+      "collected_at": "2026-03-25T16:55:20Z",
+      "duration_seconds": 59,
+      "updated_at": "2026-03-25T16:57:10Z"
+    },
+    {
+      "experiment": "explore_rope_r2_base_50000_50",
+      "dispatch_state": "completed",
+      "role": "candidate",
+      "reason": "High rope base test.",
+      "stage": "explore",
+      "steps": 50,
+      "baseline_metric": 1.6673,
+      "promotion_threshold": 0.0,
+      "allow_promotion": false,
+      "expected_duration_seconds": 40,
+      "hypothesis": "ROPE_BASE=50000 may be too large, but the micro lane should test it directly instead of assuming.",
+      "changes_summary": "ROPE_BASE=50000 with corrected micro runtime caps.",
+      "env_overrides": {
+        "ROPE_BASE": "50000",
+        "WARMUP_STEPS": "0",
+        "SKIP_QUANT_EVAL": "1",
+        "SKIP_EXPORT_ARTIFACTS": "1",
+        "VAL_LOSS_EVERY": "999999",
+        "VAL_MAX_SEQS": "32",
+        "MAX_WALLCLOCK_SECONDS": "45",
+        "HARD_TIMEOUT_SECONDS": "45",
+        "TRAIN_LOG_EVERY": "25"
+      },
+      "materialized_at": "2026-03-25T15:51:04Z",
+      "snapshot_status": "done",
+      "goal": "golf_rope_5min_20260325_r2",
+      "created_at": "2026-03-25T15:51:04Z",
+      "metric": {
+        "name": "val_bpb",
+        "value": 2.8905
+      },
+      "collected_at": "2026-03-25T16:56:56Z",
+      "duration_seconds": 62,
+      "updated_at": "2026-03-25T16:57:10Z"
+    }
+  ],
+  "updated_at": "2026-03-25T16:57:10Z"
+}

@@ -67,7 +67,7 @@ idea → snapshot (on current base) → GPU runs → result
 - Single metric per project (e.g., `val_bpb`)
 - Direction: lower or higher is better
 - Threshold: `result < current_best - margin` → auto-promote
-- Tiered elimination: screen → explore → validate → full
+- Tiered elimination: explore → validate → full
 - Each stage has step budget and threshold
 
 ## GPU Dispatch Model

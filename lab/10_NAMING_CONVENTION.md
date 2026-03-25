@@ -12,16 +12,16 @@ Last updated: 2026-03-24
 
 ## Examples
 
-- `screen_moe_width_7ac2`
+- `explore_moe_width_7ac2`
 - `validate_bn128_untied_f31d`
 - `full_residual_gate_91bf`
-- `screen_lr_warmup_a4e1`
+- `explore_lr_warmup_a4e1`
 
 ## Rules
 
 - Lowercase only
 - Underscores only (no hyphens, no spaces)
-- Stage must be one of: `screen`, `explore`, `validate`, `full`
+- Stage must be one of: `explore`, `validate`, `full`
 - Topic should be one or two words identifying the area (e.g., `moe`, `lr`, `bn128`, `residual`)
 - Mechanism should be one or two words identifying the specific change
 - Short ID is 4 hex characters, globally unique within the project
@@ -33,7 +33,7 @@ Use the first 4 characters of a random hex string. Check for collisions against 
 
 ## Why This Convention
 
-- Stage in the name makes glob patterns like `screen_*` and `validate_*` useful
+- Stage in the name makes glob patterns like `explore_*` and `validate_*` useful
 - Topic and mechanism make the name human-readable without opening `meta.json`
 - Short ID prevents collisions when the same mechanism is tested twice
 - Consistent format prevents tooling from breaking on irregular names

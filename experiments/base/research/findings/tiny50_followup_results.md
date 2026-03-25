@@ -1,7 +1,7 @@
 # Tiny50 Follow-Up Results — Best-of-Best Combo Sweep
 
 **Date:** 2026-03-23  
-**Queue:** `queues/tiny50_followup_best.txt`  
+**Archived queue:** `queues/archive/tiny/tiny50_followup_best.txt`  
 **Hardware:** 1x RTX 3090 on CUDA  
 **Status:** finished, 50/50 runs recorded  
 **Baseline:** `u00_baseline = 1.9106 val_bpb`
@@ -17,7 +17,7 @@ The strongest families were:
 
 ## Method
 
-This queue was a focused follow-up to `queues/tiny50_diverse.txt`, using the best ideas from the first 50-run sweep and recombining them:
+This queue was a focused follow-up to `queues/archive/tiny/tiny50_diverse.txt`, using the best ideas from the first 50-run sweep and recombining them:
 - `value_residual`
 - `silu`
 - `relu`
@@ -104,8 +104,8 @@ That implies the most promising directions after this sweep are:
 
 ## Reproducibility
 
-- **Queue file:** `queues/tiny50_followup_best.txt`
-- **Runner:** `python3 infra/run_queue_tiny.py queues/tiny50_followup_best.txt --summary-every 5`
+- **Archived queue:** `queues/archive/tiny/tiny50_followup_best.txt`
+- **Runner:** `cp queues/archive/tiny/tiny50_followup_best.txt queues/active.txt && python3 infra/run_queue_tiny.py queues/active.txt --summary-every 5`
 - **Progress log:** `logs/queue_progress_tiny50_followup_best.json`
 - **Results:** `results/u*/summary.json`
 - **Commit:** `66aee98`

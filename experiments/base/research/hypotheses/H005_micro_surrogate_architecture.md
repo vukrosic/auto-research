@@ -25,7 +25,7 @@ More specifically:
 
 ## Prior Evidence
 
-- The repo already contains a dormant reduced-scale sweep in `queues/archive/wave_27_scale_sweep/wave27_scale_sweep.txt`.
+- The repo already contains a dormant reduced-scale sweep in `queues/archive/wave_27_scale_sweep/wave27_scale_sweep_500.txt`.
 - Existing 200-step results show `pico` and `ultra` are below the fidelity floor, while `nano` and `micro` are still viable LLMs.
 - Architecture findings already establish strong controls:
   - positives: untied bn128 embeddings, `moe_2e`, `moe_4e`

@@ -45,7 +45,7 @@ If a candidate beats its baseline on an older base:
 - `stale_winner`: beat old baseline but base moved
 - `validated_winner`: passed on the latest base and is eligible for promotion
 - `promoted`: became the new base
-- `rollback_invalidated`: was promoted but later found invalid (see [08_ROLLBACK_POLICY.md](/root/research/autoresearch/lab/08_ROLLBACK_POLICY.md))
+- `rollback_invalidated`: was promoted but later found invalid (see [09_ROLLBACK_POLICY.md](/root/research/autoresearch/lab/09_ROLLBACK_POLICY.md))
 
 ## Review Questions
 

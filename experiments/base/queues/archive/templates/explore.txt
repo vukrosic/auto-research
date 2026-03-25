@@ -1,0 +1,16 @@
+# Explore Queue Template
+# Format: <name> <steps> [ENV=val ...]
+# Place in queues/active.txt and run: bash infra/run_queue.sh queues/active.txt
+#
+# Rules:
+# - 4-8 experiments per explore wave
+# - All 500 steps (quick screen)
+# - Must fit under 16 MB (check with utils/check_params.py)
+# - Include SEED=42 variant if result is close to threshold (Δ < 0.01)
+#
+# Naming: explore/<idea>_<variant>
+
+# === <IDEA> ===
+explore_<idea>_<variant1> 500 MLP_ACT=leaky_relu2_05
+explore_<idea>_<variant2> 500 MLP_ACT=leaky_relu2_05
+# explore_<idea>_<variant1>_s42 500 MLP_ACT=leaky_relu2_05 SEED=42

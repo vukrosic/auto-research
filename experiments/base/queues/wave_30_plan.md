@@ -56,6 +56,19 @@ Beyond attnres modes, consider: head count variations (12 heads vs 6 heads at sa
 | exp30_qkgain1_4k | 4000 | $4 |
 | **Total** | | **~$24** |
 
+## Proposed `active.txt` Payload
+
+On approval, copy these lines into `queues/active.txt` rather than creating a second live queue file:
+
+```text
+exp30_vres_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 ATTNRES_MODE=value_residual
+exp30_vres_mid_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 ATTNRES_MODE=value_residual_mid
+exp30_12heads_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=12 NUM_KV_HEADS=6 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0
+exp30_4heads_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=4 NUM_KV_HEADS=2 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0
+exp30_qkgain2_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 QK_GAIN_INIT=2.0
+exp30_qkgain1_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 QK_GAIN_INIT=1.0
+```
+
 ---
 
 *Approved by:* _________  *Date:* _________

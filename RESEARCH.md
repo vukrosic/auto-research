@@ -8,6 +8,18 @@ You (Claude Code) are the autonomous researcher. This file tells you the mechani
 
 When the user says "run a research cycle" (or similar), execute these steps:
 
+### 0. Calibrate Stage Baselines (if needed)
+
+> **HARD RULE: Never evaluate an experiment without a baseline at the same step count.**
+> If you are about to run experiments at N steps and there is no baseline at N steps, you MUST train the unmodified base code at N steps first and record the result. This applies to every step count — standard stages (explore/validate/full) AND non-standard counts (e.g. 5 steps for debug runs). An experiment result is meaningless without an apples-to-apples baseline. A result that is "very bad" compared to a mismatched baseline tells you nothing — it could be normal for that step count.
+
+- Check if `current_best.json` has `stage_baselines` for all active stages (explore, validate)
+- If running at a non-standard step count: check if a baseline exists for that exact count. If not, train one first.
+- If any are missing (e.g., after a promotion): run `scripts/calibrate_baselines.sh <gpu> [stage]`
+- For custom step counts: run the base code manually at that step count and record the result in `current_best.json` under `stage_baselines`
+- This runs the base code at the stage's step count and records what metric to beat
+- **Without calibrated baselines, explore experiments will be compared against the full-run metric and always rejected**
+
 ### 1. Reconcile State
 
 - Regenerate `state/*.md` from primary records (see [state/README.md](/root/research/autoresearch/state/README.md))
@@ -26,9 +38,9 @@ For each experiment with `status` = `running`:
 - SSH to the GPU and check if training is still going
 - If done: pull results, parse metrics, write `result.json`, set `status=done`
 - If crashed (hard failure): write error to `result.json`, set `status=failed`
-- If stalled or producing bad output (soft failure): kill, set `status=failed`, record failure mode
-- If GPU unreachable (infrastructure failure): do not mark failed — flag for retry next session
-- See [06_COMPUTE_OPS.md](/root/research/autoresearch/lab/06_COMPUTE_OPS.md) for the full failure taxonomy
+- If stalled or producing bad output: kill, set `status=failed`, record failure mode
+- If GPU unreachable: do not mark failed — retry next cycle
+- See [07_COMPUTE_OPS.md](/root/research/autoresearch/lab/07_COMPUTE_OPS.md)
 
 ### 4. Adjudicate Completed Experiments
 
@@ -65,10 +77,14 @@ For each experiment with `status` = `validated_winner`:
 
 ### 7. Dispatch
 
-For each `pending` experiment, if a GPU is available:
-- Run `scripts/dispatch.sh <experiment_name> <gpu_name>`
-- This rsyncs the code and starts training
-- Set `status=running`
+The **experiment queue** is all snapshots with `status=pending`, ordered by `meta.json.created_at` (oldest first). There is no separate queue file — the snapshots ARE the queue. This is the single source of truth for dispatch order.
+
+When a GPU becomes available, the dispatcher picks the next experiment from the queue:
+- `dispatch_pending()` in `autonomous_lab.py` handles this automatically
+- Manual dispatch: `scripts/dispatch.sh <experiment_name> <gpu_name>`
+- A file lock (`.cycle.lock`) prevents concurrent dispatchers from double-booking
+
+Future: `created_at` ordering will be replaced by a ranking mechanism (e.g. priority score, expected value). The queue model stays the same — only the sort key changes.
 
 ### 8. Report
 
@@ -85,7 +101,7 @@ experiments/
   base/                          # clean copy of the repo — current best
   current_best.json              # canonical frontier record
   snapshots/
-    screen_moe_width_7ac2/
+    explore_moe_width_7ac2/
       code/                      # full repo copy with changes
       meta.json                  # see below
       status                     # see status vocabulary
@@ -95,10 +111,10 @@ experiments/
 ### meta.json format
 ```json
 {
-  "name": "screen_moe_width_7ac2",
+  "name": "explore_moe_width_7ac2",
   "hypothesis": "8 experts might fit at dim=320 and improve over 4 experts",
-  "parent_base": "base_001",
-  "stage": "screen",
+  "parent_base": "base::pre_autoresearch_baseline::2026-03-24T00:00:00Z",
+  "stage": "explore",
   "steps": 500,
   "priority": 1,
   "created_at": "2026-03-24T12:00:00Z",
@@ -133,7 +149,7 @@ Defined in [04_EXPERIMENT_GOVERNANCE.md](/root/research/autoresearch/lab/04_EXPE
 - `stale_winner` — beat old baseline but base moved; needs revalidation
 - `validated_winner` — passed on the latest base, eligible for promotion
 - `promoted` — became the new base
-- `rollback_invalidated` — was promoted but later found invalid (see [08_ROLLBACK_POLICY.md](/root/research/autoresearch/lab/08_ROLLBACK_POLICY.md))
+- `rollback_invalidated` — was promoted but later found invalid (see [09_ROLLBACK_POLICY.md](/root/research/autoresearch/lab/09_ROLLBACK_POLICY.md))
 
 ## Project Config
 
@@ -143,12 +159,10 @@ Project-specific settings live in `projects/<name>.json`:
   "name": "parameter-golf",
   "repo_path": "/root/research/parameter-golf",
   "metric": "val_bpb",
-  "metric_direction": "lower",
   "target": 1.2194,
   "current_best": 1.3564,
   "run_command": "bash infra/run_experiment.sh {name} {steps}",
   "stages": {
-    "screen": {"steps": 500, "threshold": 0.01},
     "explore": {"steps": 500, "threshold": 0.01},
     "validate": {"steps": 4000, "threshold": 0.005},
     "full": {"steps": 13780, "threshold": 0.0}

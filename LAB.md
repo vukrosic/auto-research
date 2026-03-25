@@ -15,11 +15,11 @@ Use this file as the entry point for the lab layer.
 4. [Research Lifecycle](/root/research/autoresearch/lab/03_RESEARCH_LIFECYCLE.md)
 5. [Experiment Governance](/root/research/autoresearch/lab/04_EXPERIMENT_GOVERNANCE.md) — statuses, records, review discipline
 6. [Promotion Policy](/root/research/autoresearch/lab/05_PROMOTION_POLICY.md) — canonical promotion preconditions
-7. [Knowledge System](/root/research/autoresearch/lab/05_KNOWLEDGE_SYSTEM.md)
-8. [Compute Operations](/root/research/autoresearch/lab/06_COMPUTE_OPS.md) — including failure taxonomy
-9. [Cadence](/root/research/autoresearch/lab/07_CADENCE.md) — session-based operation model
-10. [Rollback Policy](/root/research/autoresearch/lab/08_ROLLBACK_POLICY.md)
-11. [Naming Convention](/root/research/autoresearch/lab/09_NAMING_CONVENTION.md)
+7. [Knowledge System](/root/research/autoresearch/lab/06_KNOWLEDGE_SYSTEM.md)
+8. [Compute Operations](/root/research/autoresearch/lab/07_COMPUTE_OPS.md)
+9. [Cadence](/root/research/autoresearch/lab/08_CADENCE.md) — session-based operation model
+10. [Rollback Policy](/root/research/autoresearch/lab/09_ROLLBACK_POLICY.md)
+11. [Naming Convention](/root/research/autoresearch/lab/10_NAMING_CONVENTION.md)
 12. [Live State](/root/research/autoresearch/state/README.md) — derived operational views
 13. [Templates](/root/research/autoresearch/lab/templates/README.md)
 

@@ -3,5 +3,14 @@
   "val_bpb": 1.3564,
   "val_bpb_quant": 1.3564,
   "promoted_at": "2026-03-24T00:00:00Z",
-  "hypothesis": "MoE4e + bn128u + leaky(0.5)² at d384 — manual research best"
+  "hypothesis": "MoE4e + bn128u + leaky(0.5)\u00b2 at d384 \u2014 manual research best",
+  "stage_baselines": {
+    "explore": {
+      "val_bpb": 1.7362,
+      "val_bpb_quant": 1.736647,
+      "steps": 500,
+      "calibrated_at": "2026-03-25T03:11:26Z",
+      "gpu": "novita-rtx3090"
+    }
+  }
 }

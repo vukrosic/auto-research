@@ -29,6 +29,25 @@ if [ -z "${GPU_TIMING_PER_STEP:-}" ]; then
     esac
     echo "Detected GPU: ${GPU_NAME:-unknown} -> ${GPU_TIMING_PER_STEP}s/step"
 fi
+
+# Choose safer single-GPU defaults on smaller cards unless the experiment overrides them.
+if [ -z "${TRAIN_BATCH_TOKENS:-}" ]; then
+    case "$GPU_NAME" in
+        *3090*) TRAIN_BATCH_TOKENS=65536 ;;
+        *L40*)  TRAIN_BATCH_TOKENS=131072 ;;
+        *)      TRAIN_BATCH_TOKENS=524288 ;;
+    esac
+fi
+if [ -z "${VAL_BATCH_SIZE:-}" ]; then
+    case "$GPU_NAME" in
+        *3090*) VAL_BATCH_SIZE=65536 ;;
+        *L40*)  VAL_BATCH_SIZE=131072 ;;
+        *)      VAL_BATCH_SIZE=524288 ;;
+    esac
+fi
+export TRAIN_BATCH_TOKENS VAL_BATCH_SIZE
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
 # Add 15% buffer for validation + overhead
 WALLCLOCK=$(python3 -c "import math; print(math.ceil($MAX_STEPS * $GPU_TIMING_PER_STEP * 1.15))")
 
@@ -50,7 +69,8 @@ echo "============================================"
 echo "Env overrides:"
 for var in MATRIX_LR SCALAR_LR EMBED_LR NUM_LAYERS MODEL_DIM NUM_HEADS NUM_KV_HEADS \
            MLP_MULT WARMDOWN_ITERS WARMUP_STEPS LOGIT_SOFTCAP QK_GAIN_INIT ROPE_BASE \
-           MUON_MOMENTUM MUON_BACKEND_STEPS GRAD_CLIP_NORM TIED_EMBED_LR TIED_EMBED_INIT_STD; do
+           MUON_MOMENTUM MUON_BACKEND_STEPS GRAD_CLIP_NORM TIED_EMBED_LR TIED_EMBED_INIT_STD \
+           TRAIN_BATCH_TOKENS VAL_BATCH_SIZE VAL_LOSS_EVERY TRAIN_LOG_EVERY PYTORCH_CUDA_ALLOC_CONF; do
     if [ -n "${!var+x}" ]; then
         echo "  ${var}=${!var}"
     fi

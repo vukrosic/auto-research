@@ -101,7 +101,7 @@ MAX_WALLCLOCK_SECONDS=600 is set on the H100 run. No manual step calibration nee
 Remote GPUs are disposable compute — no git setup needed on them. The workflow is:
 
 1. **Deploy code** to a new GPU via tarball (see GPU Setup below)
-2. **Copy a queue file** and start the scheduler
+2. **Copy an approved or archived queue payload into `queues/active.txt`** and start the scheduler
 3. **Pull results** back to this machine via SCP
 
 ### Starting a GPU

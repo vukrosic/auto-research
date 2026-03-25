@@ -86,10 +86,10 @@ parameter-golf/
 │   ├── papers/                     # Literature reviews
 │   └── figures/                    # Plots & visualizations
 ├── queues/
-│   ├── active.txt                  # Current queue (auto-synced to DB)
-│   ├── micro_wave0_calibration.txt # Pre-wave 0 specs
-│   ├── wave_30_plan.md             # Latest wave debate output
-│   └── archive/                    # Old queues
+│   ├── active.txt                  # The only live execution queue
+│   ├── README.md                   # Queue policy: plans in markdown, execution in active.txt
+│   ├── wave_30_plan.md             # Latest wave debate output (includes proposed payload)
+│   └── archive/                    # Retired queue payloads for provenance only
 ├── results/
 │   ├── explore/                    # ≤800 steps
 │   ├── validate/                   # 801-5000 steps

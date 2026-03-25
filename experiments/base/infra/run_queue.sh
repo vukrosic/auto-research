@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-# Runs all experiments from queue.txt sequentially on 1x 3090.
+# Runs all experiments from queues/active.txt sequentially on 1x 3090.
 # Skips already-completed experiments (those with results/<name>/train.log).
 # If an experiment crashes, logs the error and continues to the next one.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-QUEUE_FILE="${1:-queues/active.txt}"
+ACTIVE_QUEUE=$(readlink -f "queues/active.txt")
+REQUESTED_QUEUE=$(readlink -f "${1:-queues/active.txt}")
+if [ "$REQUESTED_QUEUE" != "$ACTIVE_QUEUE" ]; then
+    echo "ERROR: only queues/active.txt may be executed." >&2
+    echo "Copy any archived or proposed batch into queues/active.txt first." >&2
+    exit 1
+fi
+
+QUEUE_FILE="queues/active.txt"
 FAIL_LOG="logs/failed_experiments.log"
 
 echo "===== Queue runner started at $(date) ====="

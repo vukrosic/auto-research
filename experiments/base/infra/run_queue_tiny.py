@@ -3,12 +3,13 @@
 Visual queue runner for tiny (~3M param) ablation experiments on 3090.
 
 Usage:
-    python3 infra/run_queue_tiny.py                             # run all 100
+    python3 infra/run_queue_tiny.py                             # run queues/active.txt
     python3 infra/run_queue_tiny.py --test                      # run ONLY first exp, check timing
     python3 infra/run_queue_tiny.py --verify                    # test timing + test wallclock cap
     python3 infra/run_queue_tiny.py --dry-run                   # print plan, no execution
     python3 infra/run_queue_tiny.py --start 15                  # resume from exp #15
-    python3 infra/run_queue_tiny.py queues/other.txt            # custom queue file
+    cp queues/archive/tiny/tiny50_followup_best.txt queues/active.txt
+    python3 infra/run_queue_tiny.py queues/active.txt
 
 Expected per-experiment: ~100s (1.7min)
 Hard limits enforced:
@@ -46,6 +47,7 @@ RED = "\033[31m"; YLW = "\033[33m"; GRN = "\033[32m"; CYN = "\033[36m"; MAG = "\
 def c(code, text): return f"{code}{text}{R}"
 
 REPO = Path(__file__).parent.parent
+ACTIVE_QUEUE = (REPO / "queues" / "active.txt").resolve()
 LOG_STEP_RE = re.compile(r'^step:(\d+)/(\d+)\s+')
 LOG_STEP_AVG_RE = re.compile(r'^step:(\d+)/(\d+).+step_avg:([\d.]+)ms$')
 LOG_STEP_VAL_RE = re.compile(r'^step:(\d+)/(\d+)\s+val_loss:[\d.]+\s+val_bpb:([\d.]+)')
@@ -562,7 +564,12 @@ def main():
     ap = argparse.ArgumentParser(
         description="Visual queue runner for tiny-model ablations"
     )
-    ap.add_argument("queue_file", nargs="?", default="queues/tiny100_diverse.txt")
+    ap.add_argument(
+        "queue_file",
+        nargs="?",
+        default="queues/active.txt",
+        help="Only queues/active.txt is allowed; copy archived queues there first",
+    )
     ap.add_argument("--test",     action="store_true", help="Run first experiment only")
     ap.add_argument("--verify",   action="store_true", help="Run timing + wallclock cap tests")
     ap.add_argument("--dry-run",  action="store_true", help="Print plan, no execution")
@@ -573,16 +580,27 @@ def main():
 
     os.chdir(REPO)
 
-    exps = parse_queue(args.queue_file)
+    requested_queue = Path(args.queue_file)
+    if not requested_queue.is_absolute():
+        requested_queue = (REPO / requested_queue).resolve()
+    else:
+        requested_queue = requested_queue.resolve()
+
+    if requested_queue != ACTIVE_QUEUE:
+        print(c(RED, "  ERROR: only queues/active.txt may be executed."))
+        print("  Copy any archived or proposed batch into queues/active.txt first.")
+        sys.exit(1)
+
+    exps = parse_queue(str(ACTIVE_QUEUE))
     total = len(exps)
     skip_n = sum(1 for e in exps if is_done(e["name"]))
-    queue_name = Path(args.queue_file).name
+    queue_name = ACTIVE_QUEUE.name
 
     # ── Banner ─────────────────────────────────────────────────────────────
     print(c(BOLD, "\n╔══════════════════════════════════════════════════════════════╗"))
     print(c(BOLD,  "║  TINY QUEUE RUNNER                                           ║"))
     print(c(BOLD,  "╚══════════════════════════════════════════════════════════════╝"))
-    print(f"  Queue : {args.queue_file} ({queue_name})")
+    print(f"  Queue : queues/active.txt ({queue_name})")
     print(f"  Total : {total} experiments | {c(GRN, str(skip_n))} done | "
           f"{c(CYN, str(total - skip_n))} to run")
     print(f"  Est   : ~{(total-skip_n)*EXPECTED_S/60:.0f}min "
@@ -595,7 +613,7 @@ def main():
         return
 
     if args.verify:
-        run_verify(args.queue_file)
+        run_verify(str(ACTIVE_QUEUE))
         return
 
     # ── Select experiments to run ─────────────────────────────────────────

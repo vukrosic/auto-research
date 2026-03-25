@@ -82,9 +82,9 @@ Paste the `research/compare_micro_lane.py` output here after wave 0.
 
 ## Reproducibility
 
-- **Queue:** `queues/micro_wave0_calibration.txt`
+- **Archived queue:** `queues/archive/micro_wave0/micro_wave0_calibration.txt`
 - **Comparison script:** `research/compare_micro_lane.py`
 - **Configs:** runner profiles `nano_3L128` and `micro_5L192`
 - **Commit:** <fill after running>
 - **Hardware:** <fill after running>
-- **How to rerun:** `bash infra/run_queue.sh queues/micro_wave0_calibration.txt`
+- **How to rerun:** `cp queues/archive/micro_wave0/micro_wave0_calibration.txt queues/active.txt && bash infra/run_queue.sh queues/active.txt`

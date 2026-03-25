@@ -1,0 +1,3 @@
+# Debug queue: 50 steps to test result sync pipeline
+# Uses same arch as wave27 medium to validate end-to-end: train → summary.json → collect
+debug_sync_50 50 NUM_LAYERS=9 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 MLP_MULT=2 MLP_ACT=leaky_relu2_05 WARMDOWN_ITERS=5

@@ -226,7 +226,8 @@ Given ~$40 total:
 
 ## Wave Plan Format
 
-Every wave produces `queues/wave_NN_plan.md`:
+Every wave produces `queues/wave_NN_plan.md`.
+Approved experiments are copied into `queues/active.txt`; no other live queue files should exist outside `queues/archive/`.
 
 ```markdown
 # Wave NN — <Topic>
@@ -262,7 +263,7 @@ Per-experiment and total cost.
 2. **Skipping seeds** — single-seed results are noise at this scale
 3. **Going to full without validate** — full runs cost 10x; confirm first
 4. **No X post after a gate** — forces clarity and external accountability
-5. **Keeping dead queues active** — archive immediately when done
+5. **Keeping alternate live queue files** — archive everything except `queues/active.txt`
 6. **More than 2 explore directions at once** — focus beats breadth at this budget
 7. **Re-running failed approaches** — check KNOWLEDGE.md every time
 8. **Running indefinitely** — every wave must end with a gate decision

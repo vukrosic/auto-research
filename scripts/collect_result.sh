@@ -33,31 +33,82 @@ gpu_rsync_from "$GPU" "/tmp/autoresearch_${NAME}.log" "$SNAPSHOT_DIR/results/noh
 # Parse metrics from log
 LOG="$SNAPSHOT_DIR/results/train.log"
 if [ -f "$LOG" ]; then
-    # Extract last val_bpb
-    VAL_BPB=$(grep 'val_bpb' "$LOG" | tail -1 | grep -oP 'val_bpb[:\s=]+\K[0-9.]+' || echo "null")
-    # Extract post-quant if available
-    QUANT_BPB=$(grep 'final_int8_zlib_roundtrip_exact' "$LOG" | tail -1 | grep -oP '[0-9]+\.[0-9]+' || echo "null")
-    # Extract steps completed
-    STEPS=$(grep -oP 'step[:\s=]+\K[0-9]+' "$LOG" | tail -1 || echo "0")
-    # Log tail
-    LOG_TAIL=$(tail -20 "$LOG")
+    PARSE_OUTPUT=$(python3 -c "
+import json, re, sys
+from pathlib import Path
 
-    python3 -c "
-import json
+log_path = Path('$LOG')
+summary_path = Path('$SNAPSHOT_DIR/results/summary.json')
+text = log_path.read_text(encoding='utf-8', errors='replace')
+lines = text.splitlines()
+
+val_bpb = None
+val_quant = None
+steps_completed = 0
+
+if summary_path.exists():
+    try:
+        summary = json.loads(summary_path.read_text(encoding='utf-8'))
+    except json.JSONDecodeError:
+        summary = {}
+    if isinstance(summary, dict):
+        last_eval = summary.get('last_eval') or {}
+        final_quant = summary.get('final_quant_eval') or {}
+        val_bpb = last_eval.get('val_bpb')
+        val_quant = final_quant.get('val_bpb')
+        steps_completed = int(last_eval.get('step') or last_eval.get('max_steps') or 0)
+
+if val_bpb is None:
+    for line in reversed(lines):
+        m = re.search(r'\\bval_bpb[:=]\\s*([0-9]+(?:\\.[0-9]+)?)\\b', line)
+        if m:
+            val_bpb = float(m.group(1))
+            break
+
+if val_quant is None:
+    for line in reversed(lines):
+        m = re.search(r'final_int8_zlib_roundtrip_exact[^0-9]*([0-9]+(?:\\.[0-9]+)?)', line)
+        if m:
+            val_quant = float(m.group(1))
+            break
+
+if steps_completed == 0:
+    for line in reversed(lines):
+        m = re.search(r'\\bstep[:=]\\s*([0-9]+)', line)
+        if m:
+            steps_completed = int(m.group(1))
+            break
+    if steps_completed == 0:
+        for line in reversed(lines):
+            m = re.search(r'warmup_step:(\\d+)/(\\d+)', line)
+            if m:
+                steps_completed = int(m.group(1))
+                break
+
 result = {
-    'val_bpb': $VAL_BPB if '$VAL_BPB' != 'null' else None,
-    'val_bpb_quant': $QUANT_BPB if '$QUANT_BPB' != 'null' else None,
-    'steps_completed': int('${STEPS}') if '${STEPS}' else 0,
+    'val_bpb': val_bpb,
+    'val_bpb_quant': val_quant,
+    'steps_completed': steps_completed,
     'gpu': '$GPU',
-    'log_tail': '''$(tail -20 "$LOG" | sed "s/'/\\\\'/g")'''
+    'log_tail': '\\n'.join(lines[-20:]),
 }
-with open('$SNAPSHOT_DIR/result.json', 'w') as f:
+with open('$SNAPSHOT_DIR/result.json', 'w', encoding='utf-8') as f:
     json.dump(result, f, indent=2)
 print(json.dumps(result, indent=2))
-"
-    echo "done" > "$SNAPSHOT_DIR/status"
+has_metric = val_bpb is not None or val_quant is not None
+print('HAS_METRIC=' + str(has_metric), file=sys.stderr)
+" 2>&1) || true
+    echo "$PARSE_OUTPUT"
+    if echo "$PARSE_OUTPUT" | grep -q "HAS_METRIC=True"; then
+        echo "done" > "$SNAPSHOT_DIR/status"
+    else
+        echo "failed" > "$SNAPSHOT_DIR/status"
+        echo "WARNING: No val_bpb metric found in log — marking as failed"
+    fi
+    rm -f "$SNAPSHOT_DIR/remote_pid"
     echo "=== Result written to $SNAPSHOT_DIR/result.json ==="
 else
     echo "ERROR: No training log found"
     echo "failed" > "$SNAPSHOT_DIR/status"
+    rm -f "$SNAPSHOT_DIR/remote_pid"
 fi

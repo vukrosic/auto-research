@@ -4,7 +4,15 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-QUEUE_FILE="${1:-queues/active.txt}"
+ACTIVE_QUEUE=$(readlink -f "queues/active.txt")
+REQUESTED_QUEUE=$(readlink -f "${1:-queues/active.txt}")
+if [ "$REQUESTED_QUEUE" != "$ACTIVE_QUEUE" ]; then
+    echo "ERROR: only queues/active.txt may be executed." >&2
+    echo "Copy any archived or proposed batch into queues/active.txt first." >&2
+    exit 1
+fi
+
+QUEUE_FILE="queues/active.txt"
 NUM_GPUS="${2:-8}"
 FAIL_LOG="logs/failed_experiments.log"
 LOCK_FILE="/tmp/gpu_scheduler.lock"

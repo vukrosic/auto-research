@@ -1,0 +1,25 @@
+# OS and Python noise
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local control-plane logs
+/logs/
+
+# Derived dashboards; canonical state lives elsewhere
+/state/ACTIVE_RUNS.md
+/state/ADJUDICATION_QUEUE.md
+/state/FRONTIER.md
+
+# Generated experiment runtime state
+/experiments/base_id.txt
+/experiments/base_backup_*/
+/experiments/base/queues/active.txt
+/experiments/snapshots/*/code/
+/experiments/snapshots/*/gpu
+/experiments/snapshots/*/remote_pid
+
+# Local machine and credential config
+/scripts/gpu_config.sh

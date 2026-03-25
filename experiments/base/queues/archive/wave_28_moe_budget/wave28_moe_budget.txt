@@ -1,0 +1,15 @@
+# Wave 28: MoE4e at budget-legal sizes (16 MB limit)
+# Critical question: does MoE4e still dominate at reduced dim?
+# All 4000-step validation runs on 5090s
+
+# ARCH1: MoE4e leaky dim=384 (15.0M params, ~14MB)
+moe4e_leaky_d384_s1337_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3
+
+# ARCH2: MoE4e leaky dim=400 (16.3M params, ~15.1MB)
+moe4e_leaky_d400_s1337_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=400 NUM_HEADS=8 NUM_KV_HEADS=4
+
+# ARCH3: MoE4e leaky bn128 untied dim=384 (~14.8M, ~14MB)
+moe4e_leaky_bn128u_d384_s1337_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0
+
+# ARCH4: MoE4e leaky 10L dim=384 (~16.5M, ~15.5MB)
+moe4e_leaky_10L_d384_s1337_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 NUM_LAYERS=10

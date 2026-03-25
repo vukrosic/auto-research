@@ -1,0 +1,101 @@
+# Phase 2: Full 8-hour experiment queue (6x 3090)
+# Format: <name> <steps> [ENV_VAR=value ...]
+# Scheduler pops from top — order matters for GPU utilization.
+# Long runs first (grab 2 GPUs), then rapid 500-step screening on remaining 4.
+
+# ============================================================
+# 13k RUNS — start immediately, occupy 2 GPUs for ~275 min each
+# ============================================================
+p2_leaky05_13k_s42 13780 MLP_ACT=leaky_relu2_05 SEED=42 CHECKPOINT_EVERY=1000
+p2_leaky05_13k_s1337 13780 MLP_ACT=leaky_relu2_05 SEED=1337 CHECKPOINT_EVERY=1000
+
+# ============================================================
+# 500-STEP SCREENING — H1: gradient scaling (custom backward)
+# ============================================================
+p2_h1_grad1_5x 500 MLP_ACT=relu2_grad1_5x
+p2_h1_grad3x 500 MLP_ACT=relu2_grad3x
+p2_h1_gradsqrt 500 MLP_ACT=relu2_gradsqrt
+p2_h1_gradx2 500 MLP_ACT=relu2_gradx2
+p2_h1_leaky05_constgrad 500 MLP_ACT=leaky05_constgrad
+p2_h1_abs2_constgrad 500 MLP_ACT=abs2_constgrad
+p2_h1_gradfloor 500 MLP_ACT=relu2_gradfloor
+p2_h1_gradceil 500 MLP_ACT=relu2_gradceil
+
+# ============================================================
+# 500-STEP SCREENING — H2: signal compression
+# ============================================================
+p2_h2_hardtanh2 500 MLP_ACT=hardtanh2
+p2_h2_softsign2 500 MLP_ACT=softsign2
+p2_h2_sigmoid2 500 MLP_ACT=sigmoid2
+p2_h2_arctan_sq 500 MLP_ACT=arctan_sq
+p2_h2_erf2 500 MLP_ACT=erf2
+p2_h2_tanh_scaled2 500 MLP_ACT=tanh_scaled2
+p2_h2_clamped4 500 MLP_ACT=relu2_clamped4
+p2_h2_clamped16 500 MLP_ACT=relu2_clamped16
+p2_h2_log1p_relu2 500 MLP_ACT=log1p_relu2
+
+# ============================================================
+# 500-STEP SCREENING — H3: negative-side information
+# ============================================================
+p2_h3_x_absx 500 MLP_ACT=x_absx
+p2_h3_elu03_2 500 MLP_ACT=elu03_2
+p2_h3_gelu2 500 MLP_ACT=gelu2
+p2_h3_mish2 500 MLP_ACT=mish2
+p2_h3_leaky01 500 MLP_ACT=leaky_relu2_01
+p2_h3_leaky02 500 MLP_ACT=leaky_relu2_02
+p2_h3_leaky08 500 MLP_ACT=leaky_relu2_08
+p2_h3_linneg05 500 MLP_ACT=relu2_linneg05
+p2_h3_bipolar 500 MLP_ACT=bipolar_relu2
+
+# ============================================================
+# 500-STEP SCREENING — cross-hypothesis and edge cases
+# ============================================================
+p2_x_leaky05_cubed 500 MLP_ACT=leaky05_cubed
+p2_x_leaky05_pow15 500 MLP_ACT=leaky05_pow15
+p2_x_softplus2_b5 500 MLP_ACT=softplus2_beta5
+p2_x_softplus2_b05 500 MLP_ACT=softplus2_beta05
+p2_x_selu2_rerun 500 MLP_ACT=selu2
+p2_x_celu05 500 MLP_ACT=celu05_2
+p2_x_relu18 500 MLP_ACT=relu18
+p2_x_relu22 500 MLP_ACT=relu22
+p2_x_x_silu 500 MLP_ACT=x_silu
+p2_x_x_tanh 500 MLP_ACT=x_tanh
+p2_x_shifted_relu2 500 MLP_ACT=shifted_relu2_neg
+p2_x_leaky05_lr06 500 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.06
+p2_x_leaky05_lr032 500 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.032
+p2_x_leaky05_warmup40 500 MLP_ACT=leaky_relu2_05 WARMUP_STEPS=40
+
+# ============================================================
+# 2000-STEP VALIDATION — pre-committed (known competitive)
+# ============================================================
+p2_selu2_2k_s42 2000 MLP_ACT=selu2 SEED=42
+p2_selu2_2k_s1337 2000 MLP_ACT=selu2 SEED=1337
+p2_elu2_2k 2000 MLP_ACT=elu2
+p2_celu2_2k 2000 MLP_ACT=celu2
+p2_softplus2_2k 2000 MLP_ACT=softplus2
+p2_x_absx_2k 2000 MLP_ACT=x_absx
+p2_gelu2_2k 2000 MLP_ACT=gelu2
+p2_mish2_2k 2000 MLP_ACT=mish2
+p2_leaky01_2k 2000 MLP_ACT=leaky_relu2_01
+p2_leaky02_2k 2000 MLP_ACT=leaky_relu2_02
+p2_leaky08_2k 2000 MLP_ACT=leaky_relu2_08
+p2_linneg05_2k 2000 MLP_ACT=relu2_linneg05
+
+# ============================================================
+# 4000-STEP CONFIRMATION — pre-committed
+# ============================================================
+p2_selu2_4k_s42 4000 MLP_ACT=selu2 SEED=42 CHECKPOINT_EVERY=4000
+p2_selu2_4k_s1337 4000 MLP_ACT=selu2 SEED=1337 CHECKPOINT_EVERY=4000
+p2_x_absx_4k 4000 MLP_ACT=x_absx CHECKPOINT_EVERY=4000
+p2_elu2_4k 4000 MLP_ACT=elu2 CHECKPOINT_EVERY=4000
+p2_gelu2_4k 4000 MLP_ACT=gelu2 CHECKPOINT_EVERY=4000
+p2_leaky05_lr06_4k 4000 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.06 CHECKPOINT_EVERY=4000
+p2_leaky05_lr032_4k 4000 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.032 CHECKPOINT_EVERY=4000
+p2_linneg05_4k 4000 MLP_ACT=relu2_linneg05 CHECKPOINT_EVERY=4000
+
+# ============================================================
+# 6000-STEP — head-to-head vs existing leaky(0.5)² 6k data
+# ============================================================
+p2_x_absx_6k 6000 MLP_ACT=x_absx CHECKPOINT_EVERY=1000
+p2_selu2_6k 6000 MLP_ACT=selu2 CHECKPOINT_EVERY=1000
+p2_elu2_6k 6000 MLP_ACT=elu2 CHECKPOINT_EVERY=1000

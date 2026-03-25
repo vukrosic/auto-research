@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tiered Duration Screening"
+  short_description: "Run 1s to 2s to 3s architecture screens"
+  default_prompt: "Use $tiered-duration-screening to run a staged 1s to 2s to 3s architecture screen, promote the best runs at each stage, and summarize baseline deltas in three tables."

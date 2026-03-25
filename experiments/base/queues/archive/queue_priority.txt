@@ -1,0 +1,87 @@
+# Priority queue v2: Judge's ruling — cut exploratory, add full-length validation
+#
+# CUTS (dead from 500-step results):
+#   x_absx (1.505, +0.021 vs relu²) — all 2k/4k/6k runs CUT
+#   gelu2 (1.614, +0.13 vs relu²) — all 2k/4k runs CUT
+#   linneg05 (1.490, +0.006) — marginal, CUT long runs
+#   bipolar (1.703, crashed at step 200) — CUT re-run
+#   softplus2, celu2, elu2 2k — these already have 500-step data showing them
+#     within noise of relu²; skip 2k unless they're submission candidates (they're not)
+#
+# ADDITIONS (full-length runs for real candidates):
+#   leaky05_gradfloor 4k, 6k, 13k — if 500/2k look good
+#   leaky08 4k — 500-step leader, needs validation
+#   clamped16 4k — surprise H2 winner, deserves scaling
+#   gradfloor (relu²) 4k — best H1 variant, validate at scale
+#
+# Currently running (jobs 1-8, won't be re-queued):
+#   GPU 0: p2_leaky05_gradfloor_500 (500 steps)
+#   GPU 1: p2_leaky05_gradfloor_2k (2000 steps)
+#   GPU 2: p2_leaky05_13k_s42 (13780 steps)
+#   GPU 3: p2_leaky05_13k_s1337 (13780 steps)
+#   GPU 4: p2_x_relu18 (500 steps)
+#   GPU 5: p2_x_relu22 (500 steps)
+#   GPU 6: p2_x_x_silu (500 steps)
+#   GPU 7: p2_x_x_tanh (500 steps)
+
+# Already done or running — scheduler will skip these
+p2_leaky05_gradfloor_500 500 MLP_ACT=leaky05_gradfloor
+p2_leaky05_gradfloor_2k 2000 MLP_ACT=leaky05_gradfloor
+p2_leaky05_13k_s42 13780 MLP_ACT=leaky_relu2_05 SEED=42 CHECKPOINT_EVERY=1000
+p2_leaky05_13k_s1337 13780 MLP_ACT=leaky_relu2_05 SEED=1337 CHECKPOINT_EVERY=1000
+p2_x_relu18 500 MLP_ACT=relu18
+p2_x_relu22 500 MLP_ACT=relu22
+p2_x_x_silu 500 MLP_ACT=x_silu
+p2_x_x_tanh 500 MLP_ACT=x_tanh
+
+# ============================================================
+# TIER 1: Full-length validation of best candidates (13k)
+# These decide what we submit. ~7.5 hrs each.
+# ============================================================
+p2_leaky05_gradfloor_13k_s42 13780 MLP_ACT=leaky05_gradfloor SEED=42 CHECKPOINT_EVERY=1000
+p2_leaky05_gradfloor_13k_s1337 13780 MLP_ACT=leaky05_gradfloor SEED=1337 CHECKPOINT_EVERY=1000
+
+# ============================================================
+# TIER 2: 4000-step validation of top candidates
+# These confirm whether 500-step winners hold at scale. ~80 min each.
+# ============================================================
+p2_leaky05_gradfloor_4k 4000 MLP_ACT=leaky05_gradfloor
+p2_leaky08_4k 4000 MLP_ACT=leaky_relu2_08
+p2_clamped16_4k 4000 MLP_ACT=relu2_clamped16
+p2_gradfloor_relu2_4k 4000 MLP_ACT=relu2_gradfloor
+p2_mish2_4k 4000 MLP_ACT=mish2 SEED=1337
+p2_selu2_4k_s42 4000 MLP_ACT=selu2 SEED=42
+
+# ============================================================
+# TIER 3: 6000-step head-to-head for any 4k survivor
+# ============================================================
+p2_leaky05_gradfloor_6k 6000 MLP_ACT=leaky05_gradfloor
+p2_leaky08_6k 6000 MLP_ACT=leaky_relu2_08
+p2_selu2_6k 6000 MLP_ACT=selu2
+
+# ============================================================
+# TIER 4: Targeted 500-step screening (only high-value questions)
+# Keep only the experiments that test actionable hypotheses.
+# ============================================================
+
+# LR tuning for leaky — could unlock extra gain on top of activation
+p2_x_leaky05_lr06 500 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.06
+p2_x_leaky05_lr032 500 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.032
+
+# Gradfloor on leaky08 — combine top H3 + top H1
+p2_leaky08_gradfloor_500 500 MLP_ACT=leaky08_gradfloor
+
+# ============================================================
+# TIER 5: 2000-step validation (only for activations that beat relu² at 500)
+# ============================================================
+p2_leaky08_2k 2000 MLP_ACT=leaky_relu2_08
+p2_mish2_2k 2000 MLP_ACT=mish2
+p2_leaky02_2k 2000 MLP_ACT=leaky_relu2_02
+p2_leaky01_2k 2000 MLP_ACT=leaky_relu2_01
+p2_selu2_2k_s42 2000 MLP_ACT=selu2 SEED=42
+
+# ============================================================
+# TIER 6: LR tuning at scale (if LR screen shows improvement)
+# ============================================================
+p2_leaky05_lr06_4k 4000 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.06
+p2_leaky05_lr032_4k 4000 MLP_ACT=leaky_relu2_05 MATRIX_LR=0.032

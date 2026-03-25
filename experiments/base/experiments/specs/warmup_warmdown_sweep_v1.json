@@ -1,0 +1,23 @@
+{
+  "config_overrides": {
+    "RUN_GROUP": "warmup_warmdown_sweep_v1",
+    "WARMDOWN_SET": "0,200,500,1000",
+    "WARMUP_SET": "50,100,200"
+  },
+  "desired_state": "draft",
+  "linked_docs": [
+    "explorations/2026-03-22_warmup_warmdown_sweep.md"
+  ],
+  "name": "Warmup and warmdown schedule sweep",
+  "notes": "Exploration spec for schedule sensitivity at 500 steps on the MoE4e baseline.",
+  "spec_id": "warmup_warmdown_sweep_v1",
+  "spec_type": "exploration",
+  "stage": "explore",
+  "steps": 500,
+  "tags": [
+    "optimization",
+    "schedule",
+    "moe"
+  ],
+  "template": "parameter_golf"
+}

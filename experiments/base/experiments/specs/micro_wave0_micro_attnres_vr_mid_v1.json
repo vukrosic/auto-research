@@ -1,0 +1,45 @@
+{
+  "baseline_spec_id": "micro_wave0_micro_baseline_v1",
+  "config_overrides": {
+    "ATTNRES_MODE": "value_residual_mid",
+    "ITERATIONS": "500",
+    "MAX_WALLCLOCK_SECONDS": "1800",
+    "MLP_ACT": "leaky_relu2_05",
+    "MLP_MULT": "2",
+    "MODEL_DIM": "192",
+    "NUM_HEADS": "4",
+    "NUM_KV_HEADS": "2",
+    "NUM_LAYERS": "5",
+    "RUN_GROUP": "micro_wave0_micro",
+    "SEED": "1337",
+    "TIE_EMBEDDINGS": "1",
+    "TRAIN_BATCH_TOKENS": "524288",
+    "TRAIN_SEQ_LEN": "1024",
+    "WARMDOWN_ITERS": "44"
+  },
+  "desired_state": "draft",
+  "lane": "micro_explore",
+  "linked_docs": [
+    "hypotheses/H005_micro_surrogate_architecture.md",
+    "findings/F003_micro_lane_calibration.md"
+  ],
+  "name": "Wave 0 micro AttnRes value residual mid",
+  "notes": "Screening candidate on the micro rung.",
+  "promotion_margin_bpb": 0.01,
+  "promotion_max": 4,
+  "promotion_policy": "top_k_plus_margin",
+  "runner_profile": "micro_5L192",
+  "spec_id": "micro_wave0_micro_attnres_vr_mid_v1",
+  "spec_type": "exploration",
+  "stage": "explore",
+  "steps": 500,
+  "tags": [
+    "architecture",
+    "attnres",
+    "calibration",
+    "micro",
+    "micro-lane",
+    "wave0"
+  ],
+  "template": "parameter_golf"
+}

@@ -1,0 +1,24 @@
+{
+  "config_overrides": {
+    "ACTIVATION_FAMILY": "relu,silu,elu,selu,celu,softplus",
+    "RUN_GROUP": "h001_squared_activation_repro_v1",
+    "SQUARED_VARIANTS": "true"
+  },
+  "desired_state": "draft",
+  "linked_docs": [
+    "hypotheses/H001_squared_activations.md",
+    "findings/activation_findings.md"
+  ],
+  "name": "H001 squared activation reproduction sweep",
+  "notes": "Hypothesis-linked reproduction spec to re-run the squaring effect across the existing activation family set.",
+  "spec_id": "h001_squared_activation_repro_v1",
+  "spec_type": "hypothesis",
+  "stage": "validate",
+  "steps": 2000,
+  "tags": [
+    "activation",
+    "reproduction",
+    "hypothesis"
+  ],
+  "template": "parameter_golf"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "parameter-golf",
+  "description": "OpenAI Parameter Golf: best 16MB language model in <10min on 8xH100s. Scored by val_bpb (lower=better).",
+  "repo_path": "/root/research/parameter-golf",
+  "metric": "val_bpb",
+  "metric_direction": "lower",
+  "target": 1.2194,
+  "current_best": 1.3564,
+  "current_best_description": "MoE4e + bn128u + leaky(0.5)² at d384: 1.3564 BPB (4k steps, post-quant)",
+  "run_command": "bash infra/run_experiment.sh {name} {steps}",
+  "result_parse": "grep 'val_bpb' logs/{name}.txt | tail -1",
+  "stages": {
+    "explore": {"steps": 500, "threshold": 0.01, "description": "Quick screen, ~28min on 3090"},
+    "validate": {"steps": 4000, "threshold": 0.005, "description": "Confirm winners, ~3.7hr on 3090"},
+    "full": {"steps": 13780, "threshold": 0.0, "description": "Full run, ~12.7hr on 3090"}
+  },
+  "gpus": ["novita-rtx3090"]
+}

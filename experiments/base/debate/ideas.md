@@ -1,0 +1,1 @@
+connect scispace to explorer debate agent

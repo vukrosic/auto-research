@@ -1,0 +1,5 @@
+# Remote GPU — Activation experiments (highest priority first)
+# Format: <name> <steps> [ENV_VAR=value ...]
+
+# 1. THE key experiment: leaky(0.5)² at full 13k (does +0.003 hold?)
+act_leaky05_13k 13780 MLP_ACT=leaky_relu2_05 CHECKPOINT_EVERY=1000

@@ -1,0 +1,45 @@
+# GPU ARCH1: Weight Sharing / Layer Cycling Experiments
+# Each experiment: 500 steps, single GPU
+# Baseline first, then weight sharing variants
+
+# Baseline (9 unique blocks, no sharing)
+arch_baseline_9L 500
+
+# 5 unique blocks × 2 cycles = 10 effective layers (param savings → wider)
+arch_ws_5x2 500 NUM_UNIQUE_BLOCKS=5 NUM_CYCLES=2
+arch_ws_5x2_wide 500 NUM_UNIQUE_BLOCKS=5 NUM_CYCLES=2 MODEL_DIM=640
+arch_ws_5x2_wide576 500 NUM_UNIQUE_BLOCKS=5 NUM_CYCLES=2 MODEL_DIM=576
+
+# 4 unique blocks × 3 cycles = 12 effective layers (aggressive sharing)
+arch_ws_4x3 500 NUM_UNIQUE_BLOCKS=4 NUM_CYCLES=3
+arch_ws_4x3_wide 500 NUM_UNIQUE_BLOCKS=4 NUM_CYCLES=3 MODEL_DIM=640
+
+# 3 unique blocks × 3 cycles = 9 effective layers (same depth, fewer params)
+arch_ws_3x3 500 NUM_UNIQUE_BLOCKS=3 NUM_CYCLES=3
+arch_ws_3x3_wide 500 NUM_UNIQUE_BLOCKS=3 NUM_CYCLES=3 MODEL_DIM=640
+
+# 6 unique blocks × 2 cycles = 12 effective layers (mild sharing)
+arch_ws_6x2 500 NUM_UNIQUE_BLOCKS=6 NUM_CYCLES=2
+arch_ws_6x2_wide576 500 NUM_UNIQUE_BLOCKS=6 NUM_CYCLES=2 MODEL_DIM=576
+
+# 9 unique blocks × 2 cycles = 18 effective layers (no param savings, pure depth)
+arch_ws_9x2 500 NUM_UNIQUE_BLOCKS=9 NUM_CYCLES=2
+
+# 5 unique blocks × 3 cycles = 15 effective layers
+arch_ws_5x3 500 NUM_UNIQUE_BLOCKS=5 NUM_CYCLES=3
+
+# 3 unique blocks × 4 cycles = 12 effective layers (very aggressive)
+arch_ws_3x4 500 NUM_UNIQUE_BLOCKS=3 NUM_CYCLES=4
+
+# Weight sharing + leaky activation (best known activation)
+arch_ws_5x2_leaky 500 NUM_UNIQUE_BLOCKS=5 NUM_CYCLES=2 MLP_ACT=leaky05_gradfloor
+arch_ws_5x2_wide_leaky 500 NUM_UNIQUE_BLOCKS=5 NUM_CYCLES=2 MODEL_DIM=640 MLP_ACT=leaky05_gradfloor
+
+# Deeper with more heads
+arch_ws_5x2_16h 500 NUM_UNIQUE_BLOCKS=5 NUM_CYCLES=2 NUM_HEADS=16 NUM_KV_HEADS=4
+arch_ws_6x2_16h 500 NUM_UNIQUE_BLOCKS=6 NUM_CYCLES=2 NUM_HEADS=16 NUM_KV_HEADS=4
+
+# Very deep cycling experiments
+arch_ws_4x4 500 NUM_UNIQUE_BLOCKS=4 NUM_CYCLES=4
+arch_ws_3x5 500 NUM_UNIQUE_BLOCKS=3 NUM_CYCLES=5
+arch_ws_2x5 500 NUM_UNIQUE_BLOCKS=2 NUM_CYCLES=5

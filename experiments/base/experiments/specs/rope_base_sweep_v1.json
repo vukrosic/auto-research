@@ -1,0 +1,22 @@
+{
+  "config_overrides": {
+    "ROPE_BASE_SET": "500,1000,10000,50000,100000",
+    "RUN_GROUP": "rope_base_sweep_v1"
+  },
+  "desired_state": "draft",
+  "linked_docs": [
+    "explorations/2026-03-22_rope_base_sweep.md"
+  ],
+  "name": "RoPE base frequency sweep on MoE4e config",
+  "notes": "Exploration spec for screening RoPE base values on the current MoE4e baseline.",
+  "spec_id": "rope_base_sweep_v1",
+  "spec_type": "exploration",
+  "stage": "explore",
+  "steps": 500,
+  "tags": [
+    "rope",
+    "positional-encoding",
+    "moe"
+  ],
+  "template": "parameter_golf"
+}

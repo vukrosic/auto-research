@@ -1,0 +1,21 @@
+# Wave 29: Zero-param tricks stacked with MoE4e bn128u d384
+# Test attention residual modes and head count variations
+# All 4000-step validation on the best config (MoE4e bn128u leaky d384)
+
+# Value residual: propagate first-layer V to deeper layers (0 extra params)
+exp29_vres_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 ATTNRES_MODE=value_residual
+
+# Value residual mid: capture V from middle encoder layer (0 extra params)
+exp29_vres_mid_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 ATTNRES_MODE=value_residual_mid
+
+# More heads (12 heads, 6 KV, head_dim=32): finer attention patterns
+exp29_12heads_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=12 NUM_KV_HEADS=6 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0
+
+# Fewer heads (4 heads, 2 KV, head_dim=96): larger attention capacity
+exp29_4heads_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=4 NUM_KV_HEADS=2 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0
+
+# Higher QK gain (2.0 vs default 1.5)
+exp29_qkgain2_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 QK_GAIN_INIT=2.0
+
+# Lower QK gain (1.0)
+exp29_qkgain1_4k 4000 NUM_EXPERTS=4 MLP_ACT=leaky_relu2_05 MODEL_DIM=384 NUM_HEADS=6 NUM_KV_HEADS=3 EMBED_BOTTLENECK=128 TIE_EMBEDDINGS=0 QK_GAIN_INIT=1.0

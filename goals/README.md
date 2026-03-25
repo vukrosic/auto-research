@@ -29,9 +29,9 @@ goals/
 
 ## Active Goals
 
-| Goal | Mission | Current Best | Target | Status |
-|------|---------|-------------|--------|--------|
-| surpass_transformer_2026 | Beat transformer baseline on parameter-golf | 1.3564 BPB | < 1.2244 BPB | Active |
+See [`ACTIVE.md`](/root/research/autoresearch/goals/ACTIVE.md) — the live index of active goals (human-maintained).
+
+The system supports any number of concurrent goals. Each is fully self-contained. Add a goal by creating its directory + `MISSION.md` + an entry in `ACTIVE.md`.
 
 ## Planning Hierarchy
 

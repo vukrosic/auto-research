@@ -85,16 +85,43 @@ if steps_completed == 0:
                 steps_completed = int(m.group(1))
                 break
 
+import datetime
+dispatched_at_path = Path('$SNAPSHOT_DIR/dispatched_at')
+collected_at = datetime.datetime.utcnow()
+collected_at_str = collected_at.strftime('%Y-%m-%dT%H:%M:%SZ')
+duration_seconds = None
+dispatched_at_str = None
+if dispatched_at_path.exists():
+    dispatched_at_str = dispatched_at_path.read_text().strip()
+    try:
+        dispatched_dt = datetime.datetime.strptime(dispatched_at_str, '%Y-%m-%dT%H:%M:%SZ')
+        duration_seconds = int((collected_at - dispatched_dt).total_seconds())
+    except Exception:
+        pass
+
+meta_path = Path('$SNAPSHOT_DIR/meta.json')
+expected_seconds = None
+if meta_path.exists():
+    try:
+        meta = json.loads(meta_path.read_text())
+        expected_seconds = meta.get('expected_duration_seconds')
+    except Exception:
+        pass
+
 result = {
     'val_bpb': val_bpb,
     'val_bpb_quant': val_quant,
     'steps_completed': steps_completed,
     'gpu': '$GPU',
+    'dispatched_at': dispatched_at_str,
+    'collected_at': collected_at_str,
+    'duration_seconds': duration_seconds,
+    'expected_duration_seconds': expected_seconds,
     'log_tail': '\\n'.join(lines[-20:]),
 }
 with open('$SNAPSHOT_DIR/result.json', 'w', encoding='utf-8') as f:
     json.dump(result, f, indent=2)
-print(json.dumps(result, indent=2))
+print(json.dumps({k: v for k, v in result.items() if k != 'log_tail'}, indent=2))
 has_metric = val_bpb is not None or val_quant is not None
 print('HAS_METRIC=' + str(has_metric), file=sys.stderr)
 " 2>&1) || true
@@ -107,6 +134,8 @@ print('HAS_METRIC=' + str(has_metric), file=sys.stderr)
     fi
     rm -f "$SNAPSHOT_DIR/remote_pid"
     echo "=== Result written to $SNAPSHOT_DIR/result.json ==="
+    # Append to central timing log
+    python3 "$SCRIPT_DIR/update_timing_log.py" "$NAME" "$SNAPSHOT_DIR/result.json" "$SNAPSHOT_DIR/meta.json" 2>/dev/null || true
 else
     echo "ERROR: No training log found"
     echo "failed" > "$SNAPSHOT_DIR/status"

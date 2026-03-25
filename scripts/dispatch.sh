@@ -85,5 +85,6 @@ REMOTE_PID=$(gpu_ssh "$GPU" "cd $REMOTE_DIR && nohup bash -lc 'echo \$\$ > /tmp/
 echo "running" > "$SNAPSHOT_DIR/status"
 echo "$GPU" > "$SNAPSHOT_DIR/gpu"
 printf '%s\n' "$REMOTE_PID" > "$SNAPSHOT_DIR/remote_pid"
+date -u +"%Y-%m-%dT%H:%M:%SZ" > "$SNAPSHOT_DIR/dispatched_at"
 
 echo "=== Dispatched. Check with: scripts/check_experiment.sh $NAME ==="

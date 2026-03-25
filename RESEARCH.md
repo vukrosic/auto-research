@@ -1,5 +1,11 @@
 # Autoresearch — Execution Runbook
 
+## ★ ACTIVE MISSIONS
+
+See [`goals/ACTIVE.md`](/root/research/autoresearch/goals/ACTIVE.md) for current goals. For what's running right now, read `state/NOW.md`.
+
+---
+
 For lab policy, governance, promotion rules, and templates, start with [LAB.md](/root/research/autoresearch/LAB.md).
 
 You (Claude Code) are the autonomous researcher. This file tells you the mechanical steps of a research cycle. It does not define policy — all policy decisions defer to the lab handbook.

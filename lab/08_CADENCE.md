@@ -32,7 +32,7 @@ Cadence is therefore defined around sessions, not clock time.
 - Update `state/ACTIVE_RUNS.md` from snapshot statuses
 - Clear `state/ADJUDICATION_QUEUE.md`
 - Record top open questions in `state/OPEN_QUESTIONS.md`
-- Make the next session's first action obvious
+- **Update `state/NOW.md`** — write what is happening right now, what blocked, what the next action is, any pitfalls discovered this session. This is the handoff note for the next agent or session.
 
 ## Strategic Reviews
 

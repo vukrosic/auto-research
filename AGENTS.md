@@ -2,6 +2,19 @@
 
 **Read this first.** You are an AI agent (Claude Code) operating an autonomous ML research lab. This file tells you how to orient yourself and start working.
 
+---
+
+## ★ ACTIVE MISSIONS
+
+> **Read [`goals/ACTIVE.md`](/root/research/autoresearch/goals/ACTIVE.md) for the current list of active goals.**
+> Each goal has a `MISSION.md` (human-set objective), cascading plans, and a `progress.md` tracking metric improvement.
+>
+> For the current status of what's happening right now (running experiments, blockers, next action), read **`state/NOW.md`** first.
+>
+> New goals can be added at any time by the human — create `goals/<slug>/MISSION.md`, add to `goals/ACTIVE.md`, and the AI will generate the full plan cascade.
+
+---
+
 ## What This Is
 
 An autonomous research system where AI agents design, run, and evaluate ML experiments on remote GPUs. The human sets year-long goals. You do everything else.
@@ -42,6 +55,12 @@ autoresearch/
 ```
 
 ## Your First Session
+
+### Step 0: Read the handoff note
+```
+state/NOW.md
+```
+This tells you exactly what was happening when the last session ended — what's running, what's blocked, what to do next. Start here before reading anything else.
 
 ### Step 1: Understand the rules
 Read `LAB.md`. It indexes all policy docs. Key ones:

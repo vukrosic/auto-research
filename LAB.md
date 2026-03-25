@@ -1,5 +1,12 @@
 # Autoresearch Lab
 
+## ★ ACTIVE MISSIONS
+
+See [`goals/ACTIVE.md`](/root/research/autoresearch/goals/ACTIVE.md) for the current list of active research goals.
+New goals: create `goals/<slug>/MISSION.md`, add to `goals/ACTIVE.md`, AI generates the plan cascade.
+
+---
+
 This repository has two layers:
 
 - **Lab operating system**: how the research organization works (policy, governance, authority)

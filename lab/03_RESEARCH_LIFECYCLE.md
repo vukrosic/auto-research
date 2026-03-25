@@ -54,9 +54,17 @@ Every experiment must define:
 
 ### Evaluate
 
-- determine pass/fail from pre-written criteria
+> **You decide, not a script.** Look at each result relative to the baseline at the same step count. Categorize:
+> - **Much worse than baseline** (e.g. >2x the gap) → eliminate. The mechanism is broken or harmful.
+> - **Somewhat worse** → examine why. Could it recover at longer training? If no reason to believe so, eliminate.
+> - **Near baseline** (within noise) → neutral. Advance only if the mechanism has theoretical reason to shine at scale.
+> - **Better than baseline** → promising. Strong candidate for validate stage.
+> Write your reasoning for each decision. "Rejected because metric was X vs baseline Y" is not enough — explain whether the mechanism itself is worth revisiting.
+
+- determine pass/fail from your own review of results against same-step-count baseline
 - separate signal from initialization noise
 - record quantitative and qualitative findings
+- rank experiments by promise, not just by metric — mechanism quality matters
 
 ### Validate
 
@@ -65,8 +73,12 @@ Every experiment must define:
 
 ### Promote Or Reject
 
+> **Scaling up = spending compute.** Before promoting an experiment to the next stage, ask: given everything in the current batch, is this the single best use of the GPU for the next N hours? If you have multiple candidates, pick the best one. You are not obligated to advance anything — if nothing looks promising, generate new ideas instead.
+
 - promote only if the run is valid for the current base and stage policy
 - reject explicitly and capture why
+- when multiple candidates compete for the next stage, rank them and advance only the best
+- document opportunity cost reasoning: "chose X over Y because..."
 
 ### Write Knowledge
 

@@ -1,0 +1,13 @@
+{
+  "final_quant_eval": null,
+  "generated_at_utc": "2026-03-25T10:06:00+00:00",
+  "int8_zlib_model_bytes": null,
+  "int8_zlib_total_submission_bytes": null,
+  "last_eval": {
+    "max_steps": 50,
+    "step": 50,
+    "val_bpb": 2.5587,
+    "val_loss": 4.3736
+  },
+  "run_id": "full_mlp_mult_cc33"
+}

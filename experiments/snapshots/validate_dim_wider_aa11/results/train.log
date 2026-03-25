@@ -1,62 +1,60 @@
-"""
-The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching-off points for new participants, not SOTA configs. We'll accept PRs that tune, improve, or simplify these scripts without significantly increasing complexity, but competitive submissions should stay in the `/records` folder.
-
-Hard stop: To keep readable for newcomers, let's make sure `train_gpt.py` and `train_gpt_mlx.py` never are longer than 1500 lines.
-"""
-
-from __future__ import annotations
-
-import copy
-import glob
-import io
-import math
-import os
-import random
-import subprocess
-import sys
-import time
-import uuid
-import zlib
-from pathlib import Path
-
-import numpy as np
-import sentencepiece as spm
-import torch
-import torch.distributed as dist
-import torch.nn.functional as F
-from torch import Tensor, nn
-from torch.nn.parallel import DistributedDataParallel as DDP
-
-# -----------------------------
-# HYPERPARAMETERS
-# -----------------------------
-# Default Simple Baseline run:
-# - 9 transformer blocks at width 512
-# - 8 attention heads with 4 KV heads (GQA) and 2x MLP expansion
-# - vocab size 1024, sequence length 1024, tied embeddings
-# - 524,288 train tokens per step for 20,000 iterations with a ~10 minute cap
-
-class Hyperparameters:
-    # Data paths are shard globs produced by the existing preprocessing pipeline.
-    data_path = os.environ.get("DATA_PATH", "./data/datasets/fineweb10B_sp1024")
-    train_files = os.path.join(data_path, "fineweb_train_*.bin")
-    val_files = os.path.join(data_path, "fineweb_val_*.bin")
-    tokenizer_path = os.environ.get("TOKENIZER_PATH", "./data/tokenizers/fineweb_1024_bpe.model")
-    run_id = os.environ.get("RUN_ID", str(uuid.uuid4()))
-    seed = int(os.environ.get("SEED", 1337))
-
-    # Validation cadence and batch size. Validation always uses the full fineweb_val split.
-    val_batch_size = int(os.environ.get("VAL_BATCH_SIZE", 524_288))
-    val_loss_every = int(os.environ.get("VAL_LOSS_EVERY", 1000))
-    train_log_every = int(os.environ.get("TRAIN_LOG_EVERY", 200))
-
-    # Training length.
-    iterations = int(os.environ.get("ITERATIONS", 20000))
-    warmdown_iters = int(os.environ.get("WARMDOWN_ITERS", 1200))
-    warmup_steps = int(os.environ.get("WARMUP_STEPS", 20))
-    train_batch_tokens = int(os.environ.get("TRAIN_BATCH_TOKENS", 524_288))
-    train_seq_len = int(os.environ.get("TRAIN_SEQ_LEN", 1024))
-    max_wallclock_seconds = float(os.environ.get("MAX_WALLCLOCK_SECONDS", 600.0))
+logs/validate_dim_wider_aa11.txt
+DEBUG_VAL_TOKENS: truncated val set to 16384 tokens
+val_bpb:enabled tokenizer_kind=sentencepiece tokenizer_path=./data/tokenizers/fineweb_1024_bpe.model
+train_loader:dataset:fineweb10B_sp1024 train_shards:1
+val_loader:shards pattern=./data/datasets/fineweb10B_sp1024/fineweb_val_*.bin tokens:16384
+model_params:16142198
+world_size:1 grad_accum_steps:8
+sdp_backends:cudnn=False flash=True mem_efficient=False math=False
+attention_mode:gqa num_heads:6 num_kv_heads:3
+tie_embeddings:False embed_lr:0.6 head_lr:0.008 matrix_lr:0.04 scalar_lr:0.04
+train_batch_tokens:65536 train_seq_len:1024 iterations:15 warmup_steps:20 max_wallclock_seconds:73.000
+seed:1337
+factored_embed: bottleneck=128
+soft_moe: num_experts=4
+warmup_step:1/20
+warmup_step:2/20
+warmup_step:3/20
+warmup_step:4/20
+warmup_step:5/20
+warmup_step:6/20
+warmup_step:7/20
+warmup_step:8/20
+warmup_step:9/20
+warmup_step:10/20
+warmup_step:11/20
+warmup_step:12/20
+warmup_step:13/20
+warmup_step:14/20
+warmup_step:15/20
+warmup_step:16/20
+warmup_step:17/20
+warmup_step:18/20
+warmup_step:19/20
+warmup_step:20/20
+step:0/15 val_loss:6.9315 val_bpb:4.0551 train_time:0ms step_avg:0.01ms
+step:1/15 train_loss:6.9315 train_time:742ms step_avg:741.65ms
+step:2/15 train_loss:6.5107 train_time:1482ms step_avg:740.97ms
+step:3/15 train_loss:6.4295 train_time:2226ms step_avg:741.90ms
+step:4/15 train_loss:6.3328 train_time:2969ms step_avg:742.20ms
+step:5/15 train_loss:6.2175 train_time:3713ms step_avg:742.59ms
+step:6/15 train_loss:6.1069 train_time:4456ms step_avg:742.74ms
+step:7/15 train_loss:6.0159 train_time:5199ms step_avg:742.78ms
+step:8/15 train_loss:5.9139 train_time:5943ms step_avg:742.87ms
+step:9/15 train_loss:5.8045 train_time:6687ms step_avg:742.96ms
+step:10/15 train_loss:5.7002 train_time:7431ms step_avg:743.07ms
+step:11/15 train_loss:5.5879 train_time:8174ms step_avg:743.13ms
+step:12/15 train_loss:5.5321 train_time:8919ms step_avg:743.25ms
+step:13/15 train_loss:5.4869 train_time:9664ms step_avg:743.40ms
+step:14/15 train_loss:5.3720 train_time:10409ms step_avg:743.48ms
+step:15/15 train_loss:5.3166 train_time:11155ms step_avg:743.66ms
+step:15/15 val_loss:5.2686 val_bpb:3.0823 train_time:11155ms step_avg:743.69ms
+peak memory allocated: 2443 MiB reserved: 2482 MiB
+Serialized model: 64365969 bytes
+Code size: 85115 bytes
+Total submission size: 64451084 bytes
+SKIP_QUANT_EVAL: skipping quantization eval
+x_wallclock_seconds = float(os.environ.get("MAX_WALLCLOCK_SECONDS", 600.0))
     qk_gain_init = float(os.environ.get("QK_GAIN_INIT", 1.5))
     checkpoint_every = int(os.environ.get("CHECKPOINT_EVERY", 0))  # 0 = disabled
     resume_from = os.environ.get("RESUME_FROM", "")  # path to checkpoint dir
@@ -65,7 +63,7 @@ class Hyperparameters:
     vocab_size = int(os.environ.get("VOCAB_SIZE", 1024))
     num_layers = int(os.environ.get("NUM_LAYERS", 9))
     num_kv_heads = int(os.environ.get("NUM_KV_HEADS", 3))
-    model_dim = int(os.environ.get("MODEL_DIM", 384))
+    model_dim = int(os.environ.get("MODEL_DIM", 396))
     num_heads = int(os.environ.get("NUM_HEADS", 6))
     mlp_mult = int(os.environ.get("MLP_MULT", 2))
     tie_embeddings = bool(int(os.environ.get("TIE_EMBEDDINGS", "0")))
@@ -1880,3 +1878,84 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+====================================================================================================
+Running Python 3.11.13 | packaged by conda-forge | (main, Jun  4 2025, 14:48:23) [GCC 13.3.0]
+Running PyTorch 2.8.0+cu128
+Wed Mar 25 10:00:57 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 575.57.08              Driver Version: 575.57.08      CUDA Version: 12.9     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 3090        On  |   00000000:D6:00.0 Off |                  N/A |
+| 34%   39C    P0             36W /  350W |     263MiB /  24576MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A           12453      C   python3                                 254MiB |
++-----------------------------------------------------------------------------------------+
+
+====================================================================================================
+DEBUG_VAL_TOKENS: truncated val set to 16384 tokens
+val_bpb:enabled tokenizer_kind=sentencepiece tokenizer_path=./data/tokenizers/fineweb_1024_bpe.model
+train_loader:dataset:fineweb10B_sp1024 train_shards:1
+val_loader:shards pattern=./data/datasets/fineweb10B_sp1024/fineweb_val_*.bin tokens:16384
+model_params:16142198
+world_size:1 grad_accum_steps:8
+sdp_backends:cudnn=False flash=True mem_efficient=False math=False
+attention_mode:gqa num_heads:6 num_kv_heads:3
+tie_embeddings:False embed_lr:0.6 head_lr:0.008 matrix_lr:0.04 scalar_lr:0.04
+train_batch_tokens:65536 train_seq_len:1024 iterations:15 warmup_steps:20 max_wallclock_seconds:73.000
+seed:1337
+factored_embed: bottleneck=128
+soft_moe: num_experts=4
+warmup_step:1/20
+warmup_step:2/20
+warmup_step:3/20
+warmup_step:4/20
+warmup_step:5/20
+warmup_step:6/20
+warmup_step:7/20
+warmup_step:8/20
+warmup_step:9/20
+warmup_step:10/20
+warmup_step:11/20
+warmup_step:12/20
+warmup_step:13/20
+warmup_step:14/20
+warmup_step:15/20
+warmup_step:16/20
+warmup_step:17/20
+warmup_step:18/20
+warmup_step:19/20
+warmup_step:20/20
+step:0/15 val_loss:6.9315 val_bpb:4.0551 train_time:0ms step_avg:0.01ms
+step:1/15 train_loss:6.9315 train_time:742ms step_avg:741.65ms
+step:2/15 train_loss:6.5107 train_time:1482ms step_avg:740.97ms
+step:3/15 train_loss:6.4295 train_time:2226ms step_avg:741.90ms
+step:4/15 train_loss:6.3328 train_time:2969ms step_avg:742.20ms
+step:5/15 train_loss:6.2175 train_time:3713ms step_avg:742.59ms
+step:6/15 train_loss:6.1069 train_time:4456ms step_avg:742.74ms
+step:7/15 train_loss:6.0159 train_time:5199ms step_avg:742.78ms
+step:8/15 train_loss:5.9139 train_time:5943ms step_avg:742.87ms
+step:9/15 train_loss:5.8045 train_time:6687ms step_avg:742.96ms
+step:10/15 train_loss:5.7002 train_time:7431ms step_avg:743.07ms
+step:11/15 train_loss:5.5879 train_time:8174ms step_avg:743.13ms
+step:12/15 train_loss:5.5321 train_time:8919ms step_avg:743.25ms
+step:13/15 train_loss:5.4869 train_time:9664ms step_avg:743.40ms
+step:14/15 train_loss:5.3720 train_time:10409ms step_avg:743.48ms
+step:15/15 train_loss:5.3166 train_time:11155ms step_avg:743.66ms
+step:15/15 val_loss:5.2686 val_bpb:3.0823 train_time:11155ms step_avg:743.69ms
+peak memory allocated: 2443 MiB reserved: 2482 MiB
+Serialized model: 64365969 bytes
+Code size: 85115 bytes
+Total submission size: 64451084 bytes
+SKIP_QUANT_EVAL: skipping quantization eval

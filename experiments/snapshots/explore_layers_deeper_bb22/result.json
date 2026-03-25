@@ -1,0 +1,7 @@
+{
+  "val_bpb": 3.7446,
+  "val_bpb_quant": 8.0,
+  "steps_completed": 5,
+  "gpu": "novita-rtx3090",
+  "log_tail": "warmup_step:13/20\nwarmup_step:14/20\nwarmup_step:15/20\nwarmup_step:16/20\nwarmup_step:17/20\nwarmup_step:18/20\nwarmup_step:19/20\nwarmup_step:20/20\nstep:0/5 val_loss:6.9315 val_bpb:4.0551 train_time:0ms step_avg:0.02ms\nstep:1/5 train_loss:6.9315 train_time:695ms step_avg:694.95ms\nstep:2/5 train_loss:6.5215 train_time:1387ms step_avg:693.51ms\nstep:3/5 train_loss:6.4956 train_time:2083ms step_avg:694.24ms\nstep:4/5 train_loss:6.4617 train_time:2779ms step_avg:694.85ms\nstep:5/5 train_loss:6.4177 train_time:3477ms step_avg:695.31ms\nstep:5/5 val_loss:6.4006 val_bpb:3.7446 train_time:3477ms step_avg:695.36ms\npeak memory allocated: 2597 MiB reserved: 2612 MiB\nSerialized model: 67110707 bytes\nCode size: 85116 bytes\nTotal submission size: 67195823 bytes\nSKIP_QUANT_EVAL: skipping quantization eval"
+}

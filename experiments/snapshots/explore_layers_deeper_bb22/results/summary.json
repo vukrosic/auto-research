@@ -1,0 +1,13 @@
+{
+  "final_quant_eval": null,
+  "generated_at_utc": "2026-03-25T09:57:44+00:00",
+  "int8_zlib_model_bytes": null,
+  "int8_zlib_total_submission_bytes": null,
+  "last_eval": {
+    "max_steps": 5,
+    "step": 5,
+    "val_bpb": 3.7446,
+    "val_loss": 6.4006
+  },
+  "run_id": "explore_layers_deeper_bb22"
+}

@@ -10,3 +10,9 @@ Don't retry these without new evidence.
 - **Depthwise convolution** — all kernel sizes hurt (+0.025 to +0.174 BPB), bigger = worse
 - **Tied factored embeddings** — catastrophic at all bottleneck sizes
 - **Conv + anything combos** — conv damage compounds with other techniques
+
+## Debug Pipeline Run (2026-03-25)
+
+- **dim 396 (wider)**: val_bpb 3.7421 at 5 steps, 3.0823 at 15 steps. Consistently worse than baseline. Eliminated at validate.
+- **num_layers 10 (deeper)**: val_bpb 3.7446 at 5 steps. Worse AND slower per step (695ms vs 624ms). Eliminated at explore.
+- **mlp_mult 3x (wider MLP)**: val_bpb 3.7377/3.0239/2.5587 at 5/15/50 steps. Essentially identical to baseline at all stages. Neutral — no improvement. May revisit if combined with other changes.

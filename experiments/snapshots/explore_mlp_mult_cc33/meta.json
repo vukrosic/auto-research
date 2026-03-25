@@ -1,0 +1,21 @@
+{
+  "name": "explore_mlp_mult_cc33",
+  "hypothesis": "Wider MLP (3x vs 2x) \u2014 more feed-forward capacity",
+  "parent_base": "base::pre_autoresearch_baseline::2026-03-24T00:00:00Z",
+  "stage": "explore",
+  "steps": 5,
+  "priority": 1,
+  "created_at": "2026-03-25T09:54:38Z",
+  "gpu": null,
+  "baseline_metric": 3.7845,
+  "promotion_threshold": 0.05,
+  "env_overrides": {
+    "SKIP_QUANT_EVAL": "1",
+    "DEBUG_VAL_TOKENS": "16384",
+    "VAL_LOSS_EVERY": "5",
+    "TRAIN_LOG_EVERY": "1"
+  },
+  "changes_summary": "mlp_mult 2->3",
+  "owner": "autonomous_lab",
+  "expected_duration_seconds": 30
+}

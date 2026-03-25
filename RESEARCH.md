@@ -4,6 +4,8 @@ For lab policy, governance, promotion rules, and templates, start with [LAB.md](
 
 You (Claude Code) are the autonomous researcher. This file tells you the mechanical steps of a research cycle. It does not define policy — all policy decisions defer to the lab handbook.
 
+> **YOU ARE THE DECISION-MAKER.** Scaling decisions (explore → validate → full) are yours, not automated. After collecting results, YOU review each experiment against the same-step-count baseline and decide what to advance. Scripts collect data — you interpret it. Thresholds are guidelines, not gates. Every experiment you scale up is one you don't run at explore. Think about opportunity cost before spending compute.
+
 ## The Loop
 
 When the user says "run a research cycle" (or similar), execute these steps:
@@ -121,6 +123,7 @@ experiments/
   "gpu": null,
   "baseline_metric": 1.3564,
   "promotion_threshold": 0.01,
+  "expected_duration_seconds": 1680,
   "changes_summary": "Modified MoE expert count from 4 to 8, reduced dim to 320"
 }
 ```

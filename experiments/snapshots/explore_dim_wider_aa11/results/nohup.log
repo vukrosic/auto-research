@@ -1,0 +1,66 @@
+Detected GPU: NVIDIA GeForce RTX 3090 -> 4.2s/step
+============================================
+Experiment: explore_dim_wider_aa11
+Max steps:  5
+Wallclock:  25s (~0.4min)
+============================================
+Env overrides:
+  TRAIN_BATCH_TOKENS=65536
+  VAL_BATCH_SIZE=65536
+  VAL_LOSS_EVERY=5
+  TRAIN_LOG_EVERY=1
+  PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+============================================
+logs/explore_dim_wider_aa11.txt
+DEBUG_VAL_TOKENS: truncated val set to 16384 tokens
+val_bpb:enabled tokenizer_kind=sentencepiece tokenizer_path=./data/tokenizers/fineweb_1024_bpe.model
+train_loader:dataset:fineweb10B_sp1024 train_shards:1
+val_loader:shards pattern=./data/datasets/fineweb10B_sp1024/fineweb_val_*.bin tokens:16384
+model_params:16142198
+world_size:1 grad_accum_steps:8
+sdp_backends:cudnn=False flash=True mem_efficient=False math=False
+attention_mode:gqa num_heads:6 num_kv_heads:3
+tie_embeddings:False embed_lr:0.6 head_lr:0.008 matrix_lr:0.04 scalar_lr:0.04
+train_batch_tokens:65536 train_seq_len:1024 iterations:5 warmup_steps:20 max_wallclock_seconds:25.000
+seed:1337
+factored_embed: bottleneck=128
+soft_moe: num_experts=4
+warmup_step:1/20
+warmup_step:2/20
+warmup_step:3/20
+warmup_step:4/20
+warmup_step:5/20
+warmup_step:6/20
+warmup_step:7/20
+warmup_step:8/20
+warmup_step:9/20
+warmup_step:10/20
+warmup_step:11/20
+warmup_step:12/20
+warmup_step:13/20
+warmup_step:14/20
+warmup_step:15/20
+warmup_step:16/20
+warmup_step:17/20
+warmup_step:18/20
+warmup_step:19/20
+warmup_step:20/20
+step:0/5 val_loss:6.9315 val_bpb:4.0551 train_time:0ms step_avg:0.01ms
+step:1/5 train_loss:6.9315 train_time:741ms step_avg:740.55ms
+step:2/5 train_loss:6.5107 train_time:1479ms step_avg:739.70ms
+step:3/5 train_loss:6.4861 train_time:2221ms step_avg:740.30ms
+step:4/5 train_loss:6.4538 train_time:2963ms step_avg:740.86ms
+step:5/5 train_loss:6.4120 train_time:3707ms step_avg:741.47ms
+step:5/5 val_loss:6.3963 val_bpb:3.7421 train_time:3708ms step_avg:741.52ms
+peak memory allocated: 2443 MiB reserved: 2482 MiB
+Serialized model: 64365969 bytes
+Code size: 85115 bytes
+Total submission size: 64451084 bytes
+SKIP_QUANT_EVAL: skipping quantization eval
+
+=== Results ===
+Final val_bpb:
+step:5/5 val_loss:6.3963 val_bpb:3.7421 train_time:3708ms step_avg:741.52ms
+Post-quant val_bpb:
+    log0(f"final_int8_zlib_roundtrip_exact val_loss:{q_val_loss:.8f} val_bpb:{q_val_bpb:.8f}")
+===============

@@ -1,0 +1,26 @@
+{
+  "config": {
+    "ITERATIONS": "5",
+    "MAX_WALLCLOCK_SECONDS": "25",
+    "RUN_ID": "explore_mlp_mult_cc33",
+    "SEED": "1337",
+    "TRAIN_LOG_EVERY": "1",
+    "VAL_LOSS_EVERY": "5"
+  },
+  "generated_at_utc": "2026-03-25T09:58:54+00:00",
+  "git": {
+    "commit": null,
+    "commit_short": null,
+    "dirty_worktree": false
+  },
+  "hardware": {
+    "gpu": {
+      "detected": true,
+      "driver_version": "575.57.08",
+      "memory_total": "24576 MiB",
+      "name": "NVIDIA GeForce RTX 3090"
+    }
+  },
+  "log_path": "logs/explore_mlp_mult_cc33.txt",
+  "run_id": "explore_mlp_mult_cc33"
+}

@@ -10,7 +10,34 @@
       "val_bpb_quant": 1.736647,
       "steps": 500,
       "calibrated_at": "2026-03-25T03:11:26Z",
-      "gpu": "novita-rtx3090"
+      "gpu": "novita-rtx3090",
+      "_WARNING": "calibrated with OLD defaults (dim=512, no MoE) \u2014 needs recalibration with updated base"
+    },
+    "debug_5step": {
+      "val_bpb": 3.7376,
+      "val_bpb_quant": null,
+      "steps": 5,
+      "calibrated_at": "2026-03-25T12:00:00Z",
+      "gpu": "novita-rtx3090",
+      "step_time_ms": 624,
+      "total_wall_seconds": 27,
+      "flags": "SKIP_QUANT_EVAL=1 DEBUG_VAL_TOKENS=16384"
+    },
+    "debug_15step": {
+      "val_bpb": 3.0238,
+      "steps": 15,
+      "calibrated_at": "2026-03-25T12:30:00Z",
+      "gpu": "novita-rtx3090",
+      "total_wall_seconds": 33,
+      "flags": "SKIP_QUANT_EVAL=1 DEBUG_VAL_TOKENS=16384"
+    },
+    "debug_50step": {
+      "val_bpb": 2.5586,
+      "steps": 50,
+      "calibrated_at": "2026-03-25T13:00:00Z",
+      "gpu": "novita-rtx3090",
+      "total_wall_seconds": 54,
+      "flags": "SKIP_QUANT_EVAL=1 DEBUG_VAL_TOKENS=16384"
     }
   }
 }

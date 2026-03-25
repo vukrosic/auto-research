@@ -36,14 +36,40 @@ Cadence is therefore defined around sessions, not clock time.
 
 ## Strategic Reviews
 
-These are real calendar cadences, not session events. They should happen at these intervals regardless of session frequency.
+These are real calendar cadences, not session events. They should happen at these intervals regardless of session frequency. See also `lab/13_PLANNING_HIERARCHY.md` for the full cascade rules.
 
-### Weekly Research Review
+### Daily Review (at session open)
 
-- What actually improved the frontier
-- What failed repeatedly
-- Where the search space is saturated
-- Whether the project strategy should change
+- Check running experiments, collect results
+- Adjudicate completed experiments
+- Update week plan with results
+- Dispatch next experiments (GPU must never be idle)
+
+### Weekly Review (at week boundary)
+
+- Review all experiments from the week
+- Update month plan with week results
+- Compute velocity: BPB improvement / GPU-hours
+- Generate next week plan
+- Update campaign wave log
+
+### Monthly Review (at month boundary)
+
+- Review all experiments from the month
+- Update quarter plan with month results
+- Assess axis exhaustion: any axes to close or open?
+- Compute monthly velocity and compare to milestone
+- Generate next month plan
+- Knowledge audit: prune stale claims, add new findings
+
+### Quarterly Review (at quarter boundary)
+
+- Review the full quarter against milestone
+- Update year plan with quarter results
+- Assess phase gate criteria: can we move to next phase?
+- Compute quarterly velocity and extrapolate to year-end
+- Generate next quarter plan
+- Major strategic decisions: pivot campaigns, adjust resource allocation
 
 ### Weekly Ops Review
 

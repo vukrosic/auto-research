@@ -6,6 +6,17 @@ You (Claude Code) are the autonomous researcher. This file tells you the mechani
 
 > **YOU ARE THE DECISION-MAKER.** Scaling decisions (explore → validate → full) are yours, not automated. After collecting results, YOU review each experiment against the same-step-count baseline and decide what to advance. Scripts collect data — you interpret it. Thresholds are guidelines, not gates. Every experiment you scale up is one you don't run at explore. Think about opportunity cost before spending compute.
 
+## Strategic Planning (before the loop)
+
+Before running experiments, ensure the strategic layer is in place:
+
+1. **Active campaign**: Check `campaigns/` for an active campaign. If none, create one per [template](/root/research/autoresearch/lab/templates/CAMPAIGN.md). See [Research Strategy](/root/research/autoresearch/lab/11_RESEARCH_STRATEGY.md).
+2. **Week plan**: Check `ops/week_<YYYY>_w<WW>.md` for a current week plan. If stale or missing, create one per [template](/root/research/autoresearch/lab/templates/WEEK_PLAN.md). See [Autonomous Planning](/root/research/autoresearch/lab/12_AUTONOMOUS_PLANNING.md).
+3. **Resources**: Check `ops/resources.md` for current GPU inventory and budget.
+4. **Pipeline depth**: Ensure 3-5 experiments are in `pending` state before starting. The GPU must never be idle.
+
+Only proceed to the loop once the strategic context is set. The loop executes within the plan — it doesn't replace planning.
+
 ## The Loop
 
 When the user says "run a research cycle" (or similar), execute these steps:
@@ -205,3 +216,15 @@ Claude Code reads these at the start of each cycle and writes to them after adju
 - **Batch wisely.** If you have GPUs idle, dispatch experiments. If none idle, just generate ideas.
 - **Don't repeat failures.** Always check `knowledge/<project>/failures.md` before proposing.
 - **Never promote stale winners.** If base changed, revalidate first.
+
+## Strategic Layer
+
+| Document | Purpose |
+|----------|---------|
+| [Research Strategy](/root/research/autoresearch/lab/11_RESEARCH_STRATEGY.md) | Campaigns, waves, pivots, convergence detection |
+| [Autonomous Planning](/root/research/autoresearch/lab/12_AUTONOMOUS_PLANNING.md) | Week planning, GPU scheduling, pipeline management |
+| [ops/resources.md](/root/research/autoresearch/ops/resources.md) | Live GPU and budget inventory |
+| `ops/week_<YYYY>_w<WW>.md` | Current week plan with schedule and decision points |
+| `campaigns/<name>.md` | Active research campaigns with axes and wave logs |
+| [Campaign template](/root/research/autoresearch/lab/templates/CAMPAIGN.md) | How to start a new campaign |
+| [Week plan template](/root/research/autoresearch/lab/templates/WEEK_PLAN.md) | How to plan a week |

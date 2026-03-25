@@ -20,14 +20,23 @@ Use this file as the entry point for the lab layer.
 9. [Cadence](/root/research/autoresearch/lab/08_CADENCE.md) — session-based operation model
 10. [Rollback Policy](/root/research/autoresearch/lab/09_ROLLBACK_POLICY.md)
 11. [Naming Convention](/root/research/autoresearch/lab/10_NAMING_CONVENTION.md)
-12. [Live State](/root/research/autoresearch/state/README.md) — derived operational views
-13. [Templates](/root/research/autoresearch/lab/templates/README.md)
+12. [Research Strategy](/root/research/autoresearch/lab/11_RESEARCH_STRATEGY.md) — campaigns, waves, pivots, convergence
+13. [Autonomous Planning](/root/research/autoresearch/lab/12_AUTONOMOUS_PLANNING.md) — GPU scheduling, pipeline management
+14. [Planning Hierarchy](/root/research/autoresearch/lab/13_PLANNING_HIERARCHY.md) — year → quarter → month → week → wave cascade
+15. [Live State](/root/research/autoresearch/state/README.md) — derived operational views
+16. [Templates](/root/research/autoresearch/lab/templates/README.md)
 
 ## Execution Docs
 
+- [Agent Onboarding](/root/research/autoresearch/AGENTS.md) — **start here** if you're a new AI agent
 - [Execution Runbook](/root/research/autoresearch/RESEARCH.md) — mechanical steps for running a research cycle
 - [System Design](/root/research/autoresearch/DESIGN.md) — architecture decisions for the execution engine
 - [Parameter Golf Project Config](/root/research/autoresearch/projects/parameter-golf.json)
+
+## Goals
+
+- [Goals Overview](/root/research/autoresearch/goals/README.md) — active research goals (1-year missions)
+- [Surpass Transformer 2026](/root/research/autoresearch/goals/surpass_transformer_2026/MISSION.md) — current active goal
 
 ## Interface Between Layers
 

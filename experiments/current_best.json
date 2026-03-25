@@ -6,12 +6,14 @@
   "hypothesis": "MoE4e + bn128u + leaky(0.5)\u00b2 at d384 \u2014 manual research best",
   "stage_baselines": {
     "explore": {
-      "val_bpb": 1.7362,
-      "val_bpb_quant": 1.736647,
+      "val_bpb": 1.6673,
+      "val_bpb_quant": 1.66794509,
       "steps": 500,
-      "calibrated_at": "2026-03-25T03:11:26Z",
+      "calibrated_at": "2026-03-25T11:55:59Z",
       "gpu": "novita-rtx3090",
-      "_WARNING": "calibrated with OLD defaults (dim=512, no MoE) \u2014 needs recalibration with updated base"
+      "wall_seconds": 2699,
+      "experiment": "explore_baseline_v2",
+      "config": "dim=384, 9L, 6H/3KV, 4e MoE, bn128u, leaky05_gradfloor"
     },
     "debug_5step": {
       "val_bpb": 3.7376,

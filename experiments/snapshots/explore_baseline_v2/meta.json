@@ -1,6 +1,6 @@
 {
   "name": "explore_baseline_v2",
-  "hypothesis": "Calibration run — unmodified base at 500 steps with updated defaults (dim=384, MoE4e, bn128u, leaky). Establishes the correct explore baseline for the current architecture.",
+  "hypothesis": "Calibration run \u2014 unmodified base at 500 steps with updated defaults (dim=384, MoE4e, bn128u, leaky). Establishes the correct explore baseline for the current architecture.",
   "parent_base": "base::pre_autoresearch_baseline::2026-03-24T00:00:00Z",
   "stage": "explore",
   "steps": 500,
@@ -11,6 +11,6 @@
   "promotion_threshold": 0.01,
   "env_overrides": {},
   "changes_summary": "No code changes. Calibration run to measure current base at 500 steps.",
-  "expected_duration_seconds": 1680,
+  "expected_duration_seconds": 2700,
   "owner": "autonomous_lab"
 }

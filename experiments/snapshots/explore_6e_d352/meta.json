@@ -17,5 +17,5 @@
   },
   "changes_summary": "NUM_EXPERTS=6, MODEL_DIM=352, NUM_HEADS=6, NUM_KV_HEADS=3 (GQA ratio preserved)",
   "owner": "autonomous_lab",
-  "expected_duration_seconds": 1680
+  "expected_duration_seconds": 2700
 }

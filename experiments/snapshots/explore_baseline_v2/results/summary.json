@@ -1,0 +1,16 @@
+{
+  "final_quant_eval": {
+    "val_bpb": 1.66794509,
+    "val_loss": 2.81625542
+  },
+  "generated_at_utc": "2026-03-25T11:51:50+00:00",
+  "int8_zlib_model_bytes": 12044667,
+  "int8_zlib_total_submission_bytes": 12129782,
+  "last_eval": {
+    "max_steps": 500,
+    "step": 500,
+    "val_bpb": 1.6673,
+    "val_loss": 2.8152
+  },
+  "run_id": "explore_baseline_v2"
+}

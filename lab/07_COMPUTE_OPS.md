@@ -29,8 +29,15 @@ Compute is a lab resource. Treat it like scarce capital.
 
 ### Explore
 
-- cheap (~28 min on 3090, 500 steps)
+- **~45 min on 3090, 500 steps** (updated 2026-03-25 from actual data)
+- ⚠️ **87% of wall time is quant eval** — training itself is only ~5 min
 - screen many ideas quickly
+
+> **Explore efficiency note**: Consider using `SKIP_QUANT_EVAL=1` for explore-stage runs.
+> Non-quant BPB is a reliable proxy (delta vs quant BPB observed: <0.001).
+> With SKIP_QUANT_EVAL, explore runs take ~8 min instead of ~45 min (5.6x speedup).
+> **If you switch**: you must recalibrate the explore baseline with the same flag set,
+> and compare all explore results against that new unquantized baseline only.
 
 ### Validate
 
@@ -54,7 +61,7 @@ At minimum, the operator should be able to answer:
 
 ## Timing Expectations
 
-> **HARD RULE: Every dispatched experiment must have an expected duration.** Record `expected_duration_seconds` in `meta.json` before dispatch. Estimate from known timing data (e.g. 500 steps ≈ 28 min on 3090, so 5 steps ≈ 17 seconds). When checking a running experiment:
+> **HARD RULE: Every dispatched experiment must have an expected duration.** Record `expected_duration_seconds` in `meta.json` before dispatch. Estimate from known timing data (e.g. 500 steps ≈ 45 min on 3090 with quant eval, ~8 min without). When checking a running experiment:
 >
 > - **Within 2x expected duration**: normal. Let it run.
 > - **2x–5x expected duration**: check the log for progress. If steps are advancing but slow (e.g. first-run compilation overhead), let it finish. If no steps advancing or stuck, kill and mark failed.
@@ -84,6 +91,43 @@ A run is marked `failed` when:
 - GPU unreachable after repeated attempts
 
 When in doubt, mark `failed` and record the reason in `result.json`. A mislabeled success is worse than a delayed adjudication.
+
+## Pre-Dispatch Validation
+
+> **HARD RULE: Validate config before every dispatch.** A mis-configured experiment wastes a GPU slot.
+> Run these checks before `dispatch.sh`:
+>
+> 1. **dim divisibility**: `model_dim % num_heads == 0` — if not, training crashes instantly
+>    - Example bug: dim=352, num_heads=6 → 352%6=4 → crash (occurred 2026-03-25 with `explore_6e_d352`)
+>    - Also check: `model_dim % num_kv_heads == 0`
+> 2. **Size check**: model must be ≤16 MB after int8 zlib compression (run `check_size.py` if available)
+> 3. **Experiment name unique**: no duplicate names in `experiments/snapshots/`
+> 4. **Stage baseline exists**: the baseline at the same step count must be in `experiments/current_best.json`
+>    before any non-calibration experiment is dispatched
+>
+> A 30-second config check prevents a 45-minute wasted run.
+
+## Prediction Calibration
+
+> **RULE: After every completed experiment, check actual vs predicted duration. Update predictions if off.**
+>
+> After collecting a result, check `state/timing_log.md`:
+> - **If ratio is 1.0x–1.2x**: prediction is good, no action needed
+> - **If ratio is 1.2x–1.5x**: note it; after 3+ runs with this ratio, update the reference estimate
+> - **If ratio is >1.5x**: immediately investigate root cause and update all pending experiment
+>   `expected_duration_seconds` values in meta.json before dispatching more
+>
+> **Known calibration history:**
+> | Date | Stage | Flags | Predicted | Actual | Ratio | Root Cause |
+> |------|-------|-------|-----------|--------|-------|------------|
+> | 2026-03-25 | explore | default | 28m | 45m | 1.61x | Quant eval (~39 min) not included in estimate |
+>
+> **Current reference (with quant eval)**:
+> - Explore 500 steps: **45 min** (2700s)
+> - Validate 4000 steps: ~3.7 hr (estimate, not yet measured)
+> - Full 13780 steps: ~12.7 hr (estimate, not yet measured)
+>
+> **Breakdown of explore wall time**: ~5 min training + ~39 min quant eval + ~1 min startup = 45 min total
 
 ## Efficiency Metric
 

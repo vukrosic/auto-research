@@ -19,3 +19,5 @@ After enough runs accumulate (10+), compute:
 
 | Experiment | Stage | Steps | GPU | Predicted | Actual | Ratio | Error% | val_bpb | Dispatched |
 |-----------|-------|-------|-----|-----------|--------|-------|--------|---------|------------|
+| explore_baseline_v2 | explore | 500 | novita-rtx3090 | 28m00s | 44m59s | 1.61x | +60.7% | 1.6673 | 2026-03-25T11:11 |
+| explore_6e_d352 | explore | 500 | novita-rtx3090 | 45m00s | ~15s | — | — | FAILED | 2026-03-25T11:56 |

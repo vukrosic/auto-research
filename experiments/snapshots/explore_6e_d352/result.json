@@ -1,0 +1,10 @@
+{
+  "status": "failed",
+  "failure_reason": "ValueError: model_dim must be divisible by num_heads. dim=352, num_heads=6 → 352 % 6 = 4 (not divisible). Crashed before training started.",
+  "val_bpb": null,
+  "collected_at": "2026-03-25T13:00:00Z",
+  "dispatched_at": null,
+  "duration_seconds": 15,
+  "expected_duration_seconds": 2700,
+  "notes": "Config error — no compute was actually consumed on training. Wasted GPU slot startup time only."
+}

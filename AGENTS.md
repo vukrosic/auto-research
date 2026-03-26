@@ -1,143 +1,81 @@
-# Autoresearch — Agent Onboarding
+# Agent Onboarding
 
-**Read this first.** You are an AI agent (Claude Code) operating an autonomous ML research lab. This file tells you how to orient yourself and start working.
+Read this first when these documents are installed into a target repo.
 
----
+## Read Order
 
-## ★ ACTIVE MISSIONS
+1. `README.md`
+2. `LAB.md`
+3. `OPERATING_MODEL.md`
+4. `FOLDER_BLUEPRINT.md`
+5. `TEMPLATES.md`
+6. `SETUP.md`
+7. The appropriate prompt file:
+   - `PROMPTS_AUTONOMOUS.md`
+   - `PROMPTS_SUPERVISED.md`
 
-> **Read [`goals/ACTIVE.md`](/root/research/autoresearch/goals/ACTIVE.md) for the current list of active goals.**
-> Each goal has a `MISSION.md` (human-set objective), cascading plans, and a `progress.md` tracking metric improvement.
->
-> For the current status of what's happening right now (running experiments, blockers, next action), read **`state/NOW.md`** first.
->
-> New goals can be added at any time by the human — create `goals/<slug>/MISSION.md`, add to `goals/ACTIVE.md`, and the AI will generate the full plan cascade.
+## Your Job
 
----
+You are the operating researcher inside the user's actual codebase.
 
-## What This Is
+Your responsibilities are to:
 
-An autonomous research system where AI agents design, run, and evaluate ML experiments on remote GPUs. The human sets year-long goals. You do everything else.
+- create the missing lab folders and starter files
+- translate the user's mission into plans, campaigns, and experiments
+- keep all state in repo files
+- run the research loop according to `LAB.md`
+- work either autonomously or under explicit human checkpoints
 
-## System Architecture
+## First Session Behavior
 
-```
-autoresearch/
-  AGENTS.md              ← YOU ARE HERE. Start here.
-  LAB.md                 → Lab policy index (rules you must follow)
-  RESEARCH.md            → Execution runbook (mechanical steps per cycle)
-  DESIGN.md              → System design decisions
+If the lab folders do not exist yet:
 
-  lab/                   → Permanent rules (numbered, policy docs)
-    01-10                  Core governance (lifecycle, promotion, knowledge, compute, etc.)
-    11_RESEARCH_STRATEGY   Campaigns, waves, pivots, convergence
-    12_AUTONOMOUS_PLANNING Week planning, GPU scheduling, pipeline mgmt
-    13_PLANNING_HIERARCHY  Multi-timeframe cascade (year → quarter → month → week → wave)
-    templates/             Templates for campaigns, week plans, cycle reports
+1. Read `FOLDER_BLUEPRINT.md`.
+2. Create the missing folders and starter files in the target repo.
+3. Use `TEMPLATES.md` to materialize the first mission, plans, and project config.
+4. Ask the user only for critical missing facts:
+   - research objective
+   - primary metric and direction
+   - how training is launched
+   - how results are detected or parsed
+   - compute constraints
 
-  goals/                 → Active goals (1-year missions, human-set)
-    <goal-slug>/
-      MISSION.md           The objective (human-written, immutable by AI)
-      plans/               Year → quarter → month → week plans (AI-written)
-      campaigns/           Research campaigns within this goal
-      progress.md          Metric timeline with dates
-      resources.md         GPU allocation for this goal
+If the folders already exist:
 
-  projects/              → Project configs (metric, stages, thresholds)
-  experiments/           → Experiment engine
-    base/                  Current best code (the repo under test)
-    snapshots/             All experiment snapshots
-    current_best.json      Canonical frontier record + stage baselines
-  knowledge/             → Accumulated research knowledge by project
-  scripts/               → GPU ops tooling (dispatch, check, collect, promote)
-  state/                 → Derived operational views (regenerated each session)
-  ops/                   → [DEPRECATED: moved under goals/] Legacy operational files
-```
+1. Read `state/NOW.md` if present.
+2. Read the active goal mission and current plans.
+3. Reconcile state against the primary experiment and project records.
+4. Continue the loop from the latest durable state.
 
-## First-Time Setup (New Clone)
+## Operating Rules
 
-If this is a fresh clone and `scripts/gpu_config.sh` doesn't exist yet, read **[SETUP.md](SETUP.md)** first. It walks through GPU configuration, project creation, and asks the user key setup questions before you start researching.
+- Do not rely on hidden memory when durable files should be updated.
+- Do not rewrite human-authored mission files unless explicitly instructed.
+- Do not evaluate experiments without an exact-step baseline.
+- Do not promote stale winners without revalidation on the latest base.
+- Always update knowledge and the handoff state after adjudicating results.
 
----
+## Mode Selection
 
-## Your First Session
+If the user says autonomous:
 
-### Step 0: Read the handoff note
-```
-state/NOW.md
-```
-This tells you exactly what was happening when the last session ended — what's running, what's blocked, what to do next. Start here before reading anything else.
+- act without waiting on routine approvals
+- stop only for mission changes, budget changes, destructive pivots, or policy conflicts
 
-### Step 1: Understand the rules
-Read `LAB.md`. It indexes all policy docs. Key ones:
-- `lab/13_PLANNING_HIERARCHY.md` — how planning works
-- `lab/03_RESEARCH_LIFECYCLE.md` — how experiments work
-- `lab/07_COMPUTE_OPS.md` — how to use GPUs
+If the user says supervised:
 
-### Step 2: Find active goals
-```bash
-ls goals/
-```
-For each goal, read `MISSION.md` to understand the objective.
+- propose before dispatch, promotion, broad code changes, or campaign pivots
+- wait for explicit approval at those gates
 
-### Step 3: Find the current plan
-For the active goal, read plans in order:
-1. `plans/year.md` — where are we in the year?
-2. `plans/q<N>_<YYYY>.md` — what's this quarter about?
-3. `plans/<YYYY>_<MM>.md` — what's this month about?
-4. `plans/<YYYY>_w<WW>.md` — what should happen this week?
+## If You Need To Recover
 
-The week plan tells you **exactly what to do next**.
+When context is missing, rebuild it from files in this order:
 
-### Step 4: Check running experiments
-```bash
-# Check GPU status
-scripts/gpu_status.sh
+1. goal mission
+2. year, quarter, month, and week plans
+3. project config
+4. experiment records
+5. knowledge files
+6. `state/NOW.md`
 
-# Check experiment snapshots for running/done status across projects
-ls experiments/*/snapshots/*/status
-```
-
-### Step 5: Execute the research cycle
-Follow `RESEARCH.md`. The loop is:
-1. Calibrate baselines (if needed)
-2. Check running experiments
-3. Adjudicate completed experiments
-4. Promote winners
-5. Generate new ideas
-6. Dispatch to GPUs
-7. Report
-
-## Key Principles
-
-1. **GPU must never be idle.** Always have 3-5 pending experiments ready to dispatch.
-2. **Plans cascade down, results cascade up.** See `lab/13_PLANNING_HIERARCHY.md`.
-3. **You are the decision-maker.** Thresholds are guidelines. You interpret results and decide what to scale.
-4. **Don't repeat failures.** Read `knowledge/<project>/failures.md` before designing experiments.
-5. **All state is in files.** If it's not written down, it doesn't exist. Future agents will read what you wrote.
-6. **Opportunity cost is real.** Every GPU-hour has alternatives. Think before spending.
-
-## What You Can Do Without Asking
-
-- Design and dispatch experiments
-- Adjudicate results (promote/reject)
-- Update knowledge files
-- Update plans at or below the week level
-- Pivot between research axes within a campaign
-- Declare axes exhausted
-
-## What Requires Human Approval
-
-- Modifying `MISSION.md`
-- Spending >50% of total budget in a single wave
-- Closing or creating a new goal
-- Any action that conflicts with lab policy
-
-## If You're Lost
-
-1. Read the current week plan — it says what to do next
-2. If no week plan exists — read the month plan and create one
-3. If no month plan exists — read the quarter plan and create one
-4. If no quarter plan exists — read the year plan and create one
-5. If no year plan exists — read the mission and create one
-6. If no mission exists — ask the human
+If those records do not exist yet, create them from `FOLDER_BLUEPRINT.md` and `TEMPLATES.md`.

@@ -1,0 +1,115 @@
+<svg width="1600" height="720" viewBox="0 0 1600 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="60" x2="1480" y2="660" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="0.5" stop-color="#111827"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#13213B"/>
+      <stop offset="1" stop-color="#0F1B32"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#FB7185"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0.35  0 0 1 0 0.55  0 0 0 0.35 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="720" rx="36" fill="url(#bg)"/>
+  <rect x="22" y="22" width="1556" height="676" rx="28" stroke="#94A3B8" stroke-opacity="0.28" stroke-width="2"/>
+
+  <g opacity="0.28">
+    <path d="M120 132H1480" stroke="#334155" stroke-width="1"/>
+    <path d="M120 228H1480" stroke="#334155" stroke-width="1"/>
+    <path d="M120 324H1480" stroke="#334155" stroke-width="1"/>
+    <path d="M120 420H1480" stroke="#334155" stroke-width="1"/>
+    <path d="M120 516H1480" stroke="#334155" stroke-width="1"/>
+    <path d="M120 612H1480" stroke="#334155" stroke-width="1"/>
+    <path d="M248 88V632" stroke="#334155" stroke-width="1"/>
+    <path d="M424 88V632" stroke="#334155" stroke-width="1"/>
+    <path d="M600 88V632" stroke="#334155" stroke-width="1"/>
+    <path d="M776 88V632" stroke="#334155" stroke-width="1"/>
+    <path d="M952 88V632" stroke="#334155" stroke-width="1"/>
+    <path d="M1128 88V632" stroke="#334155" stroke-width="1"/>
+    <path d="M1304 88V632" stroke="#334155" stroke-width="1"/>
+  </g>
+
+  <circle cx="1320" cy="148" r="118" fill="#38BDF8" opacity="0.08" filter="url(#softGlow)"/>
+  <circle cx="240" cy="582" r="124" fill="#22C55E" opacity="0.09" filter="url(#softGlow)"/>
+  <circle cx="1080" cy="580" r="156" fill="#F59E0B" opacity="0.07" filter="url(#softGlow)"/>
+
+  <text x="120" y="154" fill="#E2E8F0" font-size="68" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Open Research Loop</text>
+  <text x="120" y="204" fill="#93C5FD" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="600">Open infrastructure for autonomous AI research</text>
+  <text x="120" y="258" fill="#CBD5E1" font-size="25" font-family="Segoe UI, Arial, sans-serif">
+    <tspan x="120" dy="0">Human mission and policy set the direction.</tspan>
+    <tspan x="120" dy="38">Agents run experiment loops, compare results, and build durable knowledge.</tspan>
+    <tspan x="120" dy="38">The ambition is public, reproducible, distributed scientific progress.</tspan>
+  </text>
+
+  <g>
+    <rect x="120" y="384" width="214" height="92" rx="20" fill="url(#panel)" stroke="#334155" stroke-width="2"/>
+    <text x="146" y="420" fill="#93C5FD" font-size="16" font-family="Segoe UI, Arial, sans-serif" font-weight="700">MISSION</text>
+    <text x="146" y="450" fill="#F8FAFC" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Human Goals</text>
+    <text x="146" y="470" fill="#94A3B8" font-size="15" font-family="Segoe UI, Arial, sans-serif">constraints, scope, budget</text>
+
+    <rect x="370" y="384" width="214" height="92" rx="20" fill="url(#panel)" stroke="#334155" stroke-width="2"/>
+    <text x="396" y="420" fill="#86EFAC" font-size="16" font-family="Segoe UI, Arial, sans-serif" font-weight="700">PLANNING</text>
+    <text x="396" y="450" fill="#F8FAFC" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Agent Loops</text>
+    <text x="396" y="470" fill="#94A3B8" font-size="15" font-family="Segoe UI, Arial, sans-serif">ideas, queues, adjudication</text>
+
+    <rect x="620" y="384" width="214" height="92" rx="20" fill="url(#panel)" stroke="#334155" stroke-width="2"/>
+    <text x="646" y="420" fill="#FCD34D" font-size="16" font-family="Segoe UI, Arial, sans-serif" font-weight="700">RUNTIME</text>
+    <text x="646" y="450" fill="#F8FAFC" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">GPU Dispatch</text>
+    <text x="646" y="470" fill="#94A3B8" font-size="15" font-family="Segoe UI, Arial, sans-serif">remote runs, polling, collection</text>
+
+    <rect x="870" y="384" width="214" height="92" rx="20" fill="url(#panel)" stroke="#334155" stroke-width="2"/>
+    <text x="896" y="420" fill="#F9A8D4" font-size="16" font-family="Segoe UI, Arial, sans-serif" font-weight="700">RESULTS</text>
+    <text x="896" y="450" fill="#F8FAFC" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Snapshots</text>
+    <text x="896" y="470" fill="#94A3B8" font-size="15" font-family="Segoe UI, Arial, sans-serif">metrics, provenance, baselines</text>
+  </g>
+
+  <path d="M334 430H370" stroke="url(#accent)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M584 430H620" stroke="url(#accent)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M834 430H870" stroke="url(#accent)" stroke-width="4" stroke-linecap="round"/>
+
+  <g>
+    <rect x="1106" y="116" width="330" height="256" rx="26" fill="url(#panel)" stroke="#334155" stroke-width="2"/>
+    <text x="1140" y="162" fill="#E2E8F0" font-size="26" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Public Research Stack</text>
+
+    <rect x="1140" y="194" width="262" height="42" rx="14" fill="#0F172A" stroke="#1D4ED8" stroke-width="2"/>
+    <text x="1162" y="221" fill="#DBEAFE" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">Open challenges</text>
+
+    <rect x="1140" y="248" width="262" height="42" rx="14" fill="#0F172A" stroke="#16A34A" stroke-width="2"/>
+    <text x="1162" y="275" fill="#DCFCE7" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">Public leaderboards</text>
+
+    <rect x="1140" y="302" width="262" height="42" rx="14" fill="#0F172A" stroke="#F59E0B" stroke-width="2"/>
+    <text x="1162" y="329" fill="#FEF3C7" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">Lightweight verification</text>
+  </g>
+
+  <g>
+    <rect x="120" y="548" width="1320" height="94" rx="24" fill="#0D172B" stroke="#334155" stroke-width="2"/>
+    <rect x="152" y="574" width="214" height="42" rx="14" fill="url(#accent)" opacity="0.18" stroke="#38BDF8" stroke-width="1.5"/>
+    <text x="180" y="601" fill="#E0F2FE" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">file-based state</text>
+
+    <rect x="392" y="574" width="248" height="42" rx="14" fill="url(#accent)" opacity="0.18" stroke="#22C55E" stroke-width="1.5"/>
+    <text x="420" y="601" fill="#DCFCE7" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">distributed compute</text>
+
+    <rect x="668" y="574" width="254" height="42" rx="14" fill="url(#warm)" opacity="0.16" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="696" y="601" fill="#FEF3C7" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">reproducible results</text>
+
+    <rect x="950" y="574" width="230" height="42" rx="14" fill="url(#warm)" opacity="0.16" stroke="#FB7185" stroke-width="1.5"/>
+    <text x="978" y="601" fill="#FFE4E6" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">shared knowledge</text>
+
+    <rect x="1206" y="574" width="202" height="42" rx="14" fill="#111827" stroke="#94A3B8" stroke-width="1.5"/>
+    <text x="1234" y="601" fill="#E5E7EB" font-size="18" font-family="Segoe UI, Arial, sans-serif" font-weight="600">public science</text>
+  </g>
+</svg>

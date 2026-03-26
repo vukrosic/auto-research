@@ -1,19 +1,82 @@
-# Autoresearch
+<div align="center">
+  <h1>Open Research Loop</h1>
+  <p><strong>Autoresearch is the working control plane for an open autonomous AI research lab.</strong></p>
+  <p>Human mission. Agent execution. Distributed compute. Reproducible results.</p>
+</div>
 
-Autoresearch is a file-based autonomous ML research lab. A human sets mission-level goals and policy. The agent handles planning below that layer: creating experiments, dispatching them to remote GPUs, collecting results, updating knowledge, and deciding what to run next.
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>Mission Layer</strong><br/>
+      Human sets goals and supervises, AI does everything else. Infinitely scalable.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Execution Layer</strong><br/>
+      Agents design experiments, dispatch runs, collect results, and decide what to test next.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Open Layer</strong><br/>
+      Shared knowledge, public comparisons, and reproducible records turn isolated runs into science.
+    </td>
+  </tr>
+</table>
 
-This repository is the control plane for that workflow. It is not a polished SaaS product or a general benchmark suite. It is the working lab system itself.
+> `Open Research Loop` is the public name for the system. `autoresearch` is the current repo and worktree name.
+
+## Manifesto
+
+We believe AI research should become far more open than it is today.
+
+For a while, frontier labs held two major advantages:
+
+1. expertise
+2. compute
+
+Those advantages still matter, but they are no longer absolute.
+
+Autonomous AI research lowers the expertise barrier by letting a much larger set of people run real research loops:
+
+- students
+- independent researchers
+- open-source contributors
+- startup teams
+- smaller labs
+
+Distributed global compute also changes the equation. No single open-source group has the budget of the largest frontier lab, but the total compute available across the world is larger than the compute of any one institution. The limiting factor becomes coordination, not just raw hardware.
+
+That means the open-source opportunity is not merely to imitate closed labs. It is to build a different research system:
+
+- open challenges
+- public leaderboards
+- reproducible submissions
+- lightweight verification
+- shared experiment logs
+- reusable code and knowledge
+
+The goal is not to remove researchers from research. The goal is to give far more people the ability to contribute meaningfully.
+
+Our bet is simple:
+
+If we build the infrastructure for autonomous, reproducible, public experimentation, open-source AI research can become one of the main engines of progress.
+
+## What This Is
+
+Open Research Loop is a file-based autonomous ML research lab. A human sets mission-level goals and policy. The agent handles planning below that layer: creating experiments, dispatching them to remote GPUs, collecting results, updating knowledge, and deciding what to run next.
+
+This repository is the control plane for that workflow. It is not a polished SaaS product or a generic benchmark suite. It is the working lab system itself.
 
 ## What It Does
 
-- keeps all lab state in files rather than a hidden database
+- keeps lab state in files instead of a hidden database
 - manages long-horizon goals under `goals/`
 - runs snapshot-based experiments under `experiments/`
 - adapts to project-specific repos through `projects/*.json`
 - dispatches work to remote GPUs through `scripts/`
 - records durable research knowledge under `knowledge/`
 
-The main design choice is explicit state. Plans, experiment metadata, results, policy, and handoff notes all live in versioned files so a new agent session can recover context without hidden memory.
+The central design choice is explicit state. Plans, experiment metadata, results, policy, and handoff notes all live in versioned files so a new agent session can recover context without hidden memory.
+
+Live experiment archives are intentionally kept local. The public default branch is for the framework, policies, scripts, and lightweight metadata, not for shipping full snapshot history to every GitHub clone.
 
 ## Current Status
 
@@ -24,8 +87,8 @@ Today it is optimized for:
 - one operator plus one agent
 - one or a few remote GPUs
 - file-based coordination
-- one active research project at a time
 - fast experiment screening with strong provenance
+- one active research campaign at a time
 
 The current live project is `parameter-golf`, a system for running architecture and training sweeps against the OpenAI 16MB language-model challenge.
 
@@ -73,7 +136,9 @@ This avoids branch-management complexity and makes remote dispatch simpler.
 ## Repository Map
 
 - `README.md`
-  - public entrypoint
+  - public entrypoint and manifesto
+- `assets/`
+  - README visual assets
 - `AUTONOMOUS_SYSTEM.md`
   - high-level system architecture
 - `AGENTS.md`
@@ -136,7 +201,7 @@ If you want to understand the system in order:
 3. `RESEARCH.md`
 4. `projects/parameter-golf.json`
 
-If you want to inspect the current live lab state, read `state/NOW.md`.
+If you want to inspect the current live lab state in a working clone, read `state/NOW.md`.
 
 ## Known Rough Edges
 

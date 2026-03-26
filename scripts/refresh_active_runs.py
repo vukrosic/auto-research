@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 AUTORESEARCH = Path(__file__).parent.parent
-SNAPSHOTS = AUTORESEARCH / "experiments" / "snapshots"
+EXPERIMENTS = AUTORESEARCH / "experiments"
 OUT = AUTORESEARCH / "state" / "ACTIVE_RUNS.md"
 TIMING_LOG = AUTORESEARCH / "state" / "timing_log.md"
 
@@ -73,47 +73,63 @@ running = []
 pending = []
 recently_done = []
 
-for snap_dir in sorted(SNAPSHOTS.iterdir()):
-    if not snap_dir.is_dir():
+for project_dir in sorted(EXPERIMENTS.iterdir()):
+    snapshots_dir = project_dir / "snapshots"
+    if not snapshots_dir.is_dir():
         continue
-    name = snap_dir.name
-    status = read_file(snap_dir / "status") or "unknown"
-    meta = read_json(snap_dir / "meta.json")
-    result = read_json(snap_dir / "result.json")
-    gpu = read_file(snap_dir / "gpu") or meta.get("gpu") or "?"
-    dispatched_at = read_file(snap_dir / "dispatched_at")
-    stage = meta.get("stage", "?")
-    steps = meta.get("steps", "?")
-    expected_s = meta.get("expected_duration_seconds")
-    created_at = meta.get("created_at", "")
+    project_name = project_dir.name
+    for snap_dir in sorted(snapshots_dir.iterdir()):
+        if not snap_dir.is_dir():
+            continue
+        name = snap_dir.name
+        status = read_file(snap_dir / "status") or "unknown"
+        meta = read_json(snap_dir / "meta.json")
+        result = read_json(snap_dir / "result.json")
+        gpu = read_file(snap_dir / "gpu") or meta.get("gpu") or "?"
+        dispatched_at = read_file(snap_dir / "dispatched_at")
+        stage = meta.get("stage", "?")
+        steps = meta.get("steps", "?")
+        expected_s = meta.get("expected_duration_seconds")
+        created_at = meta.get("created_at", "")
+        actual_s = result.get("runtime_seconds") or result.get("duration_seconds")
 
-    if status == "running":
-        finish = expected_finish(dispatched_at, expected_s)
-        running.append({
-            "name": name, "gpu": gpu, "stage": stage, "steps": steps,
-            "dispatched_at": (dispatched_at or "?")[:16],
-            "expected_finish": finish,
-            "expected_s": expected_s,
-        })
-
-    elif status == "pending":
-        pending.append({
-            "name": name, "stage": stage, "steps": steps,
-            "expected_s": expected_s, "created_at": created_at,
-        })
-
-    elif status in ("done", "failed", "rejected", "validated_winner", "promoted"):
-        collected_at = result.get("collected_at", "")
-        if collected_at:
-            pending.append(None)  # placeholder, will sort later
-            recently_done.append({
-                "name": name, "status": status,
-                "finished": collected_at[:16],
-                "actual_s": result.get("duration_seconds"),
-                "predicted_s": result.get("expected_duration_seconds") or expected_s,
-                "val_bpb": result.get("val_bpb", "?"),
-                "collected_at": collected_at,
+        if status == "running":
+            finish = expected_finish(dispatched_at, expected_s)
+            running.append({
+                "project": project_name,
+                "name": name,
+                "gpu": gpu,
+                "stage": stage,
+                "steps": steps,
+                "dispatched_at": (dispatched_at or "?")[:16],
+                "expected_finish": finish,
+                "expected_s": expected_s,
             })
+
+        elif status == "pending":
+            pending.append({
+                "project": project_name,
+                "name": name,
+                "stage": stage,
+                "steps": steps,
+                "expected_s": expected_s,
+                "created_at": created_at,
+            })
+
+        elif status in ("done", "failed", "rejected", "validated_winner", "promoted"):
+            collected_at = result.get("collected_at", "")
+            if collected_at:
+                recently_done.append({
+                    "project": project_name,
+                    "name": name,
+                    "status": status,
+                    "finished": collected_at[:16],
+                    "actual_s": actual_s,
+                    "predicted_s": result.get("expected_duration_seconds") or expected_s,
+                    "val_bpb": result.get("val_bpb", "?"),
+                    "estimate_error_pct": result.get("estimate_error_pct"),
+                    "collected_at": collected_at,
+                })
 
 # Sort recently_done by collected_at desc, take 5
 recently_done.sort(key=lambda x: x.get("collected_at", ""), reverse=True)
@@ -147,12 +163,12 @@ lines = [
 
 if running:
     lines += [
-        "| Experiment | GPU | Stage | Steps | Dispatched | Expected Finish | Expected Duration |",
-        "|-----------|-----|-------|-------|-----------|----------------|-----------------|",
+        "| Project | Experiment | GPU | Stage | Steps | Dispatched | Expected Finish | Expected Duration |",
+        "|---------|------------|-----|-------|-------|-----------|----------------|-----------------|",
     ]
     for r in running:
         lines.append(
-            f"| {r['name']} | {r['gpu']} | {r['stage']} | {r['steps']} | "
+            f"| {r['project']} | {r['name']} | {r['gpu']} | {r['stage']} | {r['steps']} | "
             f"{r['dispatched_at']} | {r['expected_finish']} | {fmt_duration(r['expected_s'])} |"
         )
 else:
@@ -162,12 +178,12 @@ lines += ["", "## Queue (pending, dispatch order)", ""]
 
 if pending_real:
     lines += [
-        "| # | Experiment | Stage | Steps | Est. Duration |",
-        "|---|-----------|-------|-------|--------------|",
+        "| # | Project | Experiment | Stage | Steps | Est. Duration |",
+        "|---|---------|------------|-------|-------|--------------|",
     ]
     for i, p in enumerate(pending_real, 1):
         lines.append(
-            f"| {i} | {p['name']} | {p['stage']} | {p['steps']} | {fmt_duration(p['expected_s'])} |"
+            f"| {i} | {p['project']} | {p['name']} | {p['stage']} | {p['steps']} | {fmt_duration(p['expected_s'])} |"
         )
     total_pending_s = sum(p.get("expected_s") or 0 for p in pending_real)
     lines.append("")
@@ -179,16 +195,18 @@ lines += ["", "## Recently Finished (last 5)", ""]
 
 if recently_done:
     lines += [
-        "| Experiment | Status | Finished | Actual | Predicted | Ratio | val_bpb |",
-        "|-----------|--------|---------|--------|-----------|-------|---------|",
+        "| Project | Experiment | Status | Finished | Actual | Predicted | Ratio | Error | val_bpb |",
+        "|---------|------------|--------|---------|--------|-----------|-------|-------|---------|",
     ]
     for r in recently_done:
         actual = r.get("actual_s")
         predicted = r.get("predicted_s")
         ratio = f"{actual/predicted:.2f}x" if actual and predicted else "?"
+        error = r.get("estimate_error_pct")
+        error_str = f"{float(error):+.2f}%" if error is not None else "?"
         lines.append(
-            f"| {r['name']} | {r['status']} | {r['finished']} | "
-            f"{fmt_duration(actual)} | {fmt_duration(predicted)} | {ratio} | {r['val_bpb']} |"
+            f"| {r['project']} | {r['name']} | {r['status']} | {r['finished']} | "
+            f"{fmt_duration(actual)} | {fmt_duration(predicted)} | {ratio} | {error_str} | {r['val_bpb']} |"
         )
 else:
     lines.append("*(none yet)*")

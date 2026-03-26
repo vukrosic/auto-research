@@ -1,0 +1,9 @@
+[
+  {
+    "name": "validate_bn320_cap15_vr",
+    "env": {"EMBED_BOTTLENECK": "320", "LOGIT_SOFTCAP": "15.0", "ATTNRES_MODE": "value_residual"},
+    "hypothesis": "4k-step validation of triple stack winner (1.6513 at 500 steps). Must confirm signal holds before building further on top.",
+    "dur": 2800,
+    "priority": 2
+  }
+]

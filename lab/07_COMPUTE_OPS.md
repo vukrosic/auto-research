@@ -80,6 +80,7 @@ At minimum, the operator should be able to answer:
 > - **do not dispatch** if the run does not fit inside the remaining deadline window
 > - after every completed run, compare actual vs expected immediately
 > - if actual is outside the 5% band, recalibrate all pending siblings before dispatching more
+> - use the experiment process runtime for this comparison, not `collected_at - dispatched_at`
 >
 > The lab must estimate, measure, adjust, and re-estimate continuously. Hope is not a scheduler.
 
@@ -90,8 +91,12 @@ For each run, preserve:
 - launch command
 - assigned GPU
 - start time
-- end time or last heartbeat
+- process finish time
 - expected duration
+- actual runtime source (`remote_wrapper`, `log_mtime`, or fallback)
+- actual runtime
+- estimate error (`actual - expected`, percent, and whether it is within the 5% band)
+- collection lag as a separate ops metric
 - stdout or nohup log
 - parsed metric result
 
@@ -184,6 +189,8 @@ When in doubt, mark `failed` and record the reason in `result.json`. A mislabele
 > **Deadline-bound override**:
 > - For any run class tied to a deadline, predictions must be kept within a **±5%** error band.
 > - If two consecutive runs miss the band, stop dispatching that class until the estimate or the runtime path is corrected.
+> - If the measured miss came from collection lag rather than process runtime, fix the collector,
+>   but do not poison scheduling estimates with that lag.
 >
 > **Breakdown of explore wall time**: ~5 min training + ~39 min quant eval + ~1 min startup = 45 min total
 

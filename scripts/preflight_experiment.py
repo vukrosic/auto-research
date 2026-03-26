@@ -168,7 +168,14 @@ def completed_references(project: str, current_name: str) -> list[dict]:
         except (OSError, json.JSONDecodeError):
             continue
         steps = int_or_none(meta.get("steps"))
-        duration = int_or_none(result.get("duration_seconds"))
+        duration = int_or_none(result.get("runtime_seconds"))
+        if duration is None or duration <= 0:
+            train_time_seconds = float_or_none(result.get("train_time_seconds"))
+            if train_time_seconds is not None and train_time_seconds > 0:
+                duration = int(math.ceil(train_time_seconds))
+        if duration is None or duration <= 0:
+            duration = int_or_none(result.get("duration_seconds"))
+        runtime_source = result.get("runtime_source")
         if not steps or steps <= 0 or not duration or duration <= 0:
             continue
         refs.append(
@@ -178,6 +185,7 @@ def completed_references(project: str, current_name: str) -> list[dict]:
                 "stage": meta.get("stage"),
                 "steps": steps,
                 "duration_seconds": duration,
+                "runtime_source": runtime_source,
                 "env_overrides": meta.get("env_overrides") or {},
             }
         )
@@ -204,6 +212,8 @@ TIMING_KEYS = {
     "VAL_BATCH_SIZE",
     "TRAIN_SEQ_LEN",
     "TRAIN_BATCH_TOKENS",
+    "WARMUP_STEPS",
+    "HARD_TIMEOUT_SECONDS",
     "MAX_WALLCLOCK_SECONDS",
 }
 
@@ -224,6 +234,14 @@ def timing_signature(meta: dict, preflight_cfg: dict) -> tuple[tuple[str, str], 
             continue
         signature.append((str(key), str(value)))
     return tuple(signature)
+
+
+def adjusted_reference_duration(ref: dict, preflight_cfg: dict) -> int:
+    duration = int_or_none(ref.get("duration_seconds")) or 0
+    runtime_source = ref.get("runtime_source")
+    padding_map = preflight_cfg.get("runtime_source_padding_seconds") or {}
+    padding = int_or_none(padding_map.get(runtime_source, 0)) or 0
+    return duration + max(padding, 0)
 
 
 def similarity_score(target_meta: dict, ref: dict, preflight_cfg: dict) -> int:
@@ -275,19 +293,19 @@ def derive_duration_estimate(meta: dict, refs: list[dict], preflight_cfg: dict) 
     if using_same_signature:
         scored = same_signature
 
-    scored.sort(key=lambda item: (-item["score"], item["duration_seconds"]))
+    scored.sort(key=lambda item: (-item["score"], item["name"]))
     same_steps = [item for item in scored if item["steps"] == target_steps]
 
     if same_steps:
-        top = same_steps[:5]
-        durations = [item["duration_seconds"] for item in top]
+        top = same_steps[:10]
+        durations = [adjusted_reference_duration(item, preflight_cfg) for item in top]
         expected = int(math.ceil(statistics.median(durations)))
         source = "empirical_median_same_steps"
         reference_mode = "same_signature_same_steps" if using_same_signature else "cross_signature_same_steps"
         samples = len(top)
     else:
-        top = scored[:5]
-        durations = [item["duration_seconds"] / item["steps"] * target_steps for item in top]
+        top = scored[:10]
+        durations = [adjusted_reference_duration(item, preflight_cfg) / item["steps"] * target_steps for item in top]
         expected = int(math.ceil(statistics.median(durations)))
         source = "empirical_median_per_step"
         reference_mode = "same_signature_per_step" if using_same_signature else "cross_signature_per_step"

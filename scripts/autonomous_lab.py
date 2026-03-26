@@ -427,7 +427,11 @@ def reconcile_goal_queue(goal_name: str) -> None:
                 if metric_value is not None:
                     updates["metric"] = {"name": metric_name, "value": metric_value}
                 updates["collected_at"] = result.get("collected_at")
-                updates["duration_seconds"] = result.get("duration_seconds")
+                updates["duration_seconds"] = result.get("runtime_seconds") or result.get("duration_seconds")
+                updates["runtime_source"] = result.get("runtime_source")
+                updates["train_time_seconds"] = result.get("train_time_seconds")
+                updates["estimate_error_pct"] = result.get("estimate_error_pct")
+                updates["within_estimate_band_5pct"] = result.get("within_estimate_band_5pct")
         for key, value in updates.items():
             if entry.get(key) != value:
                 entry[key] = value

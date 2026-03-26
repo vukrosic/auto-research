@@ -4,9 +4,12 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+/.venv-ppt/
 
 # Local control-plane logs
 /logs/
+/reports/*.jsonl
+/reports/*.pptx
 
 # Derived dashboards; canonical state lives elsewhere
 /state/ACTIVE_RUNS.md
@@ -20,13 +23,20 @@ venv/
 /experiments/snapshots/*/code/
 /experiments/snapshots/*/gpu
 /experiments/snapshots/*/remote_pid
+/experiments/snapshots/*/results/nohup.log
+/experiments/snapshots/*/results/train.log
+/experiments/snapshots/*/results/runtime.json
 /experiments/parameter-golf/base_id.txt
 /experiments/parameter-golf/base_backup_*/
 /experiments/parameter-golf/base/queues/active.txt
 /experiments/parameter-golf/snapshots/*/code/
 /experiments/parameter-golf/snapshots/*/gpu
 /experiments/parameter-golf/snapshots/*/remote_pid
+/experiments/parameter-golf/snapshots/*/results/nohup.log
+/experiments/parameter-golf/snapshots/*/results/train.log
+/experiments/parameter-golf/snapshots/*/results/runtime.json
 
 # Local machine and credential config
 /scripts/gpu_config.sh
 .cycle.lock
+/goals/*/*.pid

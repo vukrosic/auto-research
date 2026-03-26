@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append a completed experiment's timing to the central timing log."""
+"""Upsert a completed experiment's timing in the central timing log."""
 import json
 import sys
 from pathlib import Path
@@ -23,7 +23,7 @@ def main():
     steps = meta.get("steps", result.get("steps_completed", "?"))
     gpu = result.get("gpu", meta.get("gpu", "?"))
     expected = result.get("expected_duration_seconds") or meta.get("expected_duration_seconds")
-    actual = result.get("duration_seconds")
+    actual = result.get("runtime_seconds") or result.get("duration_seconds")
     dispatched_at = result.get("dispatched_at", "?")
     collected_at = result.get("collected_at", "?")
     val_bpb = result.get("val_bpb", "?")
@@ -71,8 +71,17 @@ def main():
             "|-----------|-------|-------|-----|-----------|--------|-------|--------|---------|------------|\n"
         )
 
-    with TIMING_LOG.open("a") as f:
-        f.write(row + "\n")
+    existing_lines = TIMING_LOG.read_text().splitlines()
+    filtered_lines = []
+    row_prefix = f"| {name} |"
+    for line in existing_lines:
+        if line.startswith(row_prefix):
+            continue
+        filtered_lines.append(line)
+    if filtered_lines and filtered_lines[-1] != "":
+        filtered_lines.append("")
+    filtered_lines.append(row)
+    TIMING_LOG.write_text("\n".join(filtered_lines) + "\n")
 
     print(f"Timing log updated: {row}")
 

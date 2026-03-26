@@ -36,6 +36,22 @@ def fmt_delta(value: float | None) -> str:
     return f"{sign}{value:.4f}"
 
 
+def fmt_seconds(value: object) -> str:
+    if value in (None, ""):
+        return "—"
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        return "—"
+    minutes, rem = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}h{minutes:02d}m{rem:02d}s"
+    if minutes:
+        return f"{minutes}m{rem:02d}s"
+    return f"{rem}s"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("goal")
@@ -78,7 +94,10 @@ def main() -> None:
             "metric_value": metric_value,
             "baseline": baseline,
             "improvement": improvement,
-            "duration_seconds": result.get("duration_seconds"),
+            "actual_runtime_seconds": result.get("runtime_seconds") or result.get("duration_seconds"),
+            "runtime_source": result.get("runtime_source"),
+            "predicted_runtime_seconds": result.get("expected_duration_seconds") or meta.get("expected_duration_seconds") or entry.get("expected_duration_seconds"),
+            "estimate_error_pct": result.get("estimate_error_pct"),
             "role": entry.get("role", ""),
             "reason": entry.get("reason", ""),
         }
@@ -127,15 +146,19 @@ def main() -> None:
             "",
             "## Queue Status",
             "",
-            "| Experiment | Role | Status | Metric | Delta vs baseline | Notes |",
-            "|-----------|------|--------|--------|-------------------|-------|",
+            "| Experiment | Role | Status | Metric | Delta vs baseline | Predicted | Actual | Error | Notes |",
+            "|-----------|------|--------|--------|-------------------|-----------|--------|-------|-------|",
         ]
     )
 
     for row in rows:
         metric_str = f"{row['metric_value']:.4f}" if row["metric_value"] is not None else "—"
+        error_str = "—"
+        if row["estimate_error_pct"] is not None:
+            error_str = f"{float(row['estimate_error_pct']):+.2f}%"
         report.append(
-            f"| {row['name']} | {row['role'] or '—'} | {row['status']} | {metric_str} | {fmt_delta(row['improvement'])} | {row['reason']} |"
+            f"| {row['name']} | {row['role'] or '—'} | {row['status']} | {metric_str} | {fmt_delta(row['improvement'])} | "
+            f"{fmt_seconds(row['predicted_runtime_seconds'])} | {fmt_seconds(row['actual_runtime_seconds'])} | {error_str} | {row['reason']} |"
         )
 
     report.extend(

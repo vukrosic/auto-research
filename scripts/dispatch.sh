@@ -92,6 +92,10 @@ fi
 REMOTE_DIR=$(project_remote_dir "$PROJECT_JSON" "$GPU")
 RUN_COMMAND=$(project_field "$PROJECT_JSON" run_command)
 PROCESS_PATTERN=$(project_field "$PROJECT_JSON" process_pattern)
+REMOTE_LOG="/tmp/autoresearch_${NAME}.log"
+REMOTE_RUNTIME_JSON="/tmp/autoresearch_${NAME}.runtime.json"
+REMOTE_WRAPPER_PID="/tmp/autoresearch_${NAME}.wrapper.pid"
+REMOTE_WRAPPER_PATH="${REMOTE_DIR}/.autoresearch_wrapper_${NAME}.sh"
 
 # Read env overrides from meta.json
 REMOTE_ENV=""
@@ -124,9 +128,64 @@ gpu_rsync_to "$GPU" "$SNAPSHOT_DIR/code/" "$REMOTE_DIR/"
 # 2. Build the run command from project config template
 EXPANDED_CMD=$(echo "$RUN_COMMAND" | sed "s/{name}/$NAME/g; s/{steps}/$STEPS/g")
 
+WRAPPER_LOCAL="$(mktemp)"
+cleanup_wrapper() {
+    rm -f "$WRAPPER_LOCAL"
+}
+trap cleanup_wrapper EXIT
+
+python3 - "$NAME" "$REMOTE_ENV" "$EXPANDED_CMD" > "$WRAPPER_LOCAL" <<'PY'
+import shlex
+import sys
+
+name, remote_env, expanded_cmd = sys.argv[1:4]
+runtime_path = f"/tmp/autoresearch_{name}.runtime.json"
+wrapper_pid_path = f"/tmp/autoresearch_{name}.wrapper.pid"
+command = expanded_cmd if not remote_env else f"env {remote_env} {expanded_cmd}"
+
+print("#!/usr/bin/env bash")
+print("set -euo pipefail")
+print(f"echo $$ > {shlex.quote(wrapper_pid_path)}")
+print('started_at="$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")"')
+print('started_epoch="$(date -u +%s)"')
+print("exit_code=0")
+print("set +e")
+print(command)
+print("exit_code=$?")
+print("set -e")
+print('finished_at="$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")"')
+print('finished_epoch="$(date -u +%s)"')
+print('runtime_seconds=$((finished_epoch - started_epoch))')
+print(
+    "python3 - "
+    + shlex.quote(runtime_path)
+    + ' "$started_at" "$finished_at" "$started_epoch" "$finished_epoch" "$runtime_seconds" "$exit_code" <<\'PY\''
+)
+print("import json")
+print("import sys")
+print("")
+print("runtime_path, started_at, finished_at, started_epoch, finished_epoch, runtime_seconds, exit_code = sys.argv[1:8]")
+print("payload = {")
+print('    "started_at": started_at,')
+print('    "finished_at": finished_at,')
+print('    "started_epoch": int(started_epoch),')
+print('    "finished_epoch": int(finished_epoch),')
+print('    "runtime_seconds": int(runtime_seconds),')
+print('    "exit_code": int(exit_code),')
+print("}")
+print("with open(runtime_path, 'w', encoding='utf-8') as handle:")
+print("    handle.write(json.dumps(payload, indent=2) + '\\n')")
+print("PY")
+print('exit "$exit_code"')
+PY
+chmod +x "$WRAPPER_LOCAL"
+
 # 3. Start training via nohup
 echo "Starting training: $EXPANDED_CMD"
-REMOTE_PID=$(gpu_ssh "$GPU" "cd $REMOTE_DIR && nohup bash -lc 'echo \$\$ > /tmp/autoresearch_${NAME}.wrapper.pid; exec env ${REMOTE_ENV} ${EXPANDED_CMD}' > /tmp/autoresearch_${NAME}.log 2>&1 & echo \$!")
+echo "Preparing runtime wrapper..."
+gpu_ssh "$GPU" "rm -f $(printf '%q' "$REMOTE_LOG") $(printf '%q' "$REMOTE_RUNTIME_JSON") $(printf '%q' "$REMOTE_WRAPPER_PID")" >/dev/null 2>&1 || true
+gpu_rsync_to "$GPU" "$WRAPPER_LOCAL" "$REMOTE_WRAPPER_PATH"
+REMOTE_PID=$(gpu_ssh "$GPU" "cd $(printf '%q' "$REMOTE_DIR") && chmod +x $(printf '%q' "$REMOTE_WRAPPER_PATH") && nohup bash $(printf '%q' "$REMOTE_WRAPPER_PATH") > $(printf '%q' "$REMOTE_LOG") 2>&1 & echo \$!")
 
 # 4. Update status
 echo "running" > "$SNAPSHOT_DIR/status"

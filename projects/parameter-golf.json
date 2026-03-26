@@ -67,6 +67,8 @@
       "SKIP_EXPORT_ARTIFACTS": "0",
       "VAL_MAX_SEQS": "0",
       "VAL_LOSS_EVERY": "50",
+      "WARMUP_STEPS": "20",
+      "HARD_TIMEOUT_SECONDS": "0",
       "MAX_WALLCLOCK_SECONDS": "0"
     },
     "timing_signature_keys": [
@@ -74,8 +76,15 @@
       "SKIP_EXPORT_ARTIFACTS",
       "VAL_MAX_SEQS",
       "VAL_LOSS_EVERY",
+      "WARMUP_STEPS",
       "HARD_TIMEOUT_SECONDS"
     ],
+    "runtime_source_padding_seconds": {
+      "remote_wrapper": 0,
+      "log_mtime": 3,
+      "log_train_time_fallback": 6,
+      "collection_fallback": 0
+    },
     "snapshot_code_contracts": {
       "env_features": {
         "SKIP_QUANT_EVAL": [

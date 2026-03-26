@@ -43,6 +43,7 @@ fi
 GPU=$(cat "$SNAPSHOT_DIR/gpu")
 REMOTE_DIR=$(project_remote_dir "$PROJECT_JSON" "$GPU")
 REMOTE_LOG="/tmp/autoresearch_${NAME}.log"
+REMOTE_RUNTIME="/tmp/autoresearch_${NAME}.runtime.json"
 REMOTE_PID=""
 if [ -f "$SNAPSHOT_DIR/remote_pid" ]; then
     REMOTE_PID="$(cat "$SNAPSHOT_DIR/remote_pid")"
@@ -71,26 +72,57 @@ primary = mp.get(p.get('metric', 'val_bpb'), {})
 print(primary.get('log_regex', r'\b' + p.get('metric', 'val_bpb') + r'[:=]\s*[0-9]'))
 ")
 METRIC_REGEX_B64="$(printf '%s' "$METRIC_REGEX" | base64 -w0)"
-REMOTE_METRIC_CHECK=$(cat <<EOF
-python3 - <<'PY'
+METRIC_CHECK_SCRIPT_B64="$(python3 - <<'PY'
 import base64
+script = """import base64
 import pathlib
 import re
 import sys
 
-pattern = re.compile(base64.b64decode("${METRIC_REGEX_B64}").decode("utf-8"))
-for raw_path in (r"${REMOTE_DIR}/${LOG_PATH}", r"${REMOTE_LOG}"):
+pattern = re.compile(base64.b64decode(sys.argv[1]).decode('utf-8'))
+for raw_path in sys.argv[2:]:
     path = pathlib.Path(raw_path)
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = path.read_text(encoding='utf-8', errors='replace')
     except OSError:
         continue
     if pattern.search(text):
-        sys.exit(0)
-sys.exit(1)
+        raise SystemExit(0)
+raise SystemExit(1)
+"""
+print(base64.b64encode(script.encode()).decode())
 PY
-EOF
-)
+)"
+RUNTIME_CHECK_SCRIPT_B64="$(python3 - <<'PY'
+import base64
+script = """import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+if not path.exists():
+    print('missing')
+    raise SystemExit(0)
+try:
+    payload = json.loads(path.read_text(encoding='utf-8'))
+except Exception:
+    print('invalid')
+    raise SystemExit(0)
+exit_code = payload.get('exit_code')
+runtime_seconds = payload.get('runtime_seconds')
+if isinstance(exit_code, int):
+    print(f'exit_code={exit_code}')
+else:
+    print('invalid')
+if isinstance(runtime_seconds, int):
+    print(f'runtime_seconds={runtime_seconds}')
+"""
+print(base64.b64encode(script.encode()).decode())
+PY
+)"
+REMOTE_METRIC_CHECK="python3 -c $(printf '%q' "import base64; exec(base64.b64decode('${METRIC_CHECK_SCRIPT_B64}'))") $(printf '%q' "$METRIC_REGEX_B64") $(printf '%q' "${REMOTE_DIR}/${LOG_PATH}") $(printf '%q' "$REMOTE_LOG")"
+REMOTE_RUNTIME_STATUS=$(gpu_ssh "$GPU" "python3 -c $(printf '%q' "import base64; exec(base64.b64decode('${RUNTIME_CHECK_SCRIPT_B64}'))") $(printf '%q' "$REMOTE_RUNTIME")" 2>/dev/null || true)
+RUNTIME_EXIT_CODE="$(printf '%s\n' "$REMOTE_RUNTIME_STATUS" | sed -n 's/^exit_code=//p' | tail -1)"
 
 # 1. Check if training process is still running (check this FIRST)
 if [ -n "$REMOTE_PID" ] && gpu_ssh "$GPU" "test -d /proc/${REMOTE_PID}" &>/dev/null; then
@@ -100,7 +132,21 @@ if [ -n "$REMOTE_PID" ] && gpu_ssh "$GPU" "test -d /proc/${REMOTE_PID}" &>/dev/n
     exit 0
 fi
 
-# 2. Process is dead — check for fatal errors
+# 2. Process is dead — runtime metadata with nonzero exit is authoritative
+if [ -n "$RUNTIME_EXIT_CODE" ] && [ "$RUNTIME_EXIT_CODE" != "0" ]; then
+    echo "failed"
+    echo "--- Process exited nonzero (${RUNTIME_EXIT_CODE}) ---"
+    gpu_ssh "$GPU" "tail -20 ${REMOTE_LOG} 2>/dev/null || tail -20 ${REMOTE_DIR}/${LOG_PATH} 2>/dev/null" || true
+    exit 0
+fi
+
+# 3. Process is dead — wrapper metadata with zero exit means collection should decide validity
+if [ -n "$RUNTIME_EXIT_CODE" ] && [ "$RUNTIME_EXIT_CODE" = "0" ]; then
+    echo "done"
+    exit 0
+fi
+
+# 4. Legacy path without wrapper metadata — check for fatal errors
 if gpu_ssh "$GPU" "grep -Eq 'OutOfMemoryError|CUDA out of memory|Traceback \(most recent call last\)|RuntimeError:' ${REMOTE_LOG} ${REMOTE_DIR}/${LOG_PATH} 2>/dev/null" &>/dev/null; then
     echo "failed"
     echo "--- Fatal error detected in log ---"
@@ -108,7 +154,7 @@ if gpu_ssh "$GPU" "grep -Eq 'OutOfMemoryError|CUDA out of memory|Traceback \(mos
     exit 0
 fi
 
-# 3. No fatal error — check if it completed successfully
+# 5. Legacy path without wrapper metadata — check if it completed successfully
 if [ -n "$COMPLETION_INDICATOR" ] && gpu_ssh "$GPU" "test -f ${REMOTE_DIR}/${COMPLETION_INDICATOR}" &>/dev/null; then
     echo "done"
 elif gpu_ssh "$GPU" "$REMOTE_METRIC_CHECK" &>/dev/null; then

@@ -186,10 +186,22 @@ experiments/
   "val_bpb_quant": 1.3612,
   "steps_completed": 500,
   "gpu": "novita-rtx3090",
-  "duration_seconds": 1680,
+  "expected_duration_seconds": 1680,
+  "runtime_seconds": 1662,
+  "runtime_source": "remote_wrapper",
+  "train_time_seconds": 319.4,
+  "estimate_error_seconds": -18,
+  "estimate_error_pct": -1.07,
+  "within_estimate_band_5pct": true,
+  "collection_lag_seconds": 12,
   "log_tail": "last 20 lines of training log"
 }
 ```
+
+For planning and deadline control, `runtime_seconds` is the canonical actual duration. It represents
+the process wallclock captured by the dispatch wrapper, or the best available fallback if wrapper
+metadata is unavailable. `collection_lag_seconds` is tracked separately because it is lab overhead,
+not experiment runtime, and should not be fed back into scheduling estimates.
 
 ### Status Vocabulary
 

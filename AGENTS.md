@@ -54,6 +54,12 @@ autoresearch/
   ops/                   → [DEPRECATED: moved under goals/] Legacy operational files
 ```
 
+## First-Time Setup (New Clone)
+
+If this is a fresh clone and `scripts/gpu_config.sh` doesn't exist yet, read **[SETUP.md](SETUP.md)** first. It walks through GPU configuration, project creation, and asks the user key setup questions before you start researching.
+
+---
+
 ## Your First Session
 
 ### Step 0: Read the handoff note

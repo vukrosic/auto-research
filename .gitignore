@@ -11,31 +11,32 @@ venv/
 /reports/*.jsonl
 /reports/*.pptx
 
-# Derived dashboards; canonical state lives elsewhere
+# Derived state (regenerated each session)
 /state/ACTIVE_RUNS.md
 /state/ADJUDICATION_QUEUE.md
 /state/FRONTIER.md
 
-# Generated experiment runtime state
+# Experiments — runtime data stays local, base structure is tracked per-project
+/experiments/*/snapshots/*
+!/experiments/*/snapshots/README.md
+/experiments/*/base_backup_*/
+/experiments/*/base_id.txt
+/experiments/*/base/queues/active.txt
+/experiments/*/base/records/*
+!/experiments/*/base/records/README.md
+
+# Legacy flat experiment paths (remove after full migration)
 /experiments/base_id.txt
 /experiments/base_backup_*/
-/experiments/*/base_backup_*/
 /experiments/base/queues/active.txt
-/experiments/*/snapshots/*
-/experiments/*/base/records/*
-!/experiments/*/snapshots/README.md
-!/experiments/*/base/records/README.md
 /experiments/snapshots/*/code/
 /experiments/snapshots/*/gpu
 /experiments/snapshots/*/remote_pid
 /experiments/snapshots/*/results/nohup.log
 /experiments/snapshots/*/results/train.log
 /experiments/snapshots/*/results/runtime.json
-/experiments/parameter-golf/base_id.txt
-/experiments/parameter-golf/base_backup_*/
-/experiments/parameter-golf/base/queues/active.txt
 
-# Local machine and credential config
+# Local machine and credential config — NEVER commit
 /scripts/gpu_config.sh
 .cycle.lock
 /goals/*/*.pid

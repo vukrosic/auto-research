@@ -89,3 +89,11 @@ After enough runs accumulate (10+), compute:
 | explore_resid_scale_01 | explore | 500 | novita-rtx3090 | 11m20s | 11m20s | 1.00x | +0.0% | 1.6708 | 2026-03-26T13:44 |
 
 | explore_attnres_vr_gated | explore | 500 | novita-rtx3090 | 11m22s | 11m24s | 1.00x | +0.3% | 1.6599 | 2026-03-26T13:58 |
+
+| explore_gate_floor_00 | explore | 500 | novita-rtx3090 | 11m20s | 11m18s | 1.00x | -0.3% | 1.665 | 2026-03-26T14:11 |
+
+| explore_qk_gain_10 | explore | 500 | novita-rtx3090 | 11m20s | 11m20s | 1.00x | +0.0% | 1.665 | 2026-03-26T14:24 |
+
+| explore_qk_gain_20 | explore | 500 | novita-rtx3090 | 11m20s | 11m20s | 1.00x | +0.0% | 1.6651 | 2026-03-26T14:37 |
+
+| explore_resid_scale_00 | explore | 500 | novita-rtx3090 | 11m20s | 11m15s | 0.99x | -0.7% | 2.561 | 2026-03-26T14:50 |

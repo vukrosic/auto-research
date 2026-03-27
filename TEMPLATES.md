@@ -214,6 +214,16 @@ Template:
   "baseline_metric": null,
   "promotion_threshold": 0.01,
   "expected_duration_seconds": null,
+  "predicted_duration_seconds": null,
+  "predicted_startup_and_initial_validation_seconds": null,
+  "predicted_final_validation_seconds": null,
+  "predicted_post_train_overhead_seconds": null,
+  "prediction_source": null,
+  "prediction_sample_count": 0,
+  "remaining_budget_seconds": null,
+  "actual_runtime_seconds": null,
+  "prediction_error_seconds": null,
+  "prediction_error_ratio": null,
   "changes_summary": "<what changed>"
 }
 ```

@@ -67,15 +67,34 @@ Every experiment should record:
 - baseline metric
 - promotion threshold
 - expected duration
+- predicted duration
+- prediction source
+- prediction sample count
+- predicted startup / validation / post-train overhead when available
 - change summary
 
 Every completed experiment should record:
 
 - primary metric
 - runtime
+- prediction error
+- prediction error ratio
+- actual startup / validation / post-train overhead when available
 - steps completed
 - environment used
 - relevant log tail or artifact pointer
+
+## Deadline Fit Rule
+
+Before launching a run, the lab must have a machine-readable estimate for:
+
+- remaining budget seconds
+- predicted duration for the next run
+- projected remaining sweep time after that run
+
+The next run should not start unless it still fits the remaining budget with explicit margin.
+If recent actual runtimes differ materially from predicted runtimes, the lab must recalibrate before queueing more work.
+Batch plans should be updated after every completed run, not only at the start of a sweep.
 
 ## Baseline Rule
 

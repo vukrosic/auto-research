@@ -46,6 +46,30 @@ Run a time-boxed autonomous research sprint in this repo.
 
 Before dispatching anything, create or update a goal with machine-readable timing metadata, define the training window, and ensure each proposed run fits the deadline.
 
+For every planned run, record:
+- `predicted_duration_seconds`
+- `predicted_startup_and_initial_validation_seconds` if available
+- `predicted_final_validation_seconds` if available
+- `predicted_post_train_overhead_seconds` if available
+- `prediction_source`
+- `prediction_sample_count`
+
+For the batch as a whole, record:
+- total budget seconds
+- elapsed seconds
+- remaining budget seconds
+- predicted remaining sweep seconds
+- predicted run count that still fits
+
+After each completed run, update the record with:
+- `actual_runtime_seconds`
+- `prediction_error_seconds`
+- `prediction_error_ratio`
+- updated remaining budget seconds
+
+Do not launch the next run if the calibrated prediction says it will miss the deadline or leave no safety margin.
+If observed runtime drift exceeds the current prediction materially, recalibrate before dispatching more work.
+
 Use the operating docs in this repo as the authority.
 Keep the sprint file-based and leave a complete handoff at the end.
 ```

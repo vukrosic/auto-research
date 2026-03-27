@@ -139,6 +139,8 @@ This repo now contains only the core documents:
   - prompts for supervised operation
 - `TEMPLATES.md`
   - starter templates for goals, plans, configs, experiments, and reports
+- `OPERATOR_TIPS.md`
+  - practical tips for humans on how to get better results from the autonomous agent
 
 ## How To Use It
 

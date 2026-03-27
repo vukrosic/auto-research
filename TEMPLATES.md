@@ -54,6 +54,11 @@ Template:
   "metric_direction": "min",
   "training_window_seconds": null,
   "training_window_anchor": "first_dispatch",
+  "deadline_utc": null,
+  "safety_margin_seconds": null,
+  "calibration_required": true,
+  "calibration_source": null,
+  "reactive_set_only": true,
   "report_due_at": null
 }
 ```
@@ -113,10 +118,13 @@ Template:
 
 <campaign name>
 
-## Planned Waves
+## Active Set
 
-- Wave 1: <goal, hypothesis class, compute budget>
-- Wave 2: <goal, hypothesis class, compute budget>
+- Set 1: <goal, hypothesis class, compute budget>
+
+## Next Set Rule
+
+- Design the next set only after Set 1 finishes and the results are reviewed.
 
 ## Decision Rules
 

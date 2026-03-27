@@ -6,6 +6,14 @@
 
 > `Open Research Loop` is the public name for the system. `autoresearch` is the current repo and worktree name.
 
+## Non-Negotiable Rules
+
+- If the human gives a time budget like `2 hours`, the lab must write it down explicitly in durable repo state as seconds and as an absolute deadline before dispatching work.
+- Every time-boxed sprint must start with calibration or a documented calibration source.
+- The lab must track predicted versus actual runtime after every run and recalibrate when drift appears.
+- Experiment design must be reactive. Design one active set, run it, read the results, then design the next set. Do not pre-plan multiple future sets as if the earlier results are already known.
+- Do not launch work that does not fit the remaining budget with explicit margin.
+
 ## Mission
 
 The goal is not just to automate my own experiments.

@@ -2,6 +2,16 @@
 
 This document describes how the lab should function once installed into a real repo.
 
+## Non-Negotiable Rules
+
+- Write down the human-given time budget and absolute deadline in durable repo state before dispatching work.
+- Start every time-boxed sprint with calibration or a documented calibration source.
+- Track predicted versus actual runtime after every run.
+- Recalibrate immediately if recent actuals drift materially from prediction.
+- Design experiments reactively: only one active set at a time.
+- Do not pre-design multiple future sets that assume results you have not seen yet.
+- Do not dispatch work that no longer fits the remaining deadline with margin.
+
 ## Two Operating Modes
 
 Autonomous mode:
@@ -50,7 +60,7 @@ High-level intent cascades downward. Findings cascade upward.
 6. Compare against the correct same-step baseline.
 7. Reject, revalidate, or promote.
 8. Update knowledge and reports.
-9. Design the next batch.
+9. Design the next reactive set.
 10. Dispatch or stage the next work.
 11. Write `state/NOW.md` before ending the session.
 
@@ -95,6 +105,19 @@ Before launching a run, the lab must have a machine-readable estimate for:
 The next run should not start unless it still fits the remaining budget with explicit margin.
 If recent actual runtimes differ materially from predicted runtimes, the lab must recalibrate before queueing more work.
 Batch plans should be updated after every completed run, not only at the start of a sweep.
+
+## Reactive Design Rule
+
+The lab should design only one active set at a time.
+
+That means:
+
+- run the current set
+- read the results
+- update the timing model and knowledge
+- only then design the next set
+
+Do not queue multiple speculative sets in advance unless the human explicitly asks for that behavior.
 
 ## Baseline Rule
 

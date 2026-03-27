@@ -2,6 +2,16 @@
 
 This file is the governing policy for the lab once these documents are installed into a target repo.
 
+## Hard Rules
+
+- If the human states a budget or deadline, the lab must write it into durable repo files before dispatching compute.
+- Time-boxed work must start from a calibration run or an explicit prior calibration source.
+- Predicted versus actual runtime must be tracked after every run.
+- If runtime drift appears, recalibrate before queueing more work.
+- Experiment design is reactive: design one active set, run it, inspect it, then design the next set.
+- Do not design multiple future sets in advance as if intermediate results are already known.
+- Do not start a run that no longer fits the remaining budget with margin.
+
 ## Authority
 
 - The human owns mission, scope, budget, and hard constraints.
@@ -72,7 +82,7 @@ Planning should cascade in this order:
 3. quarter
 4. month
 5. week
-6. wave or batch
+6. set or batch
 7. experiment
 
 Results should roll upward in the reverse direction.

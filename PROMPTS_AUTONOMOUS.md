@@ -46,6 +46,13 @@ Run a time-boxed autonomous research sprint in this repo.
 
 Before dispatching anything, create or update a goal with machine-readable timing metadata, define the training window, and ensure each proposed run fits the deadline.
 
+If the human says something like `you have 2 hours`, write that down explicitly as:
+- `training_window_seconds`
+- `deadline_utc`
+- `safety_margin_seconds`
+
+Start with calibration or an explicit prior calibration source before planning the main set.
+
 For every planned run, record:
 - `predicted_duration_seconds`
 - `predicted_startup_and_initial_validation_seconds` if available
@@ -69,6 +76,7 @@ After each completed run, update the record with:
 
 Do not launch the next run if the calibrated prediction says it will miss the deadline or leave no safety margin.
 If observed runtime drift exceeds the current prediction materially, recalibrate before dispatching more work.
+Design one active set only. Do not design the next set until the current set has finished and been read.
 
 Use the operating docs in this repo as the authority.
 Keep the sprint file-based and leave a complete handoff at the end.

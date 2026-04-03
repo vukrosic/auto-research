@@ -1,0 +1,13 @@
+{
+  "project": "autoresearch",
+  "metric_key": "Lab Initialized",
+  "metric_direction": "max",
+  "training_window_seconds": null,
+  "training_window_anchor": "first_dispatch",
+  "deadline_utc": null,
+  "safety_margin_seconds": null,
+  "calibration_required": false,
+  "calibration_source": null,
+  "reactive_set_only": true,
+  "report_due_at": null
+}

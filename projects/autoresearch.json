@@ -1,0 +1,17 @@
+{
+  "name": "autoresearch",
+  "repo_path": "/root/autoresearch",
+  "metric": "Lab Initialized",
+  "metric_direction": "higher",
+  "target": 1.0,
+  "run_command": "echo 'verified'",
+  "process_pattern": null,
+  "log_path": "logs/current.log",
+  "completion_indicator": "state/NOW.md",
+  "summary_json_path": null,
+  "stages": {
+    "explore": {"steps": 1, "threshold": 1.0},
+    "validate": {"steps": 1, "threshold": 1.0},
+    "full": {"steps": 0, "threshold": 0.0}
+  }
+}

@@ -32,6 +32,7 @@ Provide these facts early:
    - `AGENTS.md`
    - `LAB.md`
    - `OPERATING_MODEL.md`
+   - `PRODUCT_SPEC.md`
    - `FOLDER_BLUEPRINT.md`
    - `TEMPLATES.md`
 4. Use one of the prompt files:

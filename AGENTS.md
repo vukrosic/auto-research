@@ -7,10 +7,11 @@ Read this first when these documents are installed into a target repo.
 1. `README.md`
 2. `LAB.md`
 3. `OPERATING_MODEL.md`
-4. `FOLDER_BLUEPRINT.md`
-5. `TEMPLATES.md`
-6. `SETUP.md`
-7. The appropriate prompt file:
+4. `PRODUCT_SPEC.md`
+5. `FOLDER_BLUEPRINT.md`
+6. `TEMPLATES.md`
+7. `SETUP.md`
+8. The appropriate prompt file:
    - `PROMPTS_AUTONOMOUS.md`
    - `PROMPTS_SUPERVISED.md`
 

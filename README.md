@@ -112,7 +112,7 @@ That is a feature, not an implementation accident.
 There are two entry points:
 
 - Human operator: start in this README, then read `SETUP.md`
-- AI agent: start with `AGENTS.md`, then `LAB.md`, `OPERATING_MODEL.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
+- AI agent: start with `AGENTS.md`, then `LAB.md`, `OPERATING_MODEL.md`, `PRODUCT_SPEC.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
 
 The human sets direction, constraints, and taste.
 The agent creates the lab structure inside the target repo and runs the loop within policy.
@@ -131,6 +131,8 @@ This repo now contains only the core documents:
   - install flow for a target repo
 - `OPERATING_MODEL.md`
   - lifecycle, planning hierarchy, and research loop
+- `PRODUCT_SPEC.md`
+  - first shippable workflow and maturity gates
 - `FOLDER_BLUEPRINT.md`
   - the folders and files the AI should create in the target repo
 - `PROMPTS_AUTONOMOUS.md`
@@ -147,8 +149,9 @@ This repo now contains only the core documents:
 1. Copy these markdown files into the root of the repo you actually want to research on.
 2. Start your AI coding agent in that repo.
 3. Have it read the operating docs.
-4. Choose autonomous or supervised mode.
-5. Let the agent create the missing folders and starter files in the target repo.
+4. Have it read `PRODUCT_SPEC.md` if you want the concrete first product workflow.
+5. Choose autonomous or supervised mode.
+6. Let the agent create the missing folders and starter files in the target repo.
 
 This repo does not ship `experiments/`, `goals/`, `knowledge/`, `projects/`, `state/`, `logs/`, `reports/`, or `scripts/`. Those are meant to be created inside the target repo when the lab is instantiated.
 

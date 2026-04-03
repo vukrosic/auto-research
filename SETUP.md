@@ -6,23 +6,23 @@ Use this file when installing the kit into a real project repo.
 
 You need:
 
-- a target codebase where experiments will actually run
+- a target codebase where experiments can actually run
 - an AI coding agent working inside that repo
-- a clear metric with a direction
+- a primary metric with a direction
 - a way to launch training or evaluation
 - a place where results can be read from logs, JSON, or artifacts
 
-## What To Tell The AI Up Front
+## Facts To Provide Early
 
-Provide these facts early:
+Provide these facts up front when the AI cannot infer them safely:
 
 - the research objective
-- the active repo or subproject being studied
+- the active repo or subproject
 - the primary metric and whether lower or higher is better
 - the training or evaluation entrypoint
 - how completion is detected
 - the compute environment and budget
-- whether the AI is operating autonomously or under supervision
+- whether the AI should operate autonomously or under supervision
 
 ## Installation Flow
 
@@ -40,17 +40,6 @@ Provide these facts early:
    - `PROMPTS_SUPERVISED.md`
 5. Let the AI create the working folders and starter files described in `FOLDER_BLUEPRINT.md`.
 
-## Recommended Bootstrap Questions
-
-If the AI cannot infer these safely, it should ask:
-
-1. What goal should this lab optimize for?
-2. What metric determines a win?
-3. How is a run started?
-4. What artifact or log proves completion?
-5. What machines, GPUs, or budgets are available?
-6. Which decisions require approval?
-
 ## Expected First Output In The Target Repo
 
 On a clean install, the AI should create:
@@ -64,11 +53,11 @@ On a clean install, the AI should create:
 
 ## Secret Handling
 
-Do not store credentials in these template docs.
+Do not store credentials in these docs.
 
-When the target repo needs machine credentials, API keys, or SSH details, the AI should place them in local-only files that are not committed.
+When the target repo needs machine credentials, API keys, or SSH details, place them in local-only files that are not committed.
 
-## Recommended Git Policy In The Target Repo
+## Git Policy
 
 - track policy, goals, plans, knowledge, and reports
 - decide deliberately whether to track experiment artifacts

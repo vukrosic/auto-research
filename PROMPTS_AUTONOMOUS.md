@@ -5,7 +5,7 @@ Use these prompts after copying the kit into the target repo.
 ## Bootstrap The Lab
 
 ```text
-Read AGENTS.md, LAB.md, OPERATING_MODEL.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
+Read AGENTS.md, LAB.md, OPERATING_MODEL.md, PRODUCT_SPEC.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
 
 We are installing a file-based autonomous research lab into this repo.
 

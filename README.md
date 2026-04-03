@@ -1,172 +1,106 @@
 <div align="center">
   <h1>Open Research Loop</h1>
   <p><strong>The docs-only control plane for an open autonomous AI research lab.</strong></p>
-  <p>Human mission. Agent execution. Distributed compute. Reproducible results.</p>
+  <p>Human mission. Agent execution. Reproducible state.</p>
 </div>
 
 > `Open Research Loop` is the public name for the system. `autoresearch` is the current repo and worktree name.
 
-## Non-Negotiable Rules
-
-- If the human gives a time budget like `2 hours`, the lab must write it down explicitly in durable repo state as seconds and as an absolute deadline before dispatching work.
-- Every time-boxed sprint must start with calibration or a documented calibration source.
-- The lab must track predicted versus actual runtime after every run and recalibrate when drift appears.
-- Experiment design must be reactive. Design one active set, run it, read the results, then design the next set. Do not pre-plan multiple future sets as if the earlier results are already known.
-- Do not launch work that does not fit the remaining budget with explicit margin.
-
 ## Mission
 
-The goal is not just to automate my own experiments.
+The point of this repo is not just to automate one person's experiments.
 
-The goal is to help build public infrastructure for autonomous AI research:
+The point is to make autonomous AI research more open, inspectable, and reusable:
 
 - humans set direction, constraints, and taste
-- agents do the lower-level research work
-- experiments stay reproducible
-- results become public knowledge instead of private notebook fragments
-- more people can contribute to real AI research
-
-If this works, open-source AI research becomes less dependent on a tiny number of elite institutions and more dependent on coordination, taste, and iteration speed.
-
-## Why This Exists
-
-For a while, frontier labs had two overwhelming advantages:
-
-1. expertise
-2. compute
-
-Those advantages still matter, but they are no longer absolute.
-
-Strong coding agents reduce the expertise barrier because they can now:
-
-- inspect repos
-- modify code
-- design batches of experiments
-- run short research loops
-- compare outcomes against baselines
-- update plans and knowledge after each round
-
-Distributed compute changes the picture too. No open group has the budget of the biggest labs, but the total compute available across the world is larger than the compute of any one institution. The bottleneck becomes coordination, not just ownership.
-
-That creates an opening for a different research model:
-
-- open challenges
-- public leaderboards
-- reproducible submissions
-- lightweight verification
-- shared experiment logs
-- reusable code and knowledge
-
-This repo is an attempt to build toward that model.
+- agents do lower-level research work
+- important state lives in files, not hidden memory
+- results can be resumed, audited, and shared
 
 ## What This Repo Is
 
-Open Research Loop is a file-based operating system for autonomous research labs.
-
-In this version, the repo is intentionally docs-only. It is meant to be cloned into another AI project so the agent can read the handbook, create the working folders, and run the lab inside the target codebase.
+This repo is a docs-only operating system for running an autonomous research lab inside another codebase.
 
 It is:
 
-- a manifesto for open autonomous research
-- a reference for file-based research orchestration
-- a portable lab operating system you can drop into another repo
-- a set of prompts and templates an AI can use to bootstrap itself
+- a portable lab handbook
+- a file-based operating model
+- a prompt and template kit
+- a concrete product spec for the first useful workflow
 
 It is not:
 
 - a live experiment archive
-- a project-specific codebase
 - a benchmark suite
-- a polished SaaS product
+- a hosted platform
+- a polished end-user product
 
-## What The System Does
+## Core Design Choice
 
-The system is designed so a human sets mission-level direction and policy while the agent handles the lower-level research loop:
+The lab is file-based on purpose.
 
-- create the lab folders and durable records inside the target repo
-- translate mission into year, quarter, month, and week plans
-- design experiments against explicit hypotheses
-- compare results against the correct baselines
-- update durable knowledge and handoff state
-- run either autonomously or under human approval gates
+Plans, experiment records, project configs, knowledge, and handoff state should live in the target repo so:
 
-The central design choice is explicit state. Plans, experiment metadata, results, policy, knowledge, and handoff notes should live in repo files, not in hidden services or temporary model memory.
+- a new agent can recover context
+- a human can inspect what happened
+- contributors can reproduce decisions
+- the workflow does not depend on hidden orchestration
 
-## Why Files Instead Of Hidden Services
+## Where To Start
 
-I want the lab to be inspectable.
+Human operator:
+- read this file
+- read `PRODUCT_SPEC.md` if you care about the first concrete workflow
+- read `SETUP.md`
 
-Hidden orchestration services make it harder for:
-
-- a new agent session to recover context
-- a human to audit what happened
-- contributors to reproduce decisions
-- open-source users to adapt the system
-
-File-based state is not the fanciest architecture, but it is durable, inspectable, and agent-friendly.
-
-That is a feature, not an implementation accident.
-
-## Who Starts Where
-
-There are two entry points:
-
-- Human operator: start in this README, then read `SETUP.md`
-- AI agent: start with `AGENTS.md`, then `LAB.md`, `OPERATING_MODEL.md`, `PRODUCT_SPEC.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
-
-The human sets direction, constraints, and taste.
-The agent creates the lab structure inside the target repo and runs the loop within policy.
+AI agent:
+- start with `AGENTS.md`
+- then read `LAB.md`, `OPERATING_MODEL.md`, `PRODUCT_SPEC.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
 
 ## Repository Map
 
-This repo now contains only the core documents:
-
 - `README.md`
-  - manifesto, framing, and repo entrypoint
-- `AGENTS.md`
-  - agent onboarding and behavior
-- `LAB.md`
-  - governance, authority, and policy
-- `SETUP.md`
-  - install flow for a target repo
-- `OPERATING_MODEL.md`
-  - lifecycle, planning hierarchy, and research loop
+  - repo entrypoint and framing
 - `PRODUCT_SPEC.md`
   - first shippable workflow and maturity gates
+- `LAB.md`
+  - authority, rules, and policy
+- `OPERATING_MODEL.md`
+  - execution mechanics and research loop
+- `AGENTS.md`
+  - agent onboarding and startup behavior
+- `SETUP.md`
+  - human install flow
 - `FOLDER_BLUEPRINT.md`
-  - the folders and files the AI should create in the target repo
-- `PROMPTS_AUTONOMOUS.md`
-  - prompts for autonomous operation
-- `PROMPTS_SUPERVISED.md`
-  - prompts for supervised operation
+  - durable folder structure for target repos
 - `TEMPLATES.md`
-  - starter templates for goals, plans, configs, experiments, and reports
+  - starter files for goals, plans, configs, experiments, and reports
+- `PROMPTS_AUTONOMOUS.md`
+  - prompt entrypoints for autonomous operation
+- `PROMPTS_SUPERVISED.md`
+  - prompt entrypoints for approval-gated operation
 - `OPERATOR_TIPS.md`
-  - practical tips for humans on how to get better results from the autonomous agent
+  - practical tips for the human operator
 
 ## How To Use It
 
-1. Copy these markdown files into the root of the repo you actually want to research on.
+1. Copy these markdown files into the repo you actually want to research on.
 2. Start your AI coding agent in that repo.
-3. Have it read the operating docs.
-4. Have it read `PRODUCT_SPEC.md` if you want the concrete first product workflow.
-5. Choose autonomous or supervised mode.
-6. Let the agent create the missing folders and starter files in the target repo.
+3. Have it read the documents in the order defined by `AGENTS.md`.
+4. Choose autonomous or supervised mode.
+5. Let the agent create the working folders and durable starter files in the target repo.
 
-This repo does not ship `experiments/`, `goals/`, `knowledge/`, `projects/`, `state/`, `logs/`, `reports/`, or `scripts/`. Those are meant to be created inside the target repo when the lab is instantiated.
+This repo does not ship runtime folders like `experiments/`, `goals/`, `knowledge/`, `projects/`, `state/`, `logs/`, or `reports/`.
+Those are meant to be created inside the target repo when the lab is instantiated.
 
-## What I Want This To Become
+## Long-Term Direction
 
-The longer-term goal is bigger than one operator automating one personal workflow.
+The long-term goal is open autonomous research infrastructure:
 
-The goal is open autonomous research infrastructure:
+1. one human can direct many agent-run loops
+2. one control plane can work across many repos
+3. contributors can inspect and extend the process
+4. public knowledge compounds instead of staying private
 
-1. One human should be able to direct many agent-run research loops.
-2. One control plane should be able to run many different ML repos.
-3. Open-source contributors should be able to reproduce, inspect, and extend the process.
-4. Public challenges and leaderboards should be able to plug into the same research engine.
-5. Distributed compute and distributed contributors should be able to coordinate through explicit records.
-
-The end state is not "one guy automates his own experiments better."
-
-The end state is open autonomous research infrastructure.
+The first step is smaller:
+make the workflow from user question to autonomous research run actually work.

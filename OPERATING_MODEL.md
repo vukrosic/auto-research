@@ -1,28 +1,9 @@
 # Operating Model
 
-This document describes how the lab should function once installed into a real repo.
+This document describes how the lab runs once it is installed into a real repo.
 
-## Non-Negotiable Rules
-
-- Write down the human-given time budget and absolute deadline in durable repo state before dispatching work.
-- Start every time-boxed sprint with calibration or a documented calibration source.
-- Track predicted versus actual runtime after every run.
-- Recalibrate immediately if recent actuals drift materially from prediction.
-- Design experiments reactively: only one active set at a time.
-- Do not pre-design multiple future sets that assume results you have not seen yet.
-- Do not dispatch work that no longer fits the remaining deadline with margin.
-
-## Two Operating Modes
-
-Autonomous mode:
-
-- the AI runs the loop end to end
-- it pauses only for mission changes, budget changes, or policy conflicts
-
-Supervised mode:
-
-- the AI still does the work
-- it stops at explicit approval gates before dispatch, promotion, large code changes, or strategic pivots
+Hard policy lives in `LAB.md`.
+This file focuses on execution mechanics.
 
 ## Core Objects
 
@@ -48,11 +29,12 @@ Use this cascade:
 6. campaign and wave docs
 7. experiment briefs and snapshots
 
-High-level intent cascades downward. Findings cascade upward.
+High-level intent cascades downward.
+Findings cascade upward.
 
 ## Standard Research Loop
 
-1. Reconcile state from the durable files.
+1. Reconcile state from durable files.
 2. Read the active goal and current plans.
 3. Review knowledge so failed ideas are not repeated.
 4. Check running experiments.
@@ -64,7 +46,7 @@ High-level intent cascades downward. Findings cascade upward.
 10. Dispatch or stage the next work.
 11. Write `state/NOW.md` before ending the session.
 
-## Experiment Discipline
+## Experiment Record Requirements
 
 Every experiment should record:
 
@@ -83,7 +65,7 @@ Every experiment should record:
 - predicted startup / validation / post-train overhead when available
 - change summary
 
-Every completed experiment should record:
+Every completed experiment should also record:
 
 - primary metric
 - runtime
@@ -94,19 +76,24 @@ Every completed experiment should record:
 - environment used
 - relevant log tail or artifact pointer
 
-## Deadline Fit Rule
+## Timing Model
 
-Before launching a run, the lab must have a machine-readable estimate for:
+Before launching a run, the lab should have a machine-readable estimate for:
 
 - remaining budget seconds
 - predicted duration for the next run
 - projected remaining sweep time after that run
 
-The next run should not start unless it still fits the remaining budget with explicit margin.
-If recent actual runtimes differ materially from predicted runtimes, the lab must recalibrate before queueing more work.
-Batch plans should be updated after every completed run, not only at the start of a sweep.
+After each completed run, the lab should update:
 
-## Reactive Design Rule
+- actual runtime
+- prediction error
+- remaining budget
+- whether recalibration is needed
+
+Batch plans should be revised after each completed run, not only at the start of a sweep.
+
+## Reactive Design
 
 The lab should design only one active set at a time.
 
@@ -114,40 +101,32 @@ That means:
 
 - run the current set
 - read the results
-- update the timing model and knowledge
+- update timing and knowledge
 - only then design the next set
 
-Do not queue multiple speculative sets in advance unless the human explicitly asks for that behavior.
+Do not queue speculative future sets unless the human explicitly asks for that behavior.
 
-## Baseline Rule
+## Baseline Discipline
 
 Never evaluate an experiment against a mismatched baseline.
 
 If the lab wants to test at a new step count, it must first produce a baseline for that same step count using the unmodified base.
 
-## Promotion Rule
-
-Promotion should follow this logic:
-
-- winner on latest base: eligible for promotion
-- winner on old base: stale, must be revalidated
-- valid miss: rejected, but still logged as a useful finding
-
 ## Repo Integration Contract
 
-The target repo should expose, directly or through thin helper scripts:
+A target repo is usable when the lab can determine:
 
 - how to launch a run
-- how to determine whether a run is still active
+- how to detect whether a run is still active
 - where logs go
 - where result artifacts appear
 - how the primary metric is parsed
 
 These are project-level details, not template-level details.
 
-## State Model
+## Source-Of-Truth Priority
 
-Recommended source-of-truth priority:
+Recommended priority:
 
 1. experiment records
 2. project config
@@ -155,11 +134,12 @@ Recommended source-of-truth priority:
 4. knowledge files
 5. state dashboards
 
-Dashboards can be regenerated. Primary records cannot be inferred safely after the fact.
+Dashboards can be regenerated.
+Primary records should not be inferred after the fact if avoidable.
 
 ## Session End Rule
 
-Every session should leave the next session a clean handoff:
+Every session should leave a clean handoff:
 
 - what is running
 - what finished

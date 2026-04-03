@@ -1,22 +1,28 @@
 # Lab Rules
 
-This file is the governing policy for the lab once these documents are installed into a target repo.
+This file defines authority and hard policy for the lab once it is installed into a target repo.
 
-## Hard Rules
-
-- If the human states a budget or deadline, the lab must write it into durable repo files before dispatching compute.
-- Time-boxed work must start from a calibration run or an explicit prior calibration source.
-- Predicted versus actual runtime must be tracked after every run.
-- If runtime drift appears, recalibrate before queueing more work.
-- Experiment design is reactive: design one active set, run it, inspect it, then design the next set.
-- Do not design multiple future sets in advance as if intermediate results are already known.
-- Do not start a run that no longer fits the remaining budget with margin.
+Execution mechanics live in `OPERATING_MODEL.md`.
+The first user-facing workflow lives in `PRODUCT_SPEC.md`.
 
 ## Authority
 
 - The human owns mission, scope, budget, and hard constraints.
-- The AI owns planning and execution below the mission layer unless the user chooses supervised mode.
-- Human-written mission files are not rewritten by the AI without explicit approval.
+- The AI owns planning and execution below the mission layer unless the user selects supervised mode.
+- Human-written mission files are not rewritten without explicit approval.
+
+## Hard Rules
+
+- If the human gives a budget or deadline, write it into durable repo state before dispatching work.
+- Time-boxed work must start from a calibration run or a documented calibration source.
+- Track predicted versus actual runtime after every run.
+- Recalibrate when runtime drift appears.
+- Design one active set at a time.
+- Do not pre-design future sets as if earlier results are already known.
+- Do not start work that no longer fits the remaining budget with explicit margin.
+- Do not spend compute without a named hypothesis and comparison target.
+- Do not evaluate an experiment against a mismatched baseline.
+- Every session must end with an updated handoff note.
 
 ## Source Of Truth
 
@@ -25,20 +31,28 @@ The lab must be file-based.
 Primary records live in the target repo:
 
 - goals and plans
-- project config
+- project configs
 - experiment records
 - knowledge files
 - reports and handoff notes
 
-Derived dashboards are useful, but if they disagree with experiment records, the primary records win.
+Derived dashboards are useful, but primary records win when they disagree.
 
 ## Required Discipline
 
-1. Every experiment must have a named hypothesis.
-2. Every experiment must record its parent base or baseline.
-3. Every experiment must be evaluated against the correct same-step baseline.
-4. Every adjudication must update durable knowledge.
-5. Every session must end with a handoff note.
+Every experiment must:
+
+- have a name
+- have a stated hypothesis
+- record its parent base or baseline
+- be judged against the correct same-step baseline
+- leave behind durable results
+
+Every adjudication must:
+
+- record the verdict
+- update knowledge
+- update the handoff state
 
 ## Status Vocabulary
 
@@ -73,21 +87,17 @@ If a promoted result is later found invalid because of bad evaluation, broken lo
 - restore the previous valid base
 - record the failure mode in knowledge and the handoff note
 
-## Planning Hierarchy
+## Operating Modes
 
-Planning should cascade in this order:
+Autonomous mode:
 
-1. mission
-2. year
-3. quarter
-4. month
-5. week
-6. set or batch
-7. experiment
+- the AI may plan, dispatch, adjudicate, and update files without routine approval
 
-Results should roll upward in the reverse direction.
+Supervised mode:
 
-## Knowledge Rule
+- the AI must stop at the agreed approval gates before dispatch, promotion, broad repo changes, or major pivots
+
+## Minimal Knowledge Requirement
 
 Do not let findings remain only in chat or commit history.
 
@@ -98,24 +108,6 @@ At minimum, maintain:
 - training notes
 - architecture or design notes
 
-## Compute Rule
+## Policy Rule
 
-Do not spend compute without a clear hypothesis and comparison target.
-
-In autonomous mode, keep a pipeline of ready work so compute does not sit idle unnecessarily.
-
-In supervised mode, stop at the agreed approval gates before dispatching or scaling.
-
-## Mode Rule
-
-Autonomous mode:
-
-- the AI may plan, create experiments, dispatch work, adjudicate results, and update knowledge without routine approvals
-
-Supervised mode:
-
-- the AI must present brief proposals and wait for approval before dispatch, promotion, campaign pivots, or broad repo changes
-
-## Design Rule
-
-If a rule matters operationally, it should be written into repo files before it is trusted in practice.
+If a rule matters in practice, it should exist in durable repo files before the lab relies on it.

@@ -8,10 +8,11 @@ Read this first when these documents are installed into a target repo.
 2. `LAB.md`
 3. `OPERATING_MODEL.md`
 4. `PRODUCT_SPEC.md`
-5. `FOLDER_BLUEPRINT.md`
-6. `TEMPLATES.md`
-7. `SETUP.md`
-8. The appropriate prompt file:
+5. `INTAKE_PROMPT.md`
+6. `FOLDER_BLUEPRINT.md`
+7. `TEMPLATES.md`
+8. `SETUP.md`
+9. The appropriate prompt file:
    - `PROMPTS_AUTONOMOUS.md`
    - `PROMPTS_SUPERVISED.md`
 
@@ -26,6 +27,7 @@ You should:
 - keep important state in repo files
 - run the research loop according to `LAB.md` and `OPERATING_MODEL.md`
 - follow `PRODUCT_SPEC.md` when the goal is the first concrete product workflow
+- design experiments from first principles rather than defaulting to generic ablation menus
 
 ## First Session Behavior
 
@@ -40,6 +42,8 @@ If the lab folders do not exist yet:
    - training or evaluation entrypoint
    - completion or result signal
    - compute constraints
+   - available GPU and approximate VRAM
+   - time budget or deadline
 
 If the folders already exist:
 

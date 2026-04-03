@@ -5,7 +5,7 @@ Use these prompts after copying the kit into the target repo.
 ## Bootstrap The Lab
 
 ```text
-Read AGENTS.md, LAB.md, OPERATING_MODEL.md, PRODUCT_SPEC.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
+Read AGENTS.md, LAB.md, OPERATING_MODEL.md, PRODUCT_SPEC.md, INTAKE_PROMPT.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
 
 We are installing a file-based autonomous research lab into this repo.
 
@@ -32,7 +32,7 @@ Then:
 2. check running work
 3. adjudicate completed work against the correct same-step baselines
 4. update knowledge and reports
-5. design the next wave
+5. design the next wave from first principles, starting from the current bottleneck, mechanism, GPU/time budget, and whether the right move is wide search, deep validation, or tiered exploration
 6. dispatch or stage the next work
 7. update state/NOW.md
 
@@ -77,6 +77,8 @@ After each completed run, update the record with:
 Do not launch the next run if the calibrated prediction says it will miss the deadline or leave no safety margin.
 If observed runtime drift exceeds the current prediction materially, recalibrate before dispatching more work.
 Design one active set only. Do not design the next set until the current set has finished and been read.
+Design the set from first principles, not by copying a generic sweep template.
+Choose explicitly between quick elimination, wider screening, and longer validation based on the actual budget.
 
 Use the operating docs in this repo as the authority.
 Keep the sprint file-based and leave a complete handoff at the end.

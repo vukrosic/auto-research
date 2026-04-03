@@ -5,7 +5,7 @@ Use these prompts when the AI should do the work but stop at approval gates.
 ## Bootstrap In Supervised Mode
 
 ```text
-Read AGENTS.md, LAB.md, OPERATING_MODEL.md, PRODUCT_SPEC.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
+Read AGENTS.md, LAB.md, OPERATING_MODEL.md, PRODUCT_SPEC.md, INTAKE_PROMPT.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
 
 Install this file-based research lab into the current repo, but operate in supervised mode.
 
@@ -24,7 +24,8 @@ Read the current lab state and propose the next research wave.
 
 I want:
 - a short summary of what the lab currently believes
-- the next experiments you would run
+- the next experiments you would run from first principles
+- whether this should be wide search, deep validation, or tiered exploration
 - the baseline each one compares against
 - the expected cost and upside
 

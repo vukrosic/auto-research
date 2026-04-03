@@ -122,6 +122,11 @@ Template:
 
 - Set 1: <goal, hypothesis class, compute budget>
 
+## Search Strategy
+
+- Strategy: <wide_search|deep_validation|tiered_exploration>
+- Why this strategy fits the current GPU, VRAM, and time budget: <rationale>
+
 ## Next Set Rule
 
 - Design the next set only after Set 1 finishes and the results are reviewed.
@@ -216,7 +221,9 @@ Template:
   "name": "<experiment-name>",
   "project": "<project-name>",
   "hypothesis": "<what this test is trying to learn>",
+  "first_principles_rationale": "<why this is the right test from mechanism, budget, and failure-mode reasoning>",
   "parent_base": "<base-id>",
+  "search_strategy": "<wide_search|deep_validation|tiered_exploration>",
   "stage": "explore",
   "steps": 500,
   "baseline_metric": null,

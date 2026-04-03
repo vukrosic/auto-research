@@ -22,6 +22,8 @@ Provide these facts up front when the AI cannot infer them safely:
 - the training or evaluation entrypoint
 - how completion is detected
 - the compute environment and budget
+- the available GPU and approximate VRAM
+- the time budget or deadline
 - whether the AI should operate autonomously or under supervision
 
 ## Installation Flow
@@ -33,6 +35,7 @@ Provide these facts up front when the AI cannot infer them safely:
    - `LAB.md`
    - `OPERATING_MODEL.md`
    - `PRODUCT_SPEC.md`
+   - `INTAKE_PROMPT.md`
    - `FOLDER_BLUEPRINT.md`
    - `TEMPLATES.md`
 4. Use one of the prompt files:

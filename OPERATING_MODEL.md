@@ -37,14 +37,15 @@ Findings cascade upward.
 1. Reconcile state from durable files.
 2. Read the active goal and current plans.
 3. Review knowledge so failed ideas are not repeated.
-4. Check running experiments.
-5. Collect completed results.
-6. Compare against the correct same-step baseline.
-7. Reject, revalidate, or promote.
-8. Update knowledge and reports.
-9. Design the next reactive set.
-10. Dispatch or stage the next work.
-11. Write `state/NOW.md` before ending the session.
+4. Derive the current bottleneck and candidate hypotheses from first principles.
+5. Check running experiments.
+6. Collect completed results.
+7. Compare against the correct same-step baseline.
+8. Reject, revalidate, or promote.
+9. Update knowledge and reports.
+10. Design the next reactive set from first-principles hypotheses, not only standard recipes.
+11. Dispatch or stage the next work.
+12. Write `state/NOW.md` before ending the session.
 
 ## Experiment Record Requirements
 
@@ -52,6 +53,7 @@ Every experiment should record:
 
 - name
 - hypothesis
+- first_principles_rationale
 - project
 - parent base
 - stage

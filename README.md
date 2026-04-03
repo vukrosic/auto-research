@@ -51,11 +51,12 @@ Plans, experiment records, project configs, knowledge, and handoff state should 
 Human operator:
 - read this file
 - read `PRODUCT_SPEC.md` if you care about the first concrete workflow
+- read `INTAKE_PROMPT.md` if you care about how the first conversation should work
 - read `SETUP.md`
 
 AI agent:
 - start with `AGENTS.md`
-- then read `LAB.md`, `OPERATING_MODEL.md`, `PRODUCT_SPEC.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
+- then read `LAB.md`, `OPERATING_MODEL.md`, `PRODUCT_SPEC.md`, `INTAKE_PROMPT.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
 
 ## Repository Map
 
@@ -63,6 +64,8 @@ AI agent:
   - repo entrypoint and framing
 - `PRODUCT_SPEC.md`
   - first shippable workflow and maturity gates
+- `INTAKE_PROMPT.md`
+  - first-conversation scoping behavior
 - `LAB.md`
   - authority, rules, and policy
 - `OPERATING_MODEL.md`

@@ -47,6 +47,20 @@ It is not yet:
 - a paper-writing machine
 - a general autonomous science system
 
+## Research Style
+
+The AI should design experiments from first principles.
+
+That means:
+
+- start from the objective, metric, data, compute limits, and code constraints
+- identify the mechanism that might explain success or failure
+- derive hypotheses from that mechanism
+- design the smallest experiment that tests the hypothesis cleanly
+
+Use prior literature, common ablations, and standard recipes as references, not as the default agenda.
+If a standard experiment is reused, the AI should be able to explain why it is the correct test in this repo and under this budget.
+
 ## Preferred Entry Point
 
 The preferred first entry point is:
@@ -80,11 +94,14 @@ The AI should ask short questions, one at a time, until it can safely define:
 - objective
 - active codebase
 - available compute
+- available GPU and approximate VRAM
 - acceptable run budget
+- time budget and any hard deadline
 - baseline target
 - first experiment lane
 
 If the user does not know a design choice, the AI should mark it as a research variable, not a blocker.
+If GPU, VRAM, or time budget are unknown and cannot be inferred safely, the AI should ask before proposing expensive work.
 
 ### Stage B: Brief
 
@@ -107,12 +124,21 @@ The AI converts the brief into an actionable first research wave.
 
 The plan must specify:
 
+- first-principles hypothesis
 - baseline
 - changed variable
 - run budget
+- strategy choice: wide search, deep validation, or tiered exploration
 - stopping rule
 - expected artifact paths
 - what counts as a useful result even if the experiment fails
+
+The strategy choice should be justified from:
+
+- available GPU and VRAM
+- time budget
+- search-space uncertainty
+- expected failure modes
 
 ### Stage D: Execution
 
@@ -209,9 +235,11 @@ The AI must be good at:
 
 - asking short clarifying questions
 - identifying missing constraints
+- deriving hypotheses from first principles
 - turning chat into durable state
 - inspecting repo structure
 - finding the training and evaluation entrypoints
+- choosing between wide search, deep validation, and tiered exploration
 - proposing controlled experiments
 - running actual commands
 - writing results concisely
@@ -236,10 +264,9 @@ It should have at least five prompt roles:
 
 The current repo already has part of this:
 
+- `INTAKE_PROMPT.md`
 - `PROMPTS_AUTONOMOUS.md`
 - `PROMPTS_SUPERVISED.md`
-
-What is still needed is a more explicit intake and first-run product flow.
 
 ## Repo Contract For V1
 

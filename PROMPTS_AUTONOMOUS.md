@@ -5,7 +5,7 @@ Use these prompts after copying the kit into the target repo.
 ## Bootstrap The Lab
 
 ```text
-Read AGENTS.md, LAB.md, OPERATING_MODEL.md, PRODUCT_SPEC.md, INTAKE_PROMPT.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
+Read AGENTS.md, LAB.md, OPERATING_MODEL.md, PRODUCT_SPEC.md, INTAKE_PROMPT.md, PLANNING_PROMPT.md, FOLDER_BLUEPRINT.md, TEMPLATES.md, and SETUP.md.
 
 We are installing a file-based autonomous research lab into this repo.
 
@@ -14,6 +14,7 @@ Your job:
 - use TEMPLATES.md to materialize the initial mission, project config, plans, knowledge files, and handoff note
 - keep all durable state in repo files
 - ask only for critical missing facts that cannot be inferred safely
+- once the minimum facts are known, write the first plan and take the first concrete action immediately
 
 Operate in autonomous mode.
 Do not wait for routine approval.
@@ -37,6 +38,7 @@ Then:
 7. update state/NOW.md
 
 Proceed autonomously unless LAB.md says you must stop.
+Do not stop at analysis when the next action is clear.
 ```
 
 ## Time-Boxed Research Sprint

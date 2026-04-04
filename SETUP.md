@@ -36,12 +36,14 @@ Provide these facts up front when the AI cannot infer them safely:
    - `OPERATING_MODEL.md`
    - `PRODUCT_SPEC.md`
    - `INTAKE_PROMPT.md`
+   - `PLANNING_PROMPT.md`
    - `FOLDER_BLUEPRINT.md`
    - `TEMPLATES.md`
 4. Use one of the prompt files:
    - `PROMPTS_AUTONOMOUS.md`
    - `PROMPTS_SUPERVISED.md`
 5. Let the AI create the working folders and starter files described in `FOLDER_BLUEPRINT.md`.
+6. Expect it to ask only the missing critical questions, then write the plan and begin.
 
 ## Expected First Output In The Target Repo
 

@@ -52,11 +52,12 @@ Human operator:
 - read this file
 - read `PRODUCT_SPEC.md` if you care about the first concrete workflow
 - read `INTAKE_PROMPT.md` if you care about how the first conversation should work
+- read `PLANNING_PROMPT.md` if you care about how the AI should move from brief to action
 - read `SETUP.md`
 
 AI agent:
 - start with `AGENTS.md`
-- then read `LAB.md`, `OPERATING_MODEL.md`, `PRODUCT_SPEC.md`, `INTAKE_PROMPT.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
+- then read `LAB.md`, `OPERATING_MODEL.md`, `PRODUCT_SPEC.md`, `INTAKE_PROMPT.md`, `PLANNING_PROMPT.md`, `FOLDER_BLUEPRINT.md`, and `TEMPLATES.md`
 
 ## Repository Map
 
@@ -66,6 +67,8 @@ AI agent:
   - first shippable workflow and maturity gates
 - `INTAKE_PROMPT.md`
   - first-conversation scoping behavior
+- `PLANNING_PROMPT.md`
+  - brief-to-plan-to-action behavior
 - `LAB.md`
   - authority, rules, and policy
 - `OPERATING_MODEL.md`

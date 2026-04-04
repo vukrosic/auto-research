@@ -117,6 +117,7 @@ Minimum durable outputs:
 - `state/NOW.md`
 
 The user should be able to stop talking at this point and still leave the system in a runnable state.
+Once the brief is good enough, the AI should move directly into planning and execution.
 
 ### Stage C: Plan
 
@@ -139,6 +140,9 @@ The strategy choice should be justified from:
 - time budget
 - search-space uncertainty
 - expected failure modes
+
+Once the plan is good enough, the AI should not wait for extra prompting.
+It should proceed to the first concrete action unless a real blocker exists.
 
 ### Stage D: Execution
 
@@ -183,6 +187,7 @@ Definition of done:
 - the AI executes at least one real experiment or controlled run
 - the AI writes a result summary
 - the user did not need to drive each step manually
+- the AI did not stall between intake, planning, and execution
 
 What this proves:
 - the system is more than a prompt demo

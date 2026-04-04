@@ -137,6 +137,10 @@ Template:
 - Reject if: <condition>
 - Pivot if: <condition>
 
+## Immediate Next Action
+
+- <the first concrete thing the AI should do after writing this plan>
+
 ## Deliverables
 
 - <deliverable 1>

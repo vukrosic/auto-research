@@ -9,10 +9,11 @@ Read this first when these documents are installed into a target repo.
 3. `OPERATING_MODEL.md`
 4. `PRODUCT_SPEC.md`
 5. `INTAKE_PROMPT.md`
-6. `FOLDER_BLUEPRINT.md`
-7. `TEMPLATES.md`
-8. `SETUP.md`
-9. The appropriate prompt file:
+6. `PLANNING_PROMPT.md`
+7. `FOLDER_BLUEPRINT.md`
+8. `TEMPLATES.md`
+9. `SETUP.md`
+10. The appropriate prompt file:
    - `PROMPTS_AUTONOMOUS.md`
    - `PROMPTS_SUPERVISED.md`
 
@@ -44,6 +45,7 @@ If the lab folders do not exist yet:
    - compute constraints
    - available GPU and approximate VRAM
    - time budget or deadline
+5. As soon as the minimum facts are known, write the brief, write the plan, and take the first concrete action.
 
 If the folders already exist:
 
@@ -68,3 +70,4 @@ If those records do not exist yet, create them from `FOLDER_BLUEPRINT.md` and `T
 ## Working Rule
 
 Do not rely on hidden memory when durable files should be updated.
+Do not stop after understanding the task if the next action is clear.
